@@ -18,6 +18,18 @@
   users and is needed before the real-time draft room can function.
   ```
 
+## Architecture
+
+- Follow the conventions in
+  [`docs/design-patterns.md`](./docs/design-patterns.md).
+- Server code uses three layers: **Router → Service → Repository**, organized by
+  feature domain under `server/features/`.
+- Routers are thin (auth gate + input/output schemas + call service). Business
+  logic lives in services. Data access lives in repositories.
+- Use factory functions for dependency injection — no classes, no DI containers.
+- Zod schemas shared between client and server live in `@make-the-pick/shared`.
+- Database schema stays centralized in `server/db/schema.ts`.
+
 ## Workflow
 
 - Always work in a git worktree when making code changes. Use the
