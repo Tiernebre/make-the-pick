@@ -28,6 +28,9 @@ jobs:
           docker build -t registry.digitalocean.com/make-the-pick/app:latest .
           docker push registry.digitalocean.com/make-the-pick/app:latest
 
+      - name: Clean up old registry images
+        run: doctl registry garbage-collection start --include-untagged-manifests --force
+
       - name: Copy docker-compose.prod.yml to Droplet
         uses: appleboy/scp-action@v0.1.7
         with:
