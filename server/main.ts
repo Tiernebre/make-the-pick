@@ -1,12 +1,14 @@
 import { Hono } from "hono";
 import type { HealthResponse } from "@draftr/shared";
+import { db, healthChecks } from "./db/mod.ts";
 
 export const app = new Hono();
 
-app.get("/api/health", (c) => {
+app.get("/api/health", async (c) => {
+  const [check] = await db.insert(healthChecks).values({}).returning();
   const response: HealthResponse = {
     status: "ok",
-    timestamp: new Date().toISOString(),
+    timestamp: check.checkedAt.toISOString(),
   };
   return c.json(response);
 });

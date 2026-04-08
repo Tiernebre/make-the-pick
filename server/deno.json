@@ -3,7 +3,10 @@
   "version": "0.0.1",
   "exports": "./main.ts",
   "imports": {
-    "hono": "jsr:@hono/hono@^4"
+    "hono": "jsr:@hono/hono@^4",
+    "drizzle-orm": "npm:drizzle-orm@^0.44",
+    "drizzle-orm/": "npm:/drizzle-orm@^0.44/",
+    "postgres": "npm:postgres@^3.4"
   },
   "tasks": {
     "dev": "deno run --allow-net --allow-env --allow-read main.ts"
