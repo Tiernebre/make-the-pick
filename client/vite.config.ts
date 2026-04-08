@@ -8,15 +8,17 @@ export default defineConfig({
       "/api": {
         target: "http://localhost:3000",
         configure: (proxy) => {
-          proxy.on("error", (err, _req, res) => {
+          const originalEmit = proxy.emit.bind(proxy);
+          proxy.emit = (event: string, ...args: unknown[]) => {
             if (
-              err.message.includes("abort") || err.message.includes("cancel")
-            ) return;
-            if (res && "writeHead" in res) {
-              res.writeHead(502);
-              res.end("Proxy error");
+              event === "error" &&
+              args[0] instanceof Error &&
+              /abort|cancel/i.test(args[0].message)
+            ) {
+              return true;
             }
-          });
+            return originalEmit(event, ...args);
+          };
         },
       },
       "/ws": {
