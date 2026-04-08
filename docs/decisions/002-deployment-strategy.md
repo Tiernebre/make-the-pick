@@ -71,8 +71,9 @@ that runs only on the `main` branch after all checks pass:
 
 1. **Build** the Docker image
 2. **Push** to DigitalOcean Container Registry (DOCR, free tier: 1 repo, 500 MB)
-3. **Deploy** via SSH into the Droplet: pull the latest image and run
-   `docker compose up -d`
+3. **Deploy** via SSH into the Droplet: copy the repo's
+   `docker-compose.prod.yml` to the Droplet, pull the latest image, and run
+   `docker compose -f docker-compose.prod.yml up -d`
 
 Zero-downtime deploys are not guaranteed at MVP — the app restarts briefly
 during deploys. This is acceptable for an early-stage app with a small user
@@ -111,8 +112,10 @@ the Droplet.
 
 ### Production Docker Compose
 
-A separate `docker-compose.prod.yml` on the Droplet (not committed to the repo)
-defines the production stack:
+A `docker-compose.prod.yml` committed to the repository defines the production
+stack. During deployment, the CI/CD pipeline copies this file to the Droplet via
+`scp`, ensuring the Droplet always runs the version that matches the deployed
+code:
 
 - **app** — pulls the latest image from DOCR, exposes port 3000, depends on
   `postgres`
