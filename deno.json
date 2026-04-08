@@ -17,6 +17,9 @@
     "db:start": "docker compose up -d",
     "db:stop": "docker compose down"
   },
+  "imports": {
+    "concurrently": "npm:concurrently@^9.2.1"
+  },
   "compilerOptions": {
     "strict": true,
     "jsx": "react-jsx",
