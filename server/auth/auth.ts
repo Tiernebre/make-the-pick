@@ -21,6 +21,7 @@ export const auth = betterAuth({
   },
   secret: Deno.env.get("BETTER_AUTH_SECRET"),
   baseURL: Deno.env.get("BETTER_AUTH_URL") ?? "http://localhost:3000",
+  trustedOrigins: Deno.env.get("BETTER_AUTH_TRUSTED_ORIGINS")?.split(",") ?? [],
 });
 
 export type Session = typeof auth.$Infer.Session;
