@@ -2,10 +2,13 @@
 
 ## Git
 
-- Use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) for all commit messages.
+- Use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) for
+  all commit messages.
 - Format: `<type>(<optional scope>): <description>`
-- Include a detailed body explaining **why** the change was made, not just what changed.
-- Common types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `build`, `ci`
+- Include a detailed body explaining **why** the change was made, not just what
+  changed.
+- Common types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `build`,
+  `ci`
 - Example:
   ```
   feat(draft): add snake draft pick order logic
@@ -17,5 +20,9 @@
 
 ## Workflow
 
-- Always work in a git worktree when making code changes. Use the `EnterWorktree` tool before starting implementation to avoid conflicts with parallel sessions.
-- After every successful change, commit and push directly to `main`. Keep commits small and frequent — one logical change per commit. From a worktree, use: `git push origin HEAD:main`.
+- Always work in a git worktree when making code changes. Use the
+  `EnterWorktree` tool before starting implementation to avoid conflicts with
+  parallel sessions.
+- After every successful change, commit and push directly to `main`. Keep
+  commits small and frequent — one logical change per commit. From a worktree,
+  use: `git push origin HEAD:main`.
