@@ -106,6 +106,30 @@ Google OAuth is the sole provider to start. All initial users have Google accoun
 
 **Considered:** Clerk / Auth0 — fully managed but adds an external service dependency on the critical path of every request, plus pricing tiers. Auth.js — tightly coupled to Next.js, experimental Hono adapter isn't mature. Lucia Auth — solid patterns but recently deprecated as a library.
 
+### Logging: Pino + Hono Logger
+
+Hono's built-in logger middleware handles HTTP request/response logging. Pino provides structured JSON logging for application-level events (draft picks, trade actions, auth events, errors). Structured logs from day one make it straightforward to pipe into any observability tool later.
+
+**Considered:** Deno stdlib `std/log` — lightweight but less ecosystem integration and no structured JSON output by default.
+
+### Error Handling: tRPC Error Model
+
+Use tRPC's built-in error codes and error formatting (`NOT_FOUND`, `UNAUTHORIZED`, `BAD_REQUEST`, `FORBIDDEN`, etc.) rather than inventing a custom error model. Errors thrown in procedures surface to the client with typed error codes that the frontend can handle consistently. Application-level errors (e.g., "draft pick already taken") use `TRPCError` with appropriate codes.
+
+### Environment & Config
+
+Deno has built-in `.env` file support for local development. Production uses environment variables directly. No config library needed — `Deno.env.get()` handles both cases. Sensitive values (database URL, OAuth secrets) are never committed.
+
+### CI/CD: GitHub Actions
+
+Pipeline stages: lint → unit tests → integration tests (with Postgres service container) → E2E (Playwright) → deploy. Unit tests run first for fast failure. E2E tests are the final gate before deployment.
+
+### Deployment: DigitalOcean
+
+Single Deno process in a Docker container on DigitalOcean. Supports persistent WebSocket connections (needed for draft rooms) and direct PostgreSQL access — both limitations of serverless platforms like Deno Deploy. DigitalOcean's managed PostgreSQL can serve as the database, keeping infrastructure simple.
+
+**Considered:** Deno Deploy — no persistent WebSocket support and no direct Postgres connections. Fly.io — capable but adds complexity over a straightforward VPS/App Platform setup.
+
 ### Authorization: Login-Gated, Public Leagues
 
 The entire app requires authentication — unauthenticated users see only the login page. No granular permission model for MVP. All leagues are public and visible to any logged-in user. League creator controls phase transitions but there are no role-based restrictions beyond that. Fine-grained authorization (private leagues, admin roles, trade approval permissions) can be layered in later without architectural changes.
