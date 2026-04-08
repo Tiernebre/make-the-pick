@@ -106,6 +106,10 @@ Google OAuth is the sole provider to start. All initial users have Google accoun
 
 **Considered:** Clerk / Auth0 — fully managed but adds an external service dependency on the critical path of every request, plus pricing tiers. Auth.js — tightly coupled to Next.js, experimental Hono adapter isn't mature. Lucia Auth — solid patterns but recently deprecated as a library.
 
+### Authorization: Login-Gated, Public Leagues
+
+The entire app requires authentication — unauthenticated users see only the login page. No granular permission model for MVP. All leagues are public and visible to any logged-in user. League creator controls phase transitions but there are no role-based restrictions beyond that. Fine-grained authorization (private leagues, admin roles, trade approval permissions) can be layered in later without architectural changes.
+
 ### Testing: Split Runners, Strict TDD
 
 Two test runners, matched to their runtime:
