@@ -1,4 +1,8 @@
-# Technical Proposal: Pokemon Draft & Trade
+# ADR-001: Initial Technical Proposal
+
+## Status
+
+Accepted
 
 ## Overview
 
