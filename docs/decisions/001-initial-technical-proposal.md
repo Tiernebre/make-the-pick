@@ -62,6 +62,12 @@ Full-featured, off-the-shelf React component library with 100+ components, built
 
 **Considered:** Shadcn/ui + Tailwind — high quality but requires assembling your own design system from primitives. Chakra UI — similar scope but v3 rewrite left the ecosystem fragmented. MUI — most complete but heavyweight and highly opinionated.
 
+### Client Routing: Wouter
+
+Tiny (~2KB), hooks-based router with a stable API. Covers path matching, route params, nested routes, and SPA navigation — nothing more. No framework ambitions, no major version churn.
+
+**Considered:** React Router — painful versioning history (v5 → v6 breaking changes, v7 blurring into Remix). TanStack Router — type-safe but increasingly tied to TanStack Start's full-stack framework pitch.
+
 ### Real-time: Deno Native WebSocket
 
 Deno has built-in WebSocket support with no extra dependencies. For a draft room, we need full control over the connection lifecycle (join, pick, disconnect/reconnect, timer sync) — a raw WebSocket server gives that without the abstraction overhead of Socket.IO or similar libraries.
