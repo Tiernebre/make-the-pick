@@ -62,6 +62,12 @@ Full-featured, off-the-shelf React component library with 100+ components, built
 
 **Considered:** Shadcn/ui + Tailwind — high quality but requires assembling your own design system from primitives. Chakra UI — similar scope but v3 rewrite left the ecosystem fragmented. MUI — most complete but heavyweight and highly opinionated.
 
+### Client State Management: Vanilla React
+
+tRPC + React Query handles all server state (fetching, caching, mutations). For local state (draft room WebSocket messages, UI state), vanilla React patterns (`useState`, `useReducer`, context) are sufficient. No state management library needed for MVP.
+
+**Considered:** Zustand, Jotai — both lightweight, but adding a state library before complexity demands it is premature. Easy to introduce later if the draft room state outgrows `useReducer`.
+
 ### Client Routing: Wouter
 
 Tiny (~2KB), hooks-based router with a stable API. Covers path matching, route params, nested routes, and SPA navigation — nothing more. No framework ambitions, no major version churn.
