@@ -45,6 +45,65 @@ Built as a proof-of-concept for a larger "draft & trade anything" platform.
 | `deno task db:generate`  | Generate Drizzle ORM migrations                |
 | `deno task db:migrate`   | Run database migrations                        |
 | `deno task sync:pokemon` | Sync Pokemon data from PokeAPI                 |
+| `deno task test:e2e`     | Run Playwright end-to-end tests                |
+
+## E2E Tests
+
+End-to-end tests use [Playwright](https://playwright.dev/) and run the full app
+in production mode against a separate database.
+
+### First-time setup
+
+1. **Create the E2E database.** If you started Docker before the init script was
+   added, run this once:
+
+   ```sh
+   docker exec make-the-pick-postgres-1 psql -U make_the_pick \
+     -c "CREATE DATABASE make_the_pick_e2e OWNER make_the_pick;"
+   ```
+
+   New Docker volumes pick this up automatically via `scripts/init-e2e-db.sql`.
+
+2. **Run migrations** against the E2E database:
+
+   ```sh
+   DATABASE_URL="postgres://make_the_pick:make_the_pick@localhost:5432/make_the_pick_e2e" \
+     deno task db:migrate
+   ```
+
+3. **Install Playwright browsers** (Chromium only):
+
+   ```sh
+   cd e2e && npx playwright install chromium
+   ```
+
+### Running tests
+
+```sh
+DATABASE_URL_E2E="postgres://make_the_pick:make_the_pick@localhost:5432/make_the_pick_e2e" \
+  deno task test:e2e
+```
+
+Playwright will build the client, start the server on port 3000, run the tests,
+and tear everything down. If the server is already running on port 3000, it
+reuses it (skipped in CI).
+
+### How it works
+
+- The app boots in **production mode** — Vite builds the client, Hono serves it
+  as static files alongside the API on port 3000.
+- Auth is handled by **seeding user and session rows directly into the E2E
+  database** and injecting the session cookie into the browser context. No
+  server-side auth bypass — this is the same mechanism Google OAuth produces at
+  the end of a real login.
+- The E2E database is **truncated between test suites** to keep tests isolated.
+
+### In CI
+
+The `e2e` job in `.github/workflows/ci.yml` runs after unit and integration
+tests pass. It spins up its own Postgres service, installs Chromium, runs
+migrations, and executes the tests. On failure, the Playwright HTML report is
+uploaded as a build artifact.
 
 ## Environment Variables
 
