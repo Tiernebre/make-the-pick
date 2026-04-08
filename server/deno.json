@@ -6,6 +6,7 @@
     "hono": "jsr:@hono/hono@^4",
     "drizzle-orm": "npm:drizzle-orm@^0.44",
     "drizzle-orm/": "npm:/drizzle-orm@^0.44/",
+    "drizzle-kit": "npm:drizzle-kit@^0.31",
     "postgres": "npm:postgres@^3.4",
     "@trpc/server": "npm:@trpc/server@^11",
     "@trpc/server/": "npm:/@trpc/server@^11/",
