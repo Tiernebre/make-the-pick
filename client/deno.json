@@ -1,4 +1,10 @@
 {
   "name": "@draftr/client",
-  "version": "0.0.1"
+  "version": "0.0.1",
+  "exports": "./src/main.tsx",
+  "tasks": {
+    "dev": "deno run -A npm:vite",
+    "build": "deno run -A npm:vite build",
+    "test": "deno run -A npm:vitest run"
+  }
 }

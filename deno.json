@@ -1,5 +1,6 @@
 {
   "workspace": ["./packages/shared", "./server", "./client"],
+  "nodeModulesDir": "auto",
   "fmt": {
     "useTabs": false,
     "indentWidth": 2,
