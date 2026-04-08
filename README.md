@@ -1,4 +1,4 @@
-# Make The Pick
+# [Make The Pick](https://makethepick.gg/)
 
 A real-time web app for drafting and trading Pokemon with friends. Create a
 league, draft your team live, negotiate trades, and compete in challenge runs —
