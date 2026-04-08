@@ -18,6 +18,7 @@
     "db:stop": "docker compose down"
   },
   "imports": {
+    "@std/assert": "jsr:@std/assert@^1",
     "concurrently": "npm:concurrently@^9.2.1"
   },
   "compilerOptions": {

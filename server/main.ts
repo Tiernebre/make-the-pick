@@ -7,7 +7,7 @@ import { appRouter } from "./trpc/router.ts";
 import { createContext } from "./trpc/context.ts";
 import { registerEchoWebSocket } from "./ws/echo.ts";
 
-export const app = new Hono();
+export const app: Hono = new Hono();
 
 registerEchoWebSocket(app);
 
