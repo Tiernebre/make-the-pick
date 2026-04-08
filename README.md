@@ -13,27 +13,18 @@ Built as a proof-of-concept for a larger "draft & trade anything" platform.
 
 ## Getting Started
 
-1. **Start the database:**
-
-   ```sh
-   deno task db:start
-   ```
-
-   This launches a PostgreSQL 17 container via Docker Compose.
-
-2. **Start the dev servers:**
+1. **Start everything:**
 
    ```sh
    deno task dev
    ```
 
-   This automatically creates a `.env` file from `.env.example` if one doesn't
-   exist, then starts both the server and client in parallel.
+   This single command handles the full setup:
+   - Creates `.env` from `.env.example` (if not present)
+   - Starts PostgreSQL via Docker Compose
+   - Launches the server (Deno + tRPC) and client (React + Vite) in parallel
 
-   - Server: Deno backend with tRPC
-   - Client: React frontend via Vite
-
-3. **Stop the database** when you're done:
+2. **Stop the database** when you're done:
 
    ```sh
    deno task db:stop

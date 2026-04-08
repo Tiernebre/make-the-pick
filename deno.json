@@ -8,7 +8,7 @@
   },
   "tasks": {
     "setup": "cp -n .env.example .env",
-    "dev": "deno task setup && deno task dev:server & deno task dev:client",
+    "dev": "deno task setup && deno task db:start && deno task dev:server & deno task dev:client",
     "dev:server": "cd server && deno run --allow-net --allow-env --allow-read --env main.ts",
     "dev:client": "cd client && deno run -A npm:vite",
     "test": "deno task test:server && deno task test:client",
