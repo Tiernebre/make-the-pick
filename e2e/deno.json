@@ -1,0 +1,8 @@
+{
+  "name": "@make-the-pick/e2e",
+  "version": "0.0.1",
+  "exports": "./playwright.config.ts",
+  "lint": {
+    "exclude": ["."]
+  }
+}

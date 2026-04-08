@@ -1,0 +1,8 @@
+{
+  "name": "@make-the-pick/e2e",
+  "private": true,
+  "devDependencies": {
+    "@playwright/test": "^1.50",
+    "postgres": "^3.4"
+  }
+}

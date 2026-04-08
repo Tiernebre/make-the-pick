@@ -9,6 +9,7 @@ services:
       POSTGRES_DB: make_the_pick
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./scripts/init-e2e-db.sql:/docker-entrypoint-initdb.d/init-e2e-db.sql
 
 volumes:
   pgdata:
