@@ -40,5 +40,19 @@ if (Deno.env.get("DENO_ENV") === "production") {
 }
 
 if (import.meta.main) {
-  Deno.serve({ port: 3000 }, app.fetch);
+  const isProduction = Deno.env.get("DENO_ENV") === "production";
+
+  Deno.serve({
+    port: 3000,
+    onListen: ({ hostname, port }) => {
+      if (isProduction) {
+        console.log(`Listening on http://${hostname}:${port}/`);
+      } else {
+        console.log(`API server running on http://${hostname}:${port}/`);
+        console.log(
+          `Open http://localhost:5173/ in your browser to use the app.`,
+        );
+      }
+    },
+  }, app.fetch);
 }
