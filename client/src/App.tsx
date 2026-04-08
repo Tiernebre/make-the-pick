@@ -72,7 +72,7 @@ export function App() {
       <QueryClientProvider client={queryClient}>
         <MantineProvider defaultColorScheme="auto">
           <Container size="sm" py="xl">
-            <Title order={1} mb="lg">Draftr</Title>
+            <Title order={1} mb="lg">Make The Pick</Title>
             <Stack>
               <HealthCard />
               <EchoCard />

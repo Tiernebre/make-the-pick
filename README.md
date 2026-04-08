@@ -1,4 +1,4 @@
-# Draftr
+# Make The Pick
 
 A real-time web app for drafting and trading Pokemon with friends. Create a
 league, draft your team live, negotiate trades, and compete in challenge runs —

@@ -1,4 +1,4 @@
-import { healthResponseSchema } from "@draftr/shared";
+import { healthResponseSchema } from "@make-the-pick/shared";
 import { healthChecks } from "../db/mod.ts";
 import { procedure, router } from "./trpc.ts";
 

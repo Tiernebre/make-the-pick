@@ -8,7 +8,7 @@ afterEach(() => {
   cleanup();
 });
 
-test("renders Draftr title", () => {
+test("renders Make The Pick title", () => {
   render(<App />);
-  expect(screen.getByText("Draftr")).toBeInTheDocument();
+  expect(screen.getByText("Make The Pick")).toBeInTheDocument();
 });

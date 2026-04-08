@@ -1,6 +1,6 @@
 # Domain Models
 
-Canonical definitions of Draftr's core entities, their relationships, and
+Canonical definitions of Make The Pick's core entities, their relationships, and
 business invariants.
 
 Each file describes one bounded context or aggregate root. These specs serve as

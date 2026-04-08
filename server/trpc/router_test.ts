@@ -1,5 +1,5 @@
 import { assertEquals } from "@std/assert";
-import { healthResponseSchema } from "@draftr/shared";
+import { healthResponseSchema } from "@make-the-pick/shared";
 import { appRouter } from "./router.ts";
 import { createContext } from "./context.ts";
 

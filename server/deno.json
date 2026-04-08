@@ -1,5 +1,5 @@
 {
-  "name": "@draftr/server",
+  "name": "@make-the-pick/server",
   "version": "0.0.1",
   "exports": "./main.ts",
   "imports": {

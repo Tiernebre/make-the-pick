@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { serveStatic } from "hono/deno";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
-import type { HealthResponse } from "@draftr/shared";
+import type { HealthResponse } from "@make-the-pick/shared";
 import { db, healthChecks } from "./db/mod.ts";
 import { appRouter } from "./trpc/router.ts";
 import { createContext } from "./trpc/context.ts";
