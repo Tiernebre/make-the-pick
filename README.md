@@ -4,19 +4,9 @@ A real-time web app for drafting and trading Pokemon with friends. Create a leag
 
 Built as a proof-of-concept for a larger "draft & trade anything" platform.
 
-## Tech Stack
-
-- **Runtime:** Deno 2.x
-- **Backend:** Hono
-- **Frontend:** React + Vite
-- **API Layer:** tRPC
-- **Database:** PostgreSQL + Drizzle ORM
-- **Real-time:** WebSocket (Hono built-in)
-- **Validation:** Zod
-
 ## Status
 
-Early development — see [technical-proposal.md](./technical-proposal.md) for the full plan.
+Early development — see the [technical proposal](./docs/decisions/001-initial-technical-proposal.md) for the full vision and architecture.
 
 ## License
 
