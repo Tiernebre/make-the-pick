@@ -1,0 +1,13 @@
+{
+  "workspace": ["./packages/shared", "./server", "./client"],
+  "fmt": {
+    "useTabs": false,
+    "indentWidth": 2,
+    "singleQuote": false
+  },
+  "compilerOptions": {
+    "strict": true,
+    "jsx": "react-jsx",
+    "jsxImportSource": "react"
+  }
+}
