@@ -51,7 +51,6 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /opt/make-the-pick
-            echo ${{ secrets.GH_PAT }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             docker pull ghcr.io/tiernebre/make-the-pick:latest
             docker compose -f docker-compose.prod.yml up -d
 
