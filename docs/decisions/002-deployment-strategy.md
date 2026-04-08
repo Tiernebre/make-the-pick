@@ -87,17 +87,22 @@ base.
 Domain `makethepick.gg` registered via **Namecheap**, with nameservers pointed
 to Cloudflare for DNS management, SSL, and CDN.
 
-Cloudflare provides (free plan):
+Setup:
 
-- **DNS management** — A record pointing to the Droplet's public IP
-- **SSL termination** — Cloudflare handles HTTPS between the client and
-  Cloudflare's edge. Traffic from Cloudflare to the Droplet travels over HTTP
-  (or optionally Full Strict mode with an origin certificate)
-- **DDoS protection** — basic layer included on the free plan
+1. Add `makethepick.gg` to Cloudflare (free plan) and set Namecheap's
+   nameservers to the ones Cloudflare assigns
+2. Create a proxied **A record** (`@` → Droplet public IP) in Cloudflare DNS
+3. Set SSL/TLS mode to **Full** — Cloudflare terminates HTTPS from the browser,
+   then connects to the Droplet over HTTP. No TLS certificates or reverse proxy
+   (nginx, certbot) needed on the server
+
+Cloudflare also provides on the free plan:
+
+- **DDoS protection** — basic layer included
 - **CDN caching** — static assets (client bundle) cached at the edge
 
-This eliminates the need to manage TLS certificates (Let's Encrypt, certbot) on
-the Droplet.
+The Droplet only needs to listen on port 80 (HTTP). Cloudflare handles all
+HTTPS/TLS on the client side.
 
 **Considered:**
 
