@@ -12,7 +12,7 @@
     "dev:server": "cd server && deno run --allow-net --allow-env --allow-read --env main.ts",
     "dev:client": "cd client && deno run -A npm:vite",
     "test": "deno task test:server && deno task test:client",
-    "test:server": "deno test server/ --allow-env --allow-net --allow-read --env=.env.test",
+    "test:server": "deno test server/ --allow-env --allow-net --allow-read --env=.env.example",
     "test:client": "cd client && deno run -A npm:vitest run",
     "build": "cd client && deno task build",
     "start": "cd server && deno run --allow-net --allow-env --allow-read --env main.ts",
