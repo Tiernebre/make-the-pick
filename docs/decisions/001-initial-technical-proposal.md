@@ -2,7 +2,7 @@
 
 ## Status
 
-Pending
+Proposed
 
 ## Overview
 
