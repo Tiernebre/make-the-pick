@@ -7,7 +7,7 @@
     "singleQuote": false
   },
   "tasks": {
-    "setup": "test -f .env || cp .env.example .env",
+    "setup": "test -f .env || cp .env.example .env && deno install",
     "dev": "deno task setup && deno task db:start; deno run -A npm:concurrently -n server,client -c blue,green \"deno task dev:server\" \"deno task dev:client\"",
     "dev:server": "cd server && deno run --allow-net --allow-env --allow-read --env main.ts",
     "dev:client": "cd client && deno run -A npm:vite",
