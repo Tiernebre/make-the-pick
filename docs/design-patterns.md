@@ -74,23 +74,54 @@ makes relationship definitions straightforward.
 
 ## Client Architecture
 
-### Structure
+### Feature-Based Organization
+
+Client code mirrors the server's feature-based structure. Feature-specific
+pages, components, and hooks live together under `client/src/features/`.
+Top-level `components/` and `hooks/` are reserved for genuinely shared code.
 
 ```
 client/src/
-├── main.tsx          # React root
-├── App.tsx           # Providers, routing
-├── trpc.ts           # tRPC React client
-├── auth.ts           # better-auth React client
-├── pages/            # Route-level components
-├── components/       # Shared UI components
-└── hooks/            # Custom React hooks
+├── main.tsx              # React root mount
+├── App.tsx               # Providers, top-level routing
+├── trpc.ts               # tRPC React client
+├── auth.ts               # better-auth React client
+├── components/           # Shared UI (AuthGuard, Layout, etc.)
+├── hooks/                # Shared hooks (useWebSocket, etc.)
+└── features/
+    ├── league/
+    │   ├── LeagueListPage.tsx
+    │   ├── CreateLeagueForm.tsx
+    │   ├── use-leagues.ts        # tRPC hook wrapper
+    │   └── ...
+    └── draft/
+        ├── DraftRoomPage.tsx
+        ├── DraftBoard.tsx
+        ├── use-draft.ts
+        └── ...
 ```
+
+### Where things go
+
+| What                       | Where                | Example                |
+| -------------------------- | -------------------- | ---------------------- |
+| Route-level component      | `features/<domain>/` | `LeagueListPage.tsx`   |
+| Feature-specific component | `features/<domain>/` | `CreateLeagueForm.tsx` |
+| Feature-specific hook      | `features/<domain>/` | `use-leagues.ts`       |
+| Shared UI component        | `components/`        | `AuthGuard.tsx`        |
+| Shared hook                | `hooks/`             | `use-web-socket.ts`    |
+| App-wide provider/config   | `src/` root          | `trpc.ts`, `auth.ts`   |
+
+**Rule of thumb:** if a component or hook is only used within one feature, it
+lives in that feature's directory. Move it to the shared folder only when a
+second feature needs it.
 
 ### Data Fetching
 
 All server communication goes through tRPC React Query hooks. The `AppRouter`
 type is imported directly from the server — no code generation step.
+Feature-specific hooks (e.g. `use-leagues.ts`) wrap tRPC calls to keep
+components focused on rendering.
 
 ### Authentication
 

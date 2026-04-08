@@ -28,6 +28,9 @@
   logic lives in services. Data access lives in repositories.
 - Use factory functions for dependency injection — no classes, no DI containers.
 - Zod schemas shared between client and server live in `@make-the-pick/shared`.
+- Client code is also feature-based: `client/src/features/<domain>/` for pages,
+  components, and hooks specific to a feature. Top-level `components/` and
+  `hooks/` are for genuinely shared code only.
 - Database schema stays centralized in `server/db/schema.ts`.
 
 ## Workflow
