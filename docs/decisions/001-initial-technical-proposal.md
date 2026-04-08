@@ -38,26 +38,65 @@ The long-term vision is a **universal draft engine** that can be applied to anyt
 
 ## Tech Stack
 
-| Layer | Technology | Rationale |
-|-------|-----------|-----------|
-| **Runtime** | Deno 2.x | First-class TypeScript, built-in tooling (formatter, linter, test runner), web standard APIs |
-| **Backend** | Hono | Lightweight, TypeScript-first, runtime-agnostic web framework built on web standards (`Request`/`Response`) |
-| **Frontend** | React + Vite | Industry standard, large ecosystem, fast dev server |
-| **Real-time** | Deno native WebSocket | Built-in WebSocket support for live draft rooms, no extra dependencies |
-| **Database** | PostgreSQL | Relational data (leagues, players, rosters, trades) fits naturally; mature and reliable |
-| **ORM** | Drizzle | Type-safe SQL queries, lightweight, good Deno support |
-| **API Layer** | tRPC | End-to-end typesafe API — server procedures are directly callable from the client with full autocompletion, zero codegen |
-| **Validation** | Zod | Runtime + compile-time type safety, used as tRPC input validators and shared schemas |
-| **Monorepo** | Deno workspaces | Shared types and validation schemas between frontend and backend |
+### Runtime: Deno 2.x
 
-### Why This Stack
+First-class TypeScript with zero config — no separate `tsconfig.json`, ESLint, Prettier, or Jest setup. Deno's built-in formatter, linter, and test runner replace an entire Node.js toolchain. Web standard APIs (`fetch`, `Request`, `Response`, `WebSocket`) mean the knowledge transfers outside Deno. Deno 2.x added full npm compatibility, removing the ecosystem gap that held back Deno 1.x.
 
-- **One language (TypeScript) everywhere** — shared types between client/server, single mental model
-- **Deno reduces config overhead** — no separate ESLint, Prettier, Jest, or tsconfig setup
-- **Hono is minimal and conventional** — familiar middleware pattern (like Express), but modern and typed
-- **tRPC eliminates API glue code** — no hand-written fetch calls, no duplicated request/response types. Define a procedure on the server, call it on the client with full type safety
-- **Drizzle + Zod + tRPC** — type safety from database schema through API validation to the client, with Zod schemas shared across all layers
-- **Web standards** — `fetch`, `Request`, `Response`, `WebSocket` — portable knowledge, not framework-specific
+**Considered:** Node.js — mature and battle-tested but requires assembling a toolchain (TypeScript compiler, bundler, linter, formatter, test runner) that Deno provides out of the box.
+
+### Backend: Hono
+
+Lightweight, TypeScript-first web framework built on web standards. Familiar middleware pattern (like Express) but modern, typed, and runtime-agnostic — runs on Deno, Node, Cloudflare Workers, and Bun with no code changes. Small API surface means less framework to learn and fewer opinions to fight.
+
+**Considered:** Express — industry standard but untyped, callback-heavy, and not built for modern runtimes. Fastify — strong performance focus but heavier and more Node-coupled.
+
+### Frontend: React + Vite
+
+React is the industry standard with the largest ecosystem of libraries, patterns, and developer knowledge. Vite provides instant dev server startup and hot module replacement. Together they're a proven, well-understood pairing with excellent tooling.
+
+**Considered:** SolidJS, Svelte — both are excellent but have smaller ecosystems. For a project that benefits from off-the-shelf component libraries (Mantine) and community patterns, React's ecosystem wins.
+
+### Design System: Mantine
+
+Full-featured, off-the-shelf React component library with 100+ components, built-in hooks, form handling, notifications, and dark mode support. Covers the UI needs for league management, draft rooms, and data display without building a design system from scratch. Works with Vite out of the box.
+
+**Considered:** Shadcn/ui + Tailwind — high quality but requires assembling your own design system from primitives. Chakra UI — similar scope but v3 rewrite left the ecosystem fragmented. MUI — most complete but heavyweight and highly opinionated.
+
+### Real-time: Deno Native WebSocket
+
+Deno has built-in WebSocket support with no extra dependencies. For a draft room, we need full control over the connection lifecycle (join, pick, disconnect/reconnect, timer sync) — a raw WebSocket server gives that without the abstraction overhead of Socket.IO or similar libraries.
+
+**Considered:** Socket.IO — adds automatic reconnection and rooms but brings significant bundle size and abstracts away control we need for the draft state machine.
+
+### Database: PostgreSQL
+
+Relational data (leagues, players, rosters, trades, picks) fits naturally into tables with foreign keys and constraints. PostgreSQL is mature, reliable, and has strong support for JSON columns (useful for flexible rules config). It's the most widely supported database across hosting platforms.
+
+**Considered:** SQLite — simpler but limited concurrent write support, which matters for real-time drafts with multiple players picking simultaneously.
+
+### ORM: Drizzle
+
+Type-safe SQL query builder that stays close to SQL rather than abstracting it away. Generates raw SQL migration files (not programmatic migrations), so the migration history is readable and auditable. Lightweight with good Deno support.
+
+**Considered:** Prisma — more features but heavier, uses its own schema language (not TypeScript), and has a binary engine dependency that complicates Deno deployment. Kysely — excellent query builder but lacks built-in migration tooling.
+
+### API Layer: tRPC
+
+End-to-end typesafe API where server procedures are directly callable from the React client with full autocompletion. No hand-written fetch calls, no duplicated request/response types, no code generation step. Define a Zod schema on the server, and the client knows the input and output types automatically.
+
+**Considered:** REST + OpenAPI — requires maintaining a separate spec and generating client code. GraphQL — powerful but adds complexity (schema language, resolvers, client cache) that's unnecessary when the frontend and backend share a codebase.
+
+### Validation: Zod
+
+Runtime schema validation with TypeScript type inference. Serves triple duty: tRPC input validation, form validation (via Mantine's form integration), and shared domain type definitions. One schema definition produces both runtime checks and compile-time types.
+
+**Considered:** Yup, Valibot — both capable but Zod has the deepest integration with tRPC and the strongest TypeScript inference.
+
+### Monorepo: Deno Workspaces
+
+Deno's built-in workspace support allows sharing Zod schemas, types, and constants between the server and client packages without publishing to a registry. No need for Turborepo, Nx, or other monorepo tooling — Deno handles it natively.
+
+**Considered:** npm workspaces + Turborepo — adds build orchestration complexity that Deno workspaces avoid entirely.
 
 ---
 
