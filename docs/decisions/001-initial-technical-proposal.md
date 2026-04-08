@@ -362,14 +362,11 @@ export type AppRouter = typeof appRouter;  // Client imports this type only
 ### Development Workflow
 
 ```
-# Terminal 1: Vite dev server (hot reload, proxies /api and /ws to backend)
-cd client && deno task dev
-
-# Terminal 2: Hono API server (watches for changes)
-cd server && deno task dev
+# Start both client and server in one command from the repo root
+deno task dev
 ```
 
-Vite's dev server proxies `/api/*` and `/ws/*` to the Hono backend during development, so the frontend gets hot module reload while still talking to the real API.
+The root `deno.json` defines a `dev` task that runs the Vite dev server and Hono API server concurrently. Vite's dev server proxies `/api/*` and `/ws/*` to the Hono backend, so the frontend gets hot module reload while still talking to the real API. One command, one terminal.
 
 ### Production
 
