@@ -6,7 +6,10 @@
     "hono": "jsr:@hono/hono@^4",
     "drizzle-orm": "npm:drizzle-orm@^0.44",
     "drizzle-orm/": "npm:/drizzle-orm@^0.44/",
-    "postgres": "npm:postgres@^3.4"
+    "postgres": "npm:postgres@^3.4",
+    "@trpc/server": "npm:@trpc/server@^11",
+    "@trpc/server/": "npm:/@trpc/server@^11/",
+    "zod": "npm:zod@^3.24"
   },
   "tasks": {
     "dev": "deno run --allow-net --allow-env --allow-read main.ts"
