@@ -354,16 +354,20 @@ Vite builds the React app to `client/dist/`. Hono serves it as static files alon
 │   │   └── migrations/
 │   ├── engine/                # rules engine
 │   └── services/              # business logic
-└── client/
-    ├── deno.json
-    ├── index.html
-    ├── src/
-    │   ├── components/
-    │   ├── pages/
-    │   ├── hooks/
-    │   ├── trpc.ts            # tRPC client + React Query integration
-    │   └── ws/                # WebSocket hooks for draft room
-    └── vite.config.ts
+├── client/
+│   ├── deno.json
+│   ├── package.json           # npm deps (React, Mantine, Vitest)
+│   ├── index.html
+│   ├── src/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── hooks/
+│   │   ├── trpc.ts            # tRPC client + React Query integration
+│   │   └── ws/                # WebSocket hooks for draft room
+│   └── vite.config.ts
+└── e2e/
+    ├── playwright.config.ts   # Playwright configuration
+    └── tests/                 # full-stack E2E tests (CI-only)
 ```
 
 ---
