@@ -42,7 +42,8 @@ The long-term vision is a **universal draft engine** that can be applied to anyt
 | **Real-time** | Deno native WebSocket | Built-in WebSocket support for live draft rooms, no extra dependencies |
 | **Database** | PostgreSQL | Relational data (leagues, players, rosters, trades) fits naturally; mature and reliable |
 | **ORM** | Drizzle | Type-safe SQL queries, lightweight, good Deno support |
-| **Validation** | Zod | Runtime + compile-time type safety, pairs with Hono via `@hono/zod-validator` |
+| **API Layer** | tRPC | End-to-end typesafe API — server procedures are directly callable from the client with full autocompletion, zero codegen |
+| **Validation** | Zod | Runtime + compile-time type safety, used as tRPC input validators and shared schemas |
 | **Monorepo** | Deno workspaces | Shared types and validation schemas between frontend and backend |
 
 ### Why This Stack
@@ -50,7 +51,8 @@ The long-term vision is a **universal draft engine** that can be applied to anyt
 - **One language (TypeScript) everywhere** — shared types between client/server, single mental model
 - **Deno reduces config overhead** — no separate ESLint, Prettier, Jest, or tsconfig setup
 - **Hono is minimal and conventional** — familiar middleware pattern (like Express), but modern and typed
-- **Drizzle + Zod** — type safety from database schema all the way to API request validation
+- **tRPC eliminates API glue code** — no hand-written fetch calls, no duplicated request/response types. Define a procedure on the server, call it on the client with full type safety
+- **Drizzle + Zod + tRPC** — type safety from database schema through API validation to the client, with Zod schemas shared across all layers
 - **Web standards** — `fetch`, `Request`, `Response`, `WebSocket` — portable knowledge, not framework-specific
 
 ---
@@ -136,19 +138,21 @@ Pokemon (reference data)
 
 ### Single Server, One Port
 
-Everything runs in a single Deno process. Hono serves the REST API, WebSocket connections, and the built React frontend — all on one port. No reverse proxy, no multiple services, no CORS config.
+Everything runs in a single Deno process. Hono serves as the HTTP framework — routing, middleware, static files, and WebSocket upgrades. tRPC is mounted inside Hono via the fetch adapter, handling all typed API procedures. Both coexist on one port with no reverse proxy, no multiple services, no CORS config.
 
 ```
 ┌──────────────────────────────────────────────┐
 │           Single Deno Server (Hono)          │
 │                                              │
-│  GET  /api/*            → REST API (JSON)    │
-│  GET  /ws/draft/:id     → WebSocket upgrade  │
-│  GET  /*                → Static files       │
+│  /api/trpc/*            → tRPC procedures    │
+│                           (typed queries &   │
+│                            mutations)        │
+│  /ws/draft/:id          → WebSocket upgrade  │
+│  /*                     → Static files       │
 │                           (React app)        │
 ├──────────────────────────────────────────────┤
-│    Drizzle ORM       │     Rules Engine      │
-├──────────────────────┼───────────────────────┤
+│  tRPC Router  │  Drizzle ORM  │ Rules Engine │
+├──────────────────────────────────────────────┤
 │               PostgreSQL                     │
 └──────────────────────────────────────────────┘
 ```
@@ -156,14 +160,23 @@ Everything runs in a single Deno process. Hono serves the REST API, WebSocket co
 ### Request Routing
 
 ```typescript
+import { Hono } from "hono";
+import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
+import { appRouter } from "./trpc/router.ts";
+
 const app = new Hono();
 
-// REST API
-app.route("/api/leagues", leagueRoutes);
-app.route("/api/trades", tradeRoutes);
-app.route("/api/rosters", rosterRoutes);
+// tRPC — typed API for all CRUD operations
+app.use("/api/trpc/*", async (c) => {
+  return fetchRequestHandler({
+    endpoint: "/api/trpc",
+    req: c.req.raw,
+    router: appRouter,
+    createContext: () => ({ db, session: getSession(c) }),
+  });
+});
 
-// Real-time draft room
+// Real-time draft room — raw WebSocket for full control
 app.get("/ws/draft/:leagueId", upgradeWebSocket((c) => ({
   onOpen(evt, ws) { /* player joins draft */ },
   onMessage(evt, ws) { /* pick made, trade proposed */ },
@@ -173,6 +186,37 @@ app.get("/ws/draft/:leagueId", upgradeWebSocket((c) => ({
 // Serve built React app
 app.use("/*", serveStatic({ root: "./client/dist" }));
 app.use("/*", serveStatic({ path: "./client/dist/index.html" })); // SPA fallback
+```
+
+### tRPC Router (Example)
+
+```typescript
+import { initTRPC } from "@trpc/server";
+import { z } from "zod";
+
+const t = initTRPC.context<Context>().create();
+
+export const appRouter = t.router({
+  league: t.router({
+    list: t.procedure.query(({ ctx }) =>
+      ctx.db.select().from(leagues)
+    ),
+    create: t.procedure
+      .input(createLeagueSchema)  // Zod schema from packages/shared
+      .mutation(({ ctx, input }) =>
+        ctx.db.insert(leagues).values(input).returning()
+      ),
+    getById: t.procedure
+      .input(z.object({ id: z.string().uuid() }))
+      .query(({ ctx, input }) =>
+        ctx.db.select().from(leagues).where(eq(leagues.id, input.id))
+      ),
+  }),
+  roster: t.router({ /* ... */ }),
+  trade: t.router({ /* ... */ }),
+});
+
+export type AppRouter = typeof appRouter;  // Client imports this type only
 ```
 
 ### Development Workflow
@@ -193,10 +237,10 @@ Vite builds the React app to `client/dist/`. Hono serves it as static files alon
 
 ### Key Architectural Decisions
 
-- **REST API** — CRUD for leagues, rosters, trades, progress
-- **WebSocket** — real-time draft room (pick broadcasts, timer sync, trade notifications). Room management via a simple `Map<leagueId, Set<WebSocket>>`
+- **tRPC API** — typed queries and mutations for all CRUD operations (leagues, rosters, trades, progress). Mounted in Hono via the fetch adapter — Hono handles middleware, tRPC handles the API layer
+- **WebSocket** — real-time draft room (pick broadcasts, timer sync, trade notifications). Room management via a simple `Map<leagueId, Set<WebSocket>>`. Kept as raw WebSockets for full control over the draft state machine
 - **Rules Engine** — server-side module that evaluates scoring based on league config + player progress
-- **Shared types** — Zod schemas in a shared workspace package, used by both frontend and backend
+- **Shared types** — Zod schemas in a shared workspace package, used as tRPC input validators and shared across all layers
 - **No CORS** — frontend and API on same origin, eliminating cross-origin complexity
 - **No reverse proxy** — single process simplifies deployment (Docker, VPS, Deno Deploy, etc.)
 
@@ -214,7 +258,10 @@ Vite builds the React app to `client/dist/`. Hono serves it as static files alon
 ├── server/
 │   ├── deno.json
 │   ├── main.ts                # entry point
-│   ├── routes/                # Hono route handlers
+│   ├── trpc/
+│   │   ├── router.ts          # root tRPC router
+│   │   ├── context.ts         # request context (db, session)
+│   │   └── procedures/        # domain-specific routers (league, trade, roster)
 │   ├── ws/                    # WebSocket handlers (draft room)
 │   ├── db/
 │   │   ├── schema.ts          # Drizzle schema
@@ -228,7 +275,8 @@ Vite builds the React app to `client/dist/`. Hono serves it as static files alon
     │   ├── components/
     │   ├── pages/
     │   ├── hooks/
-    │   └── api/               # API client + WebSocket hooks
+    │   ├── trpc.ts            # tRPC client + React Query integration
+    │   └── ws/                # WebSocket hooks for draft room
     └── vite.config.ts
 ```
 
