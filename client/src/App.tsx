@@ -70,7 +70,7 @@ export function App() {
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
-        <MantineProvider>
+        <MantineProvider defaultColorScheme="auto">
           <Container size="sm" py="xl">
             <Title order={1} mb="lg">Draftr</Title>
             <Stack>
