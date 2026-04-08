@@ -17,13 +17,13 @@
     "npm:@types/react@19": "19.2.14",
     "npm:@vitejs/plugin-react@4": "4.7.0_vite@6.4.2",
     "npm:drizzle-orm@0.44": "0.44.7_postgres@3.4.9",
-    "npm:jsdom@26": "26.1.0",
+    "npm:happy-dom@18": "18.0.1",
     "npm:postgres@^3.4.0": "3.4.9",
     "npm:react-dom@19": "19.2.4_react@19.2.4",
     "npm:react@19": "19.2.4",
     "npm:vite@6": "6.4.2",
-    "npm:vitest@*": "3.2.4_jsdom@26.1.0",
-    "npm:vitest@3": "3.2.4_jsdom@26.1.0",
+    "npm:vitest@*": "3.2.4_happy-dom@18.0.1",
+    "npm:vitest@3": "3.2.4_happy-dom@18.0.1",
     "npm:zod@^3.24.0": "3.25.76"
   },
   "jsr": {
@@ -680,6 +680,12 @@
     "@types/estree@1.0.8": {
       "integrity": "sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w=="
     },
+    "@types/node@20.19.39": {
+      "integrity": "sha512-orrrD74MBUyK8jOAD/r0+lfa1I2MO6I+vAkmAWzMYbCcgrN4lCrmK52gRFQq/JRxfYPfonkr4b0jcY7Olqdqbw==",
+      "dependencies": [
+        "undici-types"
+      ]
+    },
     "@types/react-dom@19.2.3_@types+react@19.2.14": {
       "integrity": "sha512-jp2L/eY6fn+KgVVQAOqYItbF0VY/YApe5Mz2F0aykSO8gx31bYCZyvSeYxCHKvzHG5eZjc+zyaS5BrBWya2+kQ==",
       "dependencies": [
@@ -691,6 +697,9 @@
       "dependencies": [
         "csstype"
       ]
+    },
+    "@types/whatwg-mimetype@3.0.2": {
+      "integrity": "sha512-c2AKvDT8ToxLIOUlN51gTiHXflsfIFisS4pO7pDPoKouJCESkhZnEy623gwP9laCy5lnLDAw1vAzu2vM2YLOrA=="
     },
     "@vitejs/plugin-react@4.7.0_vite@6.4.2": {
       "integrity": "sha512-gUu9hwfWvvEDBBmgtAowQCojwZmJ5mcLn3aufeCsitijs3+f2NsrPtlAWIR6OPiqljl96GVCUbLe0HyqIpVaoA==",
@@ -836,7 +845,7 @@
     "data-urls@5.0.0": {
       "integrity": "sha512-ZYP5VBHshaDAiVZxjbRVcFJpc+4xGgT0bK3vzy1HLN8jTO975HEbuYzZJcHoQEY5K1a0z8YayJkyVETa08eNTg==",
       "dependencies": [
-        "whatwg-mimetype",
+        "whatwg-mimetype@4.0.0",
         "whatwg-url"
       ]
     },
@@ -947,6 +956,14 @@
     "get-nonce@1.0.1": {
       "integrity": "sha512-FJhYRoDaiatfEkUK8HKlicmu/3SGFD51q3itKDGoSTysQJBnfOcxU5GxnhE1E6soB76MbT0MBtnKJuXyAx+96Q=="
     },
+    "happy-dom@18.0.1": {
+      "integrity": "sha512-qn+rKOW7KWpVTtgIUi6RVmTBZJSe2k0Db0vh1f7CWrWclkkc7/Q+FrOfkZIb2eiErLyqu5AXEzE7XthO9JVxRA==",
+      "dependencies": [
+        "@types/node",
+        "@types/whatwg-mimetype",
+        "whatwg-mimetype@3.0.0"
+      ]
+    },
     "html-encoding-sniffer@4.0.0": {
       "integrity": "sha512-Y22oTqIU4uuPgEemfz7NDJz6OeKf12Lsu+QC+s3BVpda64lTiMYCyGwg5ki4vFxkMwQdeZDl2adZoqUgdFuTgQ==",
       "dependencies": [
@@ -1004,7 +1021,7 @@
         "w3c-xmlserializer",
         "webidl-conversions",
         "whatwg-encoding",
-        "whatwg-mimetype",
+        "whatwg-mimetype@4.0.0",
         "whatwg-url",
         "ws",
         "xml-name-validator"
@@ -1312,6 +1329,9 @@
       "integrity": "sha512-bGdAIrZ0wiGDo5l8c++HWtbaNCWTS4UTv7RaTH/ThVIgjkveJt83m74bBHMJkuCbslY8ixgLBVZJIOiQlQTjfQ==",
       "bin": true
     },
+    "undici-types@6.21.0": {
+      "integrity": "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="
+    },
     "update-browserslist-db@1.2.3_browserslist@4.28.2": {
       "integrity": "sha512-Js0m9cx+qOgDxo0eMiFGEueWztz+d4+M3rGlmKPT+T4IS/jP4ylw3Nwpu6cpTTP8R1MAC1kF4VbdLt3ARf209w==",
       "dependencies": [
@@ -1389,7 +1409,7 @@
       ],
       "bin": true
     },
-    "vitest@3.2.4_jsdom@26.1.0": {
+    "vitest@3.2.4_happy-dom@18.0.1": {
       "integrity": "sha512-LUCP5ev3GURDysTWiP47wRRUpLKMOfPh+yKTx3kVIEiu5KOMeqzpnYNsKyOoVrULivR8tLcks4+lga33Whn90A==",
       "dependencies": [
         "@types/chai",
@@ -1403,6 +1423,7 @@
         "chai",
         "debug",
         "expect-type",
+        "happy-dom",
         "jsdom",
         "magic-string",
         "pathe",
@@ -1418,6 +1439,7 @@
         "why-is-node-running"
       ],
       "optionalPeers": [
+        "happy-dom",
         "jsdom"
       ],
       "bin": true
@@ -1437,6 +1459,9 @@
         "iconv-lite"
       ],
       "deprecated": true
+    },
+    "whatwg-mimetype@3.0.0": {
+      "integrity": "sha512-nt+N2dzIutVRxARx1nghPKGv1xHikU7HKdfafKkLNLindmPU/ch3U31NOCGGA/dmPcmb1VlofO0vnKAcsm0o/Q=="
     },
     "whatwg-mimetype@4.0.0": {
       "integrity": "sha512-QaKxh0eNIi2mE9p2vEdzfagOKHCcj1pJ56EEHGQOVxp8r9/iszLUUV7v89x9O1p/T+NlTM5W7jW6+cz4Fq1YVg=="
@@ -1487,7 +1512,7 @@
             "npm:@types/react-dom@19",
             "npm:@types/react@19",
             "npm:@vitejs/plugin-react@4",
-            "npm:jsdom@26",
+            "npm:happy-dom@18",
             "npm:react-dom@19",
             "npm:react@19",
             "npm:vite@6",

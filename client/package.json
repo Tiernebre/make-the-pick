@@ -17,7 +17,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^4",
-    "jsdom": "^26",
+    "happy-dom": "^18",
     "vite": "^6",
     "vitest": "^3"
   }
