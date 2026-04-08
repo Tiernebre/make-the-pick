@@ -50,3 +50,17 @@ jobs:
             cd /opt/make-the-pick
             docker pull registry.digitalocean.com/make-the-pick/app:latest
             docker compose -f docker-compose.prod.yml up -d
+
+      - name: Smoke test
+        run: |
+          for i in $(seq 1 10); do
+            status=$(curl -s -o /dev/null -w '%{http_code}' https://makethepick.gg)
+            if [ "$status" = "200" ]; then
+              echo "Health check passed (HTTP $status)"
+              exit 0
+            fi
+            echo "Attempt $i: HTTP $status, retrying in 5s..."
+            sleep 5
+          done
+          echo "Health check failed after 10 attempts"
+          exit 1
