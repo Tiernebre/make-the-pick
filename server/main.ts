@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { serveStatic } from "hono/deno";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import type { HealthResponse } from "@draftr/shared";
 import { db, healthChecks } from "./db/mod.ts";
@@ -27,6 +28,10 @@ app.all("/api/trpc/*", (c) => {
     createContext: () => createContext(),
   });
 });
+
+// In production, serve the built client assets
+app.use("/*", serveStatic({ root: "../client/dist" }));
+app.get("/*", serveStatic({ root: "../client/dist", path: "index.html" }));
 
 if (import.meta.main) {
   Deno.serve({ port: 3000 }, app.fetch);

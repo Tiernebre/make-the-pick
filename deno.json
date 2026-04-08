@@ -7,6 +7,9 @@
     "singleQuote": false
   },
   "tasks": {
+    "dev": "deno task dev:server & deno task dev:client",
+    "dev:server": "cd server && deno run --allow-net --allow-env --allow-read --env main.ts",
+    "dev:client": "cd client && deno run -A npm:vite",
     "db:start": "docker compose up -d",
     "db:stop": "docker compose down"
   },
