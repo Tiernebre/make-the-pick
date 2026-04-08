@@ -35,7 +35,12 @@ function HealthCard() {
 
 function EchoCard() {
   const [input, setInput] = useState("");
-  const wsUrl = `ws://${globalThis.location?.host ?? "localhost:3000"}/ws/echo`;
+  const wsProtocol = globalThis.location?.protocol === "https:"
+    ? "wss:"
+    : "ws:";
+  const wsUrl = `${wsProtocol}//${
+    globalThis.location?.host ?? "localhost:3000"
+  }/ws/echo`;
   const { lastMessage, sendMessage } = useWebSocket(wsUrl);
 
   return (
