@@ -98,6 +98,14 @@ Deno's built-in workspace support allows sharing Zod schemas, types, and constan
 
 **Considered:** npm workspaces + Turborepo — adds build orchestration complexity that Deno workspaces avoid entirely.
 
+### Authentication: Better Auth + Google OAuth
+
+Better Auth is a TypeScript-first, framework-agnostic auth library. It handles the full OAuth flow, session management, and cookie handling while storing everything in our own PostgreSQL database via its Drizzle adapter. No external auth service dependency — we own the data.
+
+Google OAuth is the sole provider to start. All initial users have Google accounts, so it's the simplest path. Additional providers (Discord, GitHub, etc.) can be added later with a single config entry.
+
+**Considered:** Clerk / Auth0 — fully managed but adds an external service dependency on the critical path of every request, plus pricing tiers. Auth.js — tightly coupled to Next.js, experimental Hono adapter isn't mature. Lucia Auth — solid patterns but recently deprecated as a library.
+
 ### Testing: Split Runners, Strict TDD
 
 Two test runners, matched to their runtime:
