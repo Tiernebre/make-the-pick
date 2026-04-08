@@ -98,6 +98,20 @@ Deno's built-in workspace support allows sharing Zod schemas, types, and constan
 
 **Considered:** npm workspaces + Turborepo — adds build orchestration complexity that Deno workspaces avoid entirely.
 
+### Testing: Vitest (Strict TDD)
+
+Vitest is the test runner for all unit tests across the monorepo. It shares Vite's config and transform pipeline, so TypeScript and JSX work without extra setup. Fast watch mode makes the red-green cycle tight.
+
+**The project follows strict test-driven development (TDD):**
+
+1. **Red** — Write a failing test that describes the expected behavior.
+2. **Green** — Write the minimum code to make the test pass.
+3. **Refactor** — Clean up the implementation while keeping tests green.
+
+Every unit of business logic (rules engine, draft ordering, trade validation, domain models) must be driven by tests written *before* the implementation. No production code without a failing test first. This is not optional — it is the development workflow.
+
+**Considered:** Deno's built-in test runner — capable but lacks Vite integration for frontend component tests and has a smaller ecosystem of matchers and utilities. Jest — industry standard but slower and requires more configuration with TypeScript/ESM.
+
 ---
 
 ## Domain Model (Initial)
