@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted (2026-04-08)
+Accepted (2026-04-08) — Container registry section superseded by
+[ADR-003](./003-container-registry-migration.md)
 
 ## Context
 

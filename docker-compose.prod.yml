@@ -1,6 +1,6 @@
 services:
   app:
-    image: registry.digitalocean.com/make-the-pick/app:latest
+    image: ghcr.io/tiernebre/make-the-pick:latest
     ports:
       - "80:3000"
     depends_on:
