@@ -1,0 +1,18 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "if": "Bash(git commit:*)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "git diff --cached --name-only --diff-filter=ACMR -- '*.ts' '*.tsx' '*.js' '*.jsx' '*.json' | xargs -r deno fmt 2>/dev/null; git diff --cached --name-only --diff-filter=ACMR -- '*.ts' '*.tsx' '*.js' '*.jsx' '*.json' | xargs -r git add",
+            "timeout": 30,
+            "statusMessage": "Formatting staged files with deno fmt..."
+          }
+        ]
+      }
+    ]
+  }
+}
