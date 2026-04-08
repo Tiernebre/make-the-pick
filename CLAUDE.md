@@ -14,3 +14,8 @@
   each round. This is the most common draft format requested by
   users and is needed before the real-time draft room can function.
   ```
+
+## Workflow
+
+- Always work in a git worktree when making code changes. Use the `EnterWorktree` tool before starting implementation to avoid conflicts with parallel sessions.
+- After every successful change, commit and push the branch. Keep commits small and frequent — one logical change per commit.
