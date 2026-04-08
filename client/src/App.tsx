@@ -11,9 +11,12 @@ import {
 } from "@mantine/core";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
+import { Route, Switch } from "wouter";
 import "@mantine/core/styles.css";
 import { queryClient, trpc, trpcClient } from "./trpc";
 import { useWebSocket } from "./hooks/use-web-socket";
+import { AuthGuard } from "./components/AuthGuard";
+import { LoginPage } from "./pages/LoginPage";
 
 function HealthCard() {
   const health = trpc.health.check.useQuery();
@@ -66,18 +69,31 @@ function EchoCard() {
   );
 }
 
+function HomePage() {
+  return (
+    <Container size="sm" py="xl">
+      <Title order={1} mb="lg">Make The Pick</Title>
+      <Stack>
+        <HealthCard />
+        <EchoCard />
+      </Stack>
+    </Container>
+  );
+}
+
 export function App() {
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
         <MantineProvider defaultColorScheme="auto">
-          <Container size="sm" py="xl">
-            <Title order={1} mb="lg">Make The Pick</Title>
-            <Stack>
-              <HealthCard />
-              <EchoCard />
-            </Stack>
-          </Container>
+          <Switch>
+            <Route path="/login" component={LoginPage} />
+            <Route>
+              <AuthGuard>
+                <HomePage />
+              </AuthGuard>
+            </Route>
+          </Switch>
         </MantineProvider>
       </QueryClientProvider>
     </trpc.Provider>

@@ -1,7 +1,16 @@
+import { auth } from "../auth/mod.ts";
 import { db } from "../db/mod.ts";
 
-export function createContext() {
-  return { db };
+export async function createContext(req: Request) {
+  const sessionData = await auth.api.getSession({
+    headers: req.headers,
+  });
+
+  return {
+    db,
+    session: sessionData?.session ?? null,
+    user: sessionData?.user ?? null,
+  };
 }
 
-export type Context = ReturnType<typeof createContext>;
+export type Context = Awaited<ReturnType<typeof createContext>>;

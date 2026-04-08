@@ -8,7 +8,8 @@ Deno.test({
   sanitizeResources: false,
   sanitizeOps: false,
   fn: async () => {
-    const caller = appRouter.createCaller(createContext());
+    const ctx = await createContext(new Request("http://localhost/"));
+    const caller = appRouter.createCaller(ctx);
     const result = await caller.health.check();
 
     const parsed = healthResponseSchema.parse(result);

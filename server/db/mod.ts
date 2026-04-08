@@ -1,2 +1,8 @@
 export { db } from "./connection.ts";
-export { healthChecks } from "./schema.ts";
+export {
+  account,
+  healthChecks,
+  session,
+  user,
+  verification,
+} from "./schema.ts";
