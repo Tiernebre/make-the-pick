@@ -21,6 +21,7 @@
     "npm:postgres@^3.4.0": "3.4.9",
     "npm:react-dom@19": "19.2.4_react@19.2.4",
     "npm:react@19": "19.2.4",
+    "npm:vite@*": "6.4.2",
     "npm:vite@6": "6.4.2",
     "npm:vitest@*": "3.2.4_happy-dom@18.0.1",
     "npm:vitest@3": "3.2.4_happy-dom@18.0.1",
