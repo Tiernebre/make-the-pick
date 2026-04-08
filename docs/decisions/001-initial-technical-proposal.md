@@ -44,6 +44,12 @@ First-class TypeScript with zero config — no separate `tsconfig.json`, ESLint,
 
 **Considered:** Node.js — mature and battle-tested but requires assembling a toolchain (TypeScript compiler, bundler, linter, formatter, test runner) that Deno provides out of the box.
 
+### Formatting: `deno fmt`
+
+All code — server, client, shared packages, and E2E tests — is formatted with `deno fmt`. One formatter, one style, zero config. No Prettier, no `.prettierrc`, no editor plugin differences between contributors. `deno fmt` is run from the repo root and covers every workspace.
+
+**Considered:** Prettier — industry standard but requires a separate dependency, config file, and plugin management. Using `deno fmt` everywhere keeps the toolchain unified under Deno.
+
 ### Backend: Hono
 
 Lightweight, TypeScript-first web framework built on web standards. Familiar middleware pattern (like Express) but modern, typed, and runtime-agnostic — runs on Deno, Node, Cloudflare Workers, and Bun with no code changes. Small API surface means less framework to learn and fewer opinions to fight.
