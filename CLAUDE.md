@@ -18,6 +18,12 @@
   users and is needed before the real-time draft room can function.
   ```
 
+## Domain
+
+- Domain documentation lives in [`docs/domain/`](./docs/domain/). Read the
+  relevant domain doc before working on a feature to understand the ubiquitous
+  language, entities, and rules.
+
 ## Architecture
 
 - Follow the conventions in
