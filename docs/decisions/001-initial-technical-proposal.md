@@ -80,6 +80,12 @@ Deno has built-in WebSocket support with no extra dependencies. For a draft room
 
 **Considered:** Socket.IO — adds automatic reconnection and rooms but brings significant bundle size and abstracts away control we need for the draft state machine.
 
+### Pokemon Data: Local JSON + PokeAPI Sync Script
+
+Pokemon data lives as a local JSON seed file — no runtime dependency on external APIs. A Deno script fetches from [PokeAPI](https://pokeapi.co/) and outputs the seed file. Run it manually whenever you want to re-sync (new Pokemon, updated stats/moves, etc.). The output is committed to the repo so the app has predictable, version-controlled data with zero external calls at runtime.
+
+**Considered:** PokeAPI at runtime — adds latency, rate limits, and an external dependency on the critical path of drafts.
+
 ### Database: PostgreSQL
 
 Relational data (leagues, players, rosters, trades, picks) fits naturally into tables with foreign keys and constraints. PostgreSQL is mature, reliable, and has strong support for JSON columns (useful for flexible rules config). It's the most widely supported database across hosting platforms.
