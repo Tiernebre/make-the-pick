@@ -4,8 +4,11 @@ import type { HealthResponse } from "@draftr/shared";
 import { db, healthChecks } from "./db/mod.ts";
 import { appRouter } from "./trpc/router.ts";
 import { createContext } from "./trpc/context.ts";
+import { registerEchoWebSocket } from "./ws/echo.ts";
 
 export const app = new Hono();
+
+registerEchoWebSocket(app);
 
 app.get("/api/health", async (c) => {
   const [check] = await db.insert(healthChecks).values({}).returning();
