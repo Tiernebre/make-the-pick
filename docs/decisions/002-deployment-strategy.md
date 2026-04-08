@@ -87,9 +87,8 @@ base.
 
 ### Domain & SSL: Cloudflare
 
-Domain registration via **Cloudflare Registrar** (wholesale pricing, no markup)
-or purchase from any registrar (e.g., Namecheap) and point nameservers to
-Cloudflare.
+Domain registered via **Namecheap**, with nameservers pointed to Cloudflare for
+DNS management, SSL, and CDN.
 
 Cloudflare provides (free plan):
 
