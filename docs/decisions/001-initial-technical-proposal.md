@@ -126,6 +126,21 @@ Unit tests run first in CI (fast, fail early). Integration tests run after.
 
 **Considered:** Vitest everywhere — would require running backend code under Node compatibility mode, creating a runtime mismatch with production. Jest — slower and requires more configuration with TypeScript/ESM.
 
+### E2E Testing: Playwright
+
+Playwright handles end-to-end tests as a final CI gate. It covers critical user journeys — not edge cases (those belong in unit/integration tests). E2E tests are too slow for the TDD loop and should not be run during development.
+
+**Critical paths to cover:**
+
+- Create league → invite players → join
+- Real-time draft with multiple players (Playwright can spin up multiple browser contexts in one test to simulate concurrent drafters)
+- Propose and accept a trade
+- View leaderboard / standings
+
+E2E tests run against their own seeded database, separate from integration tests. Migrations + seed data, reset between test suites.
+
+**Considered:** Cypress — popular but weaker multi-tab/multi-context support, which matters for simulating multiple players in a draft room. Selenium — legacy, no reason for a new project.
+
 ---
 
 ## Domain Model (Initial)
