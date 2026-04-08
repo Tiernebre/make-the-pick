@@ -10,7 +10,9 @@ if (!connectionString) {
 const client = postgres(connectionString, { max: 1 });
 const db = drizzle(client);
 
-await migrate(db, { migrationsFolder: new URL("./migrations", import.meta.url).pathname });
+await migrate(db, {
+  migrationsFolder: new URL("./migrations", import.meta.url).pathname,
+});
 
 console.log("Migrations complete.");
 await client.end();
