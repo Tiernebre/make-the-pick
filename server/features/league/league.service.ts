@@ -17,7 +17,7 @@ export function createLeagueService(
   deps: { leagueRepo: LeagueRepository },
 ) {
   return {
-    async create(userId: string, input: { name: string }) {
+    create(userId: string, input: { name: string }) {
       const inviteCode = generateInviteCode();
       return deps.leagueRepo.createWithCreator(userId, {
         ...input,
@@ -33,7 +33,7 @@ export function createLeagueService(
       return league;
     },
 
-    async listByUser(userId: string) {
+    listByUser(userId: string) {
       return deps.leagueRepo.findAllByUserId(userId);
     },
 

@@ -20,7 +20,16 @@ export const createLeagueSchema: z.ZodObject<{
 
 export type CreateLeagueInput = z.infer<typeof createLeagueSchema>;
 
-export const leagueSchema = object({
+export const leagueSchema: z.ZodObject<{
+  id: z.ZodString;
+  name: z.ZodString;
+  status: typeof leagueStatusSchema;
+  rulesConfig: z.ZodNullable<z.ZodUnknown>;
+  inviteCode: z.ZodString;
+  createdBy: z.ZodString;
+  createdAt: z.ZodString;
+  updatedAt: z.ZodString;
+}> = object({
   id: string(),
   name: string(),
   status: leagueStatusSchema,

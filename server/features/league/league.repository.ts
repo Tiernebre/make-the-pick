@@ -9,7 +9,7 @@ type LeaguePlayerRow = typeof leaguePlayer.$inferSelect;
 
 export function createLeagueRepository(db: Database) {
   return {
-    async createWithCreator(
+    createWithCreator(
       userId: string,
       data: { name: string; inviteCode: string },
     ): Promise<LeagueRow> {
@@ -45,7 +45,7 @@ export function createLeagueRepository(db: Database) {
     },
 
     async findAllByUserId(userId: string) {
-      return db
+      return await db
         .select({ league })
         .from(league)
         .innerJoin(leaguePlayer, eq(league.id, leaguePlayer.leagueId))
