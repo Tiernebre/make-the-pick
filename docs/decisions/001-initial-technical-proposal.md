@@ -98,9 +98,14 @@ Deno's built-in workspace support allows sharing Zod schemas, types, and constan
 
 **Considered:** npm workspaces + Turborepo — adds build orchestration complexity that Deno workspaces avoid entirely.
 
-### Testing: Vitest (Strict TDD)
+### Testing: Split Runners, Strict TDD
 
-Vitest is the test runner for all unit tests across the monorepo. It shares Vite's config and transform pipeline, so TypeScript and JSX work without extra setup. Fast watch mode makes the red-green cycle tight.
+Two test runners, matched to their runtime:
+
+- **`deno test`** — server and shared packages. Tests run in the same Deno runtime as production, so there's no behavior mismatch. Built-in assertions, snapshot testing, and async support.
+- **Vitest** — client (React components, hooks, frontend logic). Shares Vite's config and transform pipeline, so TypeScript and JSX work without extra setup. Fast watch mode for tight feedback loops.
+
+The shared package (Zod schemas, types) is pure TypeScript with no runtime-specific code, so it's testable by either runner.
 
 **The project follows strict test-driven development (TDD):**
 
@@ -110,7 +115,16 @@ Vitest is the test runner for all unit tests across the monorepo. It shares Vite
 
 Every unit of business logic (rules engine, draft ordering, trade validation, domain models) must be driven by tests written *before* the implementation. No production code without a failing test first. This is not optional — it is the development workflow.
 
-**Considered:** Deno's built-in test runner — capable but lacks Vite integration for frontend component tests and has a smaller ecosystem of matchers and utilities. Jest — industry standard but slower and requires more configuration with TypeScript/ESM.
+**Integration tests** hit real boundaries — no mocking the database:
+
+- **tRPC procedures** — tested via `createCaller`, covering the full path from input validation through business logic to database and back.
+- **Database** — run against a real PostgreSQL instance (Docker in dev/CI). Each test uses a transaction that rolls back, keeping tests isolated without resetting the DB.
+- **WebSocket / draft room** — the draft state machine is pure logic (unit tested via TDD). A thin integration test layer verifies WebSocket upgrade and message flow end-to-end.
+- **Hono HTTP** — tested via Hono's built-in test client (`app.request()`) for middleware, auth, and route-level concerns.
+
+Unit tests run first in CI (fast, fail early). Integration tests run after.
+
+**Considered:** Vitest everywhere — would require running backend code under Node compatibility mode, creating a runtime mismatch with production. Jest — slower and requires more configuration with TypeScript/ESM.
 
 ---
 
