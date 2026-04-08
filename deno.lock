@@ -7,8 +7,11 @@
     "jsr:@std/internal@^1.0.12": "1.0.12",
     "npm:@mantine/core@^7.17.0": "7.17.8_@mantine+hooks@7.17.8__react@19.2.4_react@19.2.4_react-dom@19.2.4__react@19.2.4_@types+react@19.2.14",
     "npm:@mantine/hooks@^7.17.0": "7.17.8_react@19.2.4",
+    "npm:@tanstack/react-query@5": "5.96.2_react@19.2.4",
     "npm:@testing-library/jest-dom@^6.6.0": "6.9.1",
     "npm:@testing-library/react@16": "16.3.2_@testing-library+dom@10.4.1_@types+react@19.2.14_@types+react-dom@19.2.3__@types+react@19.2.14_react@19.2.4_react-dom@19.2.4__react@19.2.4",
+    "npm:@trpc/client@11": "11.16.0_@trpc+server@11.16.0__typescript@6.0.2_typescript@6.0.2",
+    "npm:@trpc/react-query@11": "11.16.0_@tanstack+react-query@5.96.2__react@19.2.4_@trpc+client@11.16.0__@trpc+server@11.16.0___typescript@6.0.2__typescript@6.0.2_@trpc+server@11.16.0__typescript@6.0.2_react@19.2.4_typescript@6.0.2",
     "npm:@trpc/server@11": "11.16.0_typescript@6.0.2",
     "npm:@types/react-dom@19": "19.2.3_@types+react@19.2.14",
     "npm:@types/react@19": "19.2.14",
@@ -558,6 +561,16 @@
       "os": ["win32"],
       "cpu": ["x64"]
     },
+    "@tanstack/query-core@5.96.2": {
+      "integrity": "sha512-hzI6cTVh4KNRk8UtoIBS7Lv9g6BnJPXvBKsvYH1aGWvv0347jT3BnSvztOE+kD76XGvZnRC/t6qdW1CaIfwCeA=="
+    },
+    "@tanstack/react-query@5.96.2_react@19.2.4": {
+      "integrity": "sha512-sYyzzJT4G0g02azzJ8o55VFFV31XvFpdUpG+unxS0vSaYsJnSPKGoI6WdPwUucJL1wpgGfwfmntNX/Ub1uOViA==",
+      "dependencies": [
+        "@tanstack/query-core",
+        "react"
+      ]
+    },
     "@testing-library/dom@10.4.1": {
       "integrity": "sha512-o4PXJQidqJl82ckFaXUeoAW+XysPLauYI43Abki5hABd853iMhitooc6znOnczgbTYmEP6U6/y1ZyKAIsvMKGg==",
       "dependencies": [
@@ -595,6 +608,24 @@
       "optionalPeers": [
         "@types/react",
         "@types/react-dom"
+      ]
+    },
+    "@trpc/client@11.16.0_@trpc+server@11.16.0__typescript@6.0.2_typescript@6.0.2": {
+      "integrity": "sha512-TxIzm7OoK3baKZ0XCbuMUbI3GhgjcbKHIc4nWVKaRpCRnbSh0T31BT6fTPYwtnA/Nur8pBCGqC2B4J5hEPiPFQ==",
+      "dependencies": [
+        "@trpc/server",
+        "typescript"
+      ],
+      "bin": true
+    },
+    "@trpc/react-query@11.16.0_@tanstack+react-query@5.96.2__react@19.2.4_@trpc+client@11.16.0__@trpc+server@11.16.0___typescript@6.0.2__typescript@6.0.2_@trpc+server@11.16.0__typescript@6.0.2_react@19.2.4_typescript@6.0.2": {
+      "integrity": "sha512-ah6ULOu4k7lCEFAEoEgqg14YPVu1lnCVVYcz8TP7avPPKwtcB0CbFKYve3ElRP+V5DoBT75Q+G66bRdR+rQ5fg==",
+      "dependencies": [
+        "@tanstack/react-query",
+        "@trpc/client",
+        "@trpc/server",
+        "react",
+        "typescript"
       ]
     },
     "@trpc/server@11.16.0_typescript@6.0.2": {
@@ -1448,8 +1479,11 @@
           "dependencies": [
             "npm:@mantine/core@^7.17.0",
             "npm:@mantine/hooks@^7.17.0",
+            "npm:@tanstack/react-query@5",
             "npm:@testing-library/jest-dom@^6.6.0",
             "npm:@testing-library/react@16",
+            "npm:@trpc/client@11",
+            "npm:@trpc/react-query@11",
             "npm:@types/react-dom@19",
             "npm:@types/react@19",
             "npm:@vitejs/plugin-react@4",
