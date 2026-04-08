@@ -16,6 +16,7 @@
     "npm:@types/react-dom@19": "19.2.3_@types+react@19.2.14",
     "npm:@types/react@19": "19.2.14",
     "npm:@vitejs/plugin-react@4": "4.7.0_vite@6.4.2",
+    "npm:concurrently@*": "9.2.1",
     "npm:concurrently@^9.2.1": "9.2.1",
     "npm:drizzle-orm@0.44": "0.44.7_postgres@3.4.9",
     "npm:happy-dom@18": "18.0.1",
