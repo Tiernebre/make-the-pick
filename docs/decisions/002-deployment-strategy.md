@@ -87,8 +87,8 @@ base.
 
 ### Domain & SSL: Cloudflare
 
-Domain registered via **Namecheap**, with nameservers pointed to Cloudflare for
-DNS management, SSL, and CDN.
+Domain `makethepick.gg` registered via **Namecheap**, with nameservers pointed
+to Cloudflare for DNS management, SSL, and CDN.
 
 Cloudflare provides (free plan):
 
