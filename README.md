@@ -52,41 +52,23 @@ Built as a proof-of-concept for a larger "draft & trade anything" platform.
 End-to-end tests use [Playwright](https://playwright.dev/) and run the full app
 in production mode against a separate database.
 
-### First-time setup
-
-1. **Create the E2E database.** If you started Docker before the init script was
-   added, run this once:
-
-   ```sh
-   docker exec make-the-pick-postgres-1 psql -U make_the_pick \
-     -c "CREATE DATABASE make_the_pick_e2e OWNER make_the_pick;"
-   ```
-
-   New Docker volumes pick this up automatically via `scripts/init-e2e-db.sql`.
-
-2. **Run migrations** against the E2E database:
-
-   ```sh
-   DATABASE_URL="postgres://make_the_pick:make_the_pick@localhost:5432/make_the_pick_e2e" \
-     deno task db:migrate
-   ```
-
-3. **Install Playwright browsers** (Chromium only):
-
-   ```sh
-   cd e2e && npx playwright install chromium
-   ```
-
 ### Running tests
 
+Make sure PostgreSQL is running (`deno task db:start`), then:
+
 ```sh
-DATABASE_URL_E2E="postgres://make_the_pick:make_the_pick@localhost:5432/make_the_pick_e2e" \
-  deno task test:e2e
+deno task test:e2e
 ```
 
-Playwright will build the client, start the server on port 3000, run the tests,
-and tear everything down. If the server is already running on port 3000, it
-reuses it (skipped in CI).
+That's it. On first run, Playwright's global setup automatically creates the
+`make_the_pick_e2e` database and runs migrations. Subsequent runs reuse the
+database and only apply new migrations.
+
+You'll need Playwright browsers installed once:
+
+```sh
+cd e2e && npx playwright install chromium
+```
 
 ### How it works
 

@@ -2,6 +2,9 @@ import { defineConfig, devices } from "@playwright/test";
 
 const isCI = !!process.env.CI;
 
+const DATABASE_URL_E2E = process.env.DATABASE_URL_E2E ??
+  "postgres://make_the_pick:make_the_pick@localhost:5432/make_the_pick_e2e";
+
 export default defineConfig({
   testDir: "./tests",
   fullyParallel: true,
@@ -26,8 +29,7 @@ export default defineConfig({
     timeout: 60_000,
     env: {
       DENO_ENV: "production",
-      DATABASE_URL: process.env.DATABASE_URL_E2E ??
-        "postgres://make_the_pick:make_the_pick@localhost:5432/make_the_pick_e2e",
+      DATABASE_URL: DATABASE_URL_E2E,
       BETTER_AUTH_SECRET: "e2e-test-secret-not-real",
       BETTER_AUTH_URL: "http://localhost:3000",
       BETTER_AUTH_TRUSTED_ORIGINS: "http://localhost:3000",
