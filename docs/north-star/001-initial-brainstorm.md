@@ -95,23 +95,4 @@ The question is: **start focused (Pokemon) and generalize later, or build the pl
 | Starting point | Pokemon drafter as proof-of-concept, generalize later |
 | Rules engine | Configurable by league creator |
 | Social layer | Not a priority — lean on Discord for social features |
-| Tech stack | **Deno 2.x + Hono + React + Vite + Drizzle + Zod + PostgreSQL** |
-| Architecture | Single server — Hono serves API, WebSocket, and static React files on one port |
 | License | MIT |
-
----
-
-## Tech Stack (Final)
-
-| Layer | Technology |
-|-------|-----------|
-| Runtime | Deno 2.x |
-| Backend | Hono |
-| Frontend | React + Vite |
-| Real-time | Hono WebSocket (built-in) |
-| Database | PostgreSQL + Drizzle ORM |
-| Validation | Zod |
-| Monorepo | Deno workspaces |
-
-### Key architectural choice
-Single Deno process serves everything — REST API (`/api/*`), WebSocket (`/ws/*`), and static React files (`/*`). No reverse proxy, no CORS, no multiple services. One port, one deployment.
