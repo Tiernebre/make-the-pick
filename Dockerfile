@@ -1,4 +1,4 @@
-FROM denoland/deno:2.2.11 AS base
+FROM denoland/deno:2.7.11 AS base
 WORKDIR /app
 
 # Cache dependencies by copying config files first
