@@ -32,13 +32,13 @@ Built as a proof-of-concept for a larger "draft & trade anything" platform.
 
 ## Available Tasks
 
-| Task                | Description                                   |
-| ------------------- | --------------------------------------------- |
-| `deno task dev`     | Start both server and client in dev mode      |
-| `deno task test`    | Run all tests (server + client)               |
-| `deno task setup`   | Copy `.env.example` to `.env` (if not present)|
-| `deno task db:start`| Start PostgreSQL via Docker Compose           |
-| `deno task db:stop` | Stop PostgreSQL                               |
+| Task                 | Description                                    |
+| -------------------- | ---------------------------------------------- |
+| `deno task dev`      | Start both server and client in dev mode       |
+| `deno task test`     | Run all tests (server + client)                |
+| `deno task setup`    | Copy `.env.example` to `.env` (if not present) |
+| `deno task db:start` | Start PostgreSQL via Docker Compose            |
+| `deno task db:stop`  | Stop PostgreSQL                                |
 
 ## Environment Variables
 

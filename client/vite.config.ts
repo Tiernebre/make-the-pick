@@ -9,7 +9,9 @@ export default defineConfig({
         target: "http://localhost:3000",
         configure: (proxy) => {
           proxy.on("error", (err, _req, res) => {
-            if (err.message.includes("abort") || err.message.includes("cancel")) return;
+            if (
+              err.message.includes("abort") || err.message.includes("cancel")
+            ) return;
             if (res && "writeHead" in res) {
               res.writeHead(502);
               res.end("Proxy error");
