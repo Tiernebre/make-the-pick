@@ -5,6 +5,10 @@
     "indentWidth": 2,
     "singleQuote": false
   },
+  "tasks": {
+    "db:start": "docker compose up -d",
+    "db:stop": "docker compose down"
+  },
   "compilerOptions": {
     "strict": true,
     "jsx": "react-jsx",
