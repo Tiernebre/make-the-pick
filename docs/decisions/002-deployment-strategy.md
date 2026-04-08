@@ -46,12 +46,9 @@ PostgreSQL 17 runs as a Docker Compose service alongside the application
 container on the same Droplet. Data is stored on a named Docker volume for
 durability across container restarts.
 
-Backup strategy:
-
-- Daily `pg_dump` via a cron job on the Droplet
-- Backups stored in DigitalOcean Spaces ($5/mo for 250 GB) or locally on the
-  Droplet's disk as a starting point
-- Retention: 7 daily backups
+No backup strategy at MVP — data loss is acceptable for an early-stage app with
+test data. Backups (e.g., daily `pg_dump` to DigitalOcean Spaces) should be
+added before real user data is at stake.
 
 Migration path: when the app outgrows a single server (concurrent users,
 reliability requirements, or need for automated failover), migrate to
@@ -143,8 +140,7 @@ should move to a separate init container or pre-deploy step.
 
 - **Deployment is automatic** — push to `main`, CI passes, app deploys. No
   manual steps.
-- **Cost is minimal** — ~$6–12/mo for compute, potentially +$5/mo for backup
-  storage. Under $20/mo total.
+- **Cost is minimal** — ~$6–12/mo for compute. Under $15/mo total.
 - **Single server simplicity** — one machine to monitor, one SSH target, one
   `docker compose` command to manage everything.
 - **SSL is free and automatic** — Cloudflare handles certificates with zero
