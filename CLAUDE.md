@@ -33,6 +33,20 @@
   `hooks/` are for genuinely shared code only.
 - Database schema stays centralized in `server/db/schema.ts`.
 
+## Testing
+
+- Follow strict **test-driven development (TDD)** with red-green-refactor
+  cycles. This is not optional.
+  1. **Red** — Write a failing test against a spec or interface. The
+     implementation does not exist yet.
+  2. **Green** — Write the minimum code to make the test pass.
+  3. **Refactor** — Clean up the implementation while keeping tests green.
+- Never write implementation before a failing test. Tests drive the design.
+- For services: define the interface/type signature first, write tests against
+  it with fakes, then implement.
+- For repositories: write integration tests against the expected query behavior
+  first, then implement the queries.
+
 ## Workflow
 
 - Always work in a git worktree when making code changes. Use the

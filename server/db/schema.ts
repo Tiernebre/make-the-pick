@@ -1,4 +1,13 @@
-import { boolean, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  jsonb,
+  pgEnum,
+  pgTable,
+  serial,
+  text,
+  timestamp,
+  unique,
+} from "drizzle-orm/pg-core";
 
 export const healthChecks = pgTable("health_checks", {
   id: serial("id").primaryKey(),
@@ -55,3 +64,38 @@ export const verification = pgTable("verification", {
   createdAt: timestamp("created_at"),
   updatedAt: timestamp("updated_at"),
 });
+
+export const leagueStatusEnum = pgEnum("league_status", ["setup"]);
+
+export const leaguePlayerRoleEnum = pgEnum("league_player_role", [
+  "creator",
+  "member",
+]);
+
+export const league = pgTable("league", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  status: leagueStatusEnum("status").notNull().default("setup"),
+  rulesConfig: jsonb("rules_config"),
+  inviteCode: text("invite_code").notNull().unique(),
+  createdBy: text("created_by").notNull().references(() => user.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow()
+    .notNull(),
+});
+
+export const leaguePlayer = pgTable("league_player", {
+  id: text("id").primaryKey(),
+  leagueId: text("league_id").notNull().references(() => league.id, {
+    onDelete: "cascade",
+  }),
+  userId: text("user_id").notNull().references(() => user.id, {
+    onDelete: "cascade",
+  }),
+  role: leaguePlayerRoleEnum("role").notNull().default("member"),
+  joinedAt: timestamp("joined_at", { withTimezone: true }).defaultNow()
+    .notNull(),
+}, (table) => [
+  unique("league_player_unique").on(table.leagueId, table.userId),
+]);
