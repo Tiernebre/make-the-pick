@@ -18,6 +18,7 @@ FROM base AS production
 COPY . .
 COPY --from=build /app/client/dist ./client/dist
 
+ENV DENO_ENV=production
 EXPOSE 3000
 
 # Run migrations then start the server

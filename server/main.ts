@@ -34,8 +34,10 @@ app.all("/api/trpc/*", (c) => {
 });
 
 // In production, serve the built client assets
-app.use("/*", serveStatic({ root: "../client/dist" }));
-app.get("/*", serveStatic({ root: "../client/dist", path: "index.html" }));
+if (Deno.env.get("DENO_ENV") === "production") {
+  app.use("/*", serveStatic({ root: "../client/dist" }));
+  app.get("/*", serveStatic({ root: "../client/dist", path: "index.html" }));
+}
 
 if (import.meta.main) {
   Deno.serve({ port: 3000 }, app.fetch);
