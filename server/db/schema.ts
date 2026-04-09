@@ -1,5 +1,6 @@
 import {
   boolean,
+  integer,
   jsonb,
   pgEnum,
   pgTable,
@@ -68,6 +69,8 @@ export const verification = pgTable("verification", {
 
 export const leagueStatusEnum = pgEnum("league_status", ["setup"]);
 
+export const sportTypeEnum = pgEnum("sport_type", ["pokemon"]);
+
 export const leaguePlayerRoleEnum = pgEnum("league_player_role", [
   "commissioner",
   "member",
@@ -77,7 +80,9 @@ export const league = pgTable("league", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
   status: leagueStatusEnum("status").notNull().default("setup"),
+  sportType: sportTypeEnum("sport_type"),
   rulesConfig: jsonb("rules_config"),
+  maxPlayers: integer("max_players"),
   inviteCode: text("invite_code").notNull().unique(),
   createdBy: text("created_by").notNull().references(() => user.id),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow()
