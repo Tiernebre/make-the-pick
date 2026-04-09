@@ -92,7 +92,7 @@ export function LeagueDetailPage() {
           </Card>
 
           <Title order={3} mt="xl" mb="sm">
-            Participants
+            Players
           </Title>
           <Card shadow="sm" padding="lg" radius="md" withBorder>
             <Stack gap="sm">
