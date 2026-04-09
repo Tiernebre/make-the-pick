@@ -67,7 +67,13 @@ export const verification = pgTable("verification", {
   updatedAt: timestamp("updated_at"),
 });
 
-export const leagueStatusEnum = pgEnum("league_status", ["setup"]);
+export const leagueStatusEnum = pgEnum("league_status", [
+  "setup",
+  "drafting",
+  "trading",
+  "competing",
+  "complete",
+]);
 
 export const sportTypeEnum = pgEnum("sport_type", ["pokemon"]);
 

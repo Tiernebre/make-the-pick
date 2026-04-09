@@ -43,6 +43,13 @@
       "when": 1775738763318,
       "tag": "0005_aspiring_loners",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1775760861830,
+      "tag": "0006_living_nomad",
+      "breakpoints": true
     }
   ]
 }
