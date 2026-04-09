@@ -8,12 +8,14 @@ const {
   mockUseLeaguePlayers,
   mockUseDeleteLeague,
   mockDeleteMutate,
+  mockUseUpdateLeagueSettings,
 } = vi.hoisted(
   () => ({
     mockUseLeague: vi.fn(),
     mockUseLeaguePlayers: vi.fn(),
     mockUseDeleteLeague: vi.fn(),
     mockDeleteMutate: vi.fn(),
+    mockUseUpdateLeagueSettings: vi.fn(),
   }),
 );
 
@@ -21,6 +23,7 @@ vi.mock("./use-leagues", () => ({
   useLeague: mockUseLeague,
   useLeaguePlayers: mockUseLeaguePlayers,
   useDeleteLeague: mockUseDeleteLeague,
+  useUpdateLeagueSettings: mockUseUpdateLeagueSettings,
 }));
 
 vi.mock("../../auth", () => ({
@@ -60,6 +63,10 @@ describe("LeagueDetailPage", () => {
     mockUseLeaguePlayers.mockReturnValue({ data: [], isLoading: false });
     mockUseDeleteLeague.mockReturnValue({
       mutate: mockDeleteMutate,
+      isPending: false,
+    });
+    mockUseUpdateLeagueSettings.mockReturnValue({
+      mutate: vi.fn(),
       isPending: false,
     });
   });
