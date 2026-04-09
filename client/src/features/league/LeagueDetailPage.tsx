@@ -52,6 +52,9 @@ export function LeagueDetailPage() {
   >("");
   const [maxPlayers, setMaxPlayers] = useState<number | string>("");
   const [gameVersion, setGameVersion] = useState<string | null>(null);
+  const [poolSizeMultiplier, setPoolSizeMultiplier] = useState<number | string>(
+    2,
+  );
   const [settingsSaved, setSettingsSaved] = useState(false);
   const pokemonVersions = usePokemonVersions();
 
@@ -63,6 +66,7 @@ export function LeagueDetailPage() {
         draftFormat?: string;
         numberOfRounds?: number;
         pickTimeLimitSeconds?: number | null;
+        poolSizeMultiplier?: number;
         gameVersion?: string;
       } | null;
       if (rules) {
@@ -73,6 +77,9 @@ export function LeagueDetailPage() {
         }
         if (rules.gameVersion) {
           setGameVersion(rules.gameVersion);
+        }
+        if (rules.poolSizeMultiplier) {
+          setPoolSizeMultiplier(rules.poolSizeMultiplier);
         }
       }
     }
@@ -100,6 +107,7 @@ export function LeagueDetailPage() {
           pickTimeLimitSeconds: pickTimeLimitSeconds
             ? Number(pickTimeLimitSeconds)
             : null,
+          poolSizeMultiplier: Number(poolSizeMultiplier),
           ...(gameVersion ? { gameVersion } : {}),
         },
       },
@@ -255,6 +263,17 @@ export function LeagueDetailPage() {
                     onChange={setPickTimeLimitSeconds}
                   />
                   <NumberInput
+                    label="Draft Pool Size Multiplier"
+                    description="Pool size = rounds × players × multiplier"
+                    min={1.5}
+                    max={3}
+                    step={0.5}
+                    decimalScale={1}
+                    value={poolSizeMultiplier}
+                    onChange={setPoolSizeMultiplier}
+                    required
+                  />
+                  <NumberInput
                     label="Max Players"
                     min={2}
                     value={maxPlayers}
@@ -337,6 +356,16 @@ export function LeagueDetailPage() {
                               ).pickTimeLimitSeconds
                             }s`
                             : "No limit"}
+                        </Text>
+                      </Group>
+                      <Group>
+                        <Text fw={500}>Draft Pool Multiplier</Text>
+                        <Text c="dimmed">
+                          {(
+                            league.data.rulesConfig as {
+                              poolSizeMultiplier?: number;
+                            }
+                          ).poolSizeMultiplier ?? 2}x
                         </Text>
                       </Group>
                     </>
