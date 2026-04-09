@@ -7,7 +7,7 @@ import { appRouter } from "./trpc/router.ts";
 import { createContext } from "./trpc/context.ts";
 import { registerEchoWebSocket } from "./ws/echo.ts";
 import { auth } from "./auth/mod.ts";
-import { renderTrpcPanel } from "trpc-panel";
+import { renderTrpcPanel } from "trpc-ui";
 
 export const app: Hono = new Hono();
 
