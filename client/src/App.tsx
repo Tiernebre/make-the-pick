@@ -6,6 +6,8 @@ import {
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Route, Switch } from "wouter";
 import "@mantine/core/styles.css";
+import "@mantine/dates/styles.css";
+import "mantine-react-table/styles.css";
 import { queryClient, trpc, trpcClient } from "./trpc";
 
 const mintGreen: MantineColorsTuple = [
