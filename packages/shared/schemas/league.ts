@@ -40,10 +40,12 @@ export const rulesConfigSchema: z.ZodObject<{
   draftFormat: typeof draftFormatSchema;
   numberOfRounds: z.ZodNumber;
   pickTimeLimitSeconds: z.ZodNullable<z.ZodNumber>;
+  poolSizeMultiplier: z.ZodDefault<z.ZodNumber>;
 }> = object({
   draftFormat: draftFormatSchema,
   numberOfRounds: number().int().min(1),
   pickTimeLimitSeconds: number().int().min(1).nullable(),
+  poolSizeMultiplier: number().min(1.5).max(3).default(2),
 });
 
 export type RulesConfig = z.infer<typeof rulesConfigSchema>;

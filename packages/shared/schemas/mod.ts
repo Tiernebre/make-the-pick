@@ -1,3 +1,13 @@
+export {
+  type DraftPool,
+  type DraftPoolItem,
+  type DraftPoolItemMetadata,
+  draftPoolItemMetadataSchema,
+  draftPoolItemSchema,
+  draftPoolSchema,
+  type GenerateDraftPoolInput,
+  generateDraftPoolSchema,
+} from "./draft-pool.ts";
 export { type HealthResponse, healthResponseSchema } from "./health.ts";
 export {
   type AdvanceLeagueStatusInput,
