@@ -34,3 +34,15 @@ export {
 } from "./schemas/mod.ts";
 export { type Pokemon, pokemonSchema } from "./schemas/mod.ts";
 export { type PokemonVersion, pokemonVersionSchema } from "./schemas/mod.ts";
+export {
+  type AddToWatchlistInput,
+  addToWatchlistSchema,
+  type GetWatchlistInput,
+  getWatchlistSchema,
+  type RemoveFromWatchlistInput,
+  removeFromWatchlistSchema,
+  type ReorderWatchlistInput,
+  reorderWatchlistSchema,
+  type WatchlistItem,
+  watchlistItemSchema,
+} from "./schemas/mod.ts";

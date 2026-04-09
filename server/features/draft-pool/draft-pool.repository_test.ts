@@ -4,11 +4,13 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "../../db/schema.ts";
 import {
+  draft,
   draftPool,
   draftPoolItem,
   league,
   leaguePlayer,
   user,
+  watchlistItem,
 } from "../../db/schema.ts";
 import { createDraftPoolRepository } from "./draft-pool.repository.ts";
 
@@ -60,6 +62,8 @@ async function cleanup(
   client: ReturnType<typeof postgres>,
   userIds: string[],
 ) {
+  await db.delete(watchlistItem);
+  await db.delete(draft);
   await db.delete(draftPoolItem);
   await db.delete(draftPool);
   await db.delete(leaguePlayer);
