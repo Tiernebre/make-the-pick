@@ -79,7 +79,13 @@ export function DraftPage() {
               <Title order={3} mb="sm">
                 Draft Pool ({draftPool.data.items.length} items)
               </Title>
-              <Table striped highlightOnHover withTableBorder withColumnBorders>
+              <Table
+                striped
+                highlightOnHover
+                withTableBorder
+                withColumnBorders
+                fz="md"
+              >
                 <Table.Thead>
                   <Table.Tr>
                     <Table.Th />
@@ -104,12 +110,12 @@ export function DraftPage() {
                           <Avatar
                             src={item.thumbnailUrl}
                             alt={item.name}
-                            size="sm"
+                            size="md"
                             radius="sm"
                           />
                         </Table.Td>
                         <Table.Td>
-                          <Text size="sm" fw={500} tt="capitalize">
+                          <Text size="md" fw={500} tt="capitalize">
                             {item.name}
                           </Text>
                         </Table.Td>
@@ -119,7 +125,7 @@ export function DraftPage() {
                               {item.metadata.types.map((type) => (
                                 <Badge
                                   key={type}
-                                  size="xs"
+                                  size="sm"
                                   variant="light"
                                   color={POKEMON_TYPE_COLORS[type] ?? "gray"}
                                   tt="capitalize"
