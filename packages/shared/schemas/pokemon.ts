@@ -14,6 +14,7 @@ export const pokemonSchema: z.ZodObject<{
     speed: z.ZodNumber;
   }>;
   generation: z.ZodString;
+  captureRate: z.ZodNumber;
   spriteUrl: z.ZodNullable<z.ZodString>;
 }> = object({
   id: number(),
@@ -28,6 +29,7 @@ export const pokemonSchema: z.ZodObject<{
     speed: number(),
   }),
   generation: string(),
+  captureRate: number(),
   spriteUrl: nullable(string()),
 });
 

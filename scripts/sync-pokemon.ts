@@ -20,6 +20,7 @@ interface RawDetail {
 
 interface RawSpecies {
   generation: { name: string };
+  capture_rate: number;
 }
 
 const STAT_NAME_MAP: Record<string, keyof Pokemon["baseStats"]> = {
@@ -94,6 +95,7 @@ function mapToPokemon(
     types: detail.types.map((t) => t.type.name),
     baseStats,
     generation: species.generation.name,
+    captureRate: species.capture_rate,
     spriteUrl: detail.sprites.front_default,
   });
 }
