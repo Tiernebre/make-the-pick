@@ -7,6 +7,7 @@ import { appRouter } from "./trpc/router.ts";
 import { createContext } from "./trpc/context.ts";
 import { registerEchoWebSocket } from "./ws/echo.ts";
 import { auth } from "./auth/mod.ts";
+import { renderTrpcPanel } from "trpc-panel";
 
 export const app: Hono = new Hono();
 
@@ -33,6 +34,15 @@ app.all("/api/trpc/*", (c) => {
   });
 });
 
+// Dev-only: tRPC Panel UI for exploring API endpoints
+if (Deno.env.get("DENO_ENV") !== "production") {
+  app.get("/dev/trpc", (c) => {
+    return c.html(
+      renderTrpcPanel(appRouter, { url: "/api/trpc" }),
+    );
+  });
+}
+
 // In production, serve the built client assets
 if (Deno.env.get("DENO_ENV") === "production") {
   app.use("/*", serveStatic({ root: "../client/dist" }));
@@ -51,6 +61,9 @@ if (import.meta.main) {
         console.log(`API server running on http://${hostname}:${port}/`);
         console.log(
           `Open http://localhost:5173/ in your browser to use the app.`,
+        );
+        console.log(
+          `tRPC Panel available at http://${hostname}:${port}/dev/trpc`,
         );
       }
     },

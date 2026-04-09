@@ -10,6 +10,7 @@
     "postgres": "npm:postgres@^3.4",
     "@trpc/server": "npm:@trpc/server@^11",
     "@trpc/server/": "npm:/@trpc/server@^11/",
+    "trpc-panel": "npm:trpc-panel@^1",
     "zod": "npm:zod@^3.24",
     "better-auth": "npm:better-auth@^1",
     "better-auth/": "npm:/better-auth@^1/"
