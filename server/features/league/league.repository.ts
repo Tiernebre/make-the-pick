@@ -44,12 +44,13 @@ export function createLeagueRepository(db: Database) {
       return result ?? null;
     },
 
-    async findAllByUserId(userId: string) {
-      return await db
+    async findAllByUserId(userId: string): Promise<LeagueRow[]> {
+      const rows = await db
         .select({ league })
         .from(league)
         .innerJoin(leaguePlayer, eq(league.id, leaguePlayer.leagueId))
         .where(eq(leaguePlayer.userId, userId));
+      return rows.map((row) => row.league);
     },
 
     async addPlayer(

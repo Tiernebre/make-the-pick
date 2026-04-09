@@ -249,6 +249,13 @@ Deno.test({
 
       const leagues = await repo.findAllByUserId(userId);
       assertEquals(leagues.length, 2);
+
+      for (const l of leagues) {
+        assertEquals(typeof l.id, "string");
+        assertEquals(typeof l.name, "string");
+        assertEquals(typeof l.status, "string");
+        assertEquals(typeof l.inviteCode, "string");
+      }
     } finally {
       await db.delete(leaguePlayer);
       await db.delete(league);
