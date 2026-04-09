@@ -50,6 +50,12 @@ export function createLeagueRouter(leagueService: LeagueService) {
         return leagueService.advanceStatus(ctx.user.id, input);
       }),
 
+    removePlayer: protectedProcedure
+      .input(object({ leagueId: string().uuid(), playerUserId: string() }))
+      .mutation(({ ctx, input }) => {
+        return leagueService.removePlayer(ctx.user.id, input);
+      }),
+
     delete: protectedProcedure
       .input(object({ id: string().uuid() }))
       .mutation(({ ctx, input }) => {
