@@ -12,7 +12,7 @@
     "dev:server": "cd server && deno run --watch --allow-net --allow-env --allow-read --allow-sys --env main.ts | deno run -A npm:pino-pretty",
     "dev:client": "cd client && deno run -A npm:vite",
     "test": "deno task test:server && deno task test:client",
-    "test:e2e": "deno run --allow-net --allow-env --allow-read --allow-run e2e/setup.ts && cd e2e && npx playwright test",
+    "test:e2e": "deno run --allow-net --allow-env --allow-read --allow-run --allow-sys e2e/setup.ts && cd e2e && npx playwright test",
     "test:server": "deno test server/ --allow-env --allow-net --allow-read --allow-sys --env=.env.example",
     "test:client": "cd client && deno run -A npm:vitest run",
     "build": "cd client && deno task build",

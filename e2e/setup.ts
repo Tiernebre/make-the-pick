@@ -24,7 +24,14 @@ await admin.end();
 
 // 2. Run Drizzle migrations against the E2E database
 const migrate = new Deno.Command("deno", {
-  args: ["run", "--allow-net", "--allow-env", "--allow-read", "db/migrate.ts"],
+  args: [
+    "run",
+    "--allow-net",
+    "--allow-env",
+    "--allow-read",
+    "--allow-sys",
+    "db/migrate.ts",
+  ],
   cwd: new URL("../server", import.meta.url).pathname,
   env: { DATABASE_URL: E2E_URL },
   stdout: "inherit",
