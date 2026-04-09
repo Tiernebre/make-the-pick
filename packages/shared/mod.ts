@@ -33,6 +33,10 @@ export {
   updateLeagueSettingsSchema,
 } from "./schemas/mod.ts";
 export { type Pokemon, pokemonSchema } from "./schemas/mod.ts";
+export {
+  type PokemonMovesEntry,
+  pokemonMovesEntrySchema,
+} from "./schemas/mod.ts";
 export { type PokemonVersion, pokemonVersionSchema } from "./schemas/mod.ts";
 export {
   type DeletePoolItemNoteInput,

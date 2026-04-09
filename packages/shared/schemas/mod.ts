@@ -34,6 +34,10 @@ export {
 } from "./league.ts";
 export { type Pokemon, pokemonSchema } from "./pokemon.ts";
 export {
+  type PokemonMovesEntry,
+  pokemonMovesEntrySchema,
+} from "./pokemon-moves.ts";
+export {
   type PokemonVersion,
   pokemonVersionSchema,
 } from "./pokemon-version.ts";
