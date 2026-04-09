@@ -260,11 +260,11 @@ export function DraftPoolPage() {
 
       <Anchor
         component={Link}
-        href={`/leagues/${id}/draft`}
+        href={`/leagues/${id}`}
         mb="md"
         display="block"
       >
-        &larr; Back to Draft
+        &larr; Back to League
       </Anchor>
 
       {league.data && (

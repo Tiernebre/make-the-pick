@@ -16,6 +16,13 @@ vi.mock("./use-draft", () => ({
   useDraftPool: mockUseDraftPool,
 }));
 
+vi.mock("./use-watchlist", () => ({
+  useWatchlist: () => ({ data: [] }),
+  useAddToWatchlist: () => ({ mutate: vi.fn() }),
+  useRemoveFromWatchlist: () => ({ mutate: vi.fn() }),
+  useReorderWatchlist: () => ({ mutate: vi.fn() }),
+}));
+
 vi.mock("wouter", async () => {
   const actual = await vi.importActual<typeof import("wouter")>("wouter");
   return {
@@ -109,11 +116,11 @@ describe("DraftPoolPage", () => {
     expect(screen.getByText("Test League — Draft Pool")).toBeInTheDocument();
   });
 
-  it("has a back link to the draft page", () => {
+  it("has a back link to the league page", () => {
     renderPage();
-    const backLink = screen.getByRole("link", { name: /back to draft/i });
+    const backLink = screen.getByRole("link", { name: /back to league/i });
     expect(backLink).toBeInTheDocument();
-    expect(backLink).toHaveAttribute("href", "/leagues/league-1/draft");
+    expect(backLink).toHaveAttribute("href", "/leagues/league-1");
   });
 
   it("shows loading overlay when league is loading", () => {
