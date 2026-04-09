@@ -23,4 +23,4 @@ ENV DENO_ENV=production
 EXPOSE 3000
 
 # Run migrations then start the server
-CMD ["sh", "-c", "cd server && deno run --allow-net --allow-env --allow-read db/migrate.ts && deno run --allow-net --allow-env --allow-read main.ts"]
+CMD ["sh", "-c", "cd server && deno run --allow-net --allow-env --allow-read --allow-sys db/migrate.ts && deno run --allow-net --allow-env --allow-read --allow-sys main.ts"]
