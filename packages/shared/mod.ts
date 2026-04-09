@@ -35,6 +35,16 @@ export {
 export { type Pokemon, pokemonSchema } from "./schemas/mod.ts";
 export { type PokemonVersion, pokemonVersionSchema } from "./schemas/mod.ts";
 export {
+  type DeletePoolItemNoteInput,
+  deletePoolItemNoteSchema,
+  type GetPoolItemNotesInput,
+  getPoolItemNotesSchema,
+  type PoolItemNote,
+  poolItemNoteSchema,
+  type UpsertPoolItemNoteInput,
+  upsertPoolItemNoteSchema,
+} from "./schemas/mod.ts";
+export {
   type AddToWatchlistInput,
   addToWatchlistSchema,
   type GetWatchlistInput,
