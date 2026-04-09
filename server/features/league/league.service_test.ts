@@ -2,9 +2,11 @@ import { assertEquals, assertRejects } from "@std/assert";
 import { TRPCError } from "@trpc/server";
 import { createLeagueService } from "./league.service.ts";
 import type { LeagueRepository } from "./league.repository.ts";
+import type { DraftRepository } from "../draft/draft.repository.ts";
 
 type FakeLeague = Awaited<ReturnType<LeagueRepository["findById"]>>;
 type FakePlayer = Awaited<ReturnType<LeagueRepository["findPlayer"]>>;
+type FakeDraft = Awaited<ReturnType<DraftRepository["findByLeagueId"]>>;
 
 function createFakeLeague(
   overrides: Partial<NonNullable<FakeLeague>> = {},
@@ -20,6 +22,24 @@ function createFakeLeague(
     createdBy: "user-1",
     createdAt: new Date(),
     updatedAt: new Date(),
+    ...overrides,
+  };
+}
+
+function createFakeDraft(
+  overrides: Partial<NonNullable<FakeDraft>> = {},
+): NonNullable<FakeDraft> {
+  return {
+    id: crypto.randomUUID(),
+    leagueId: crypto.randomUUID(),
+    poolId: crypto.randomUUID(),
+    format: "snake",
+    status: "pending",
+    pickOrder: [],
+    currentPick: 0,
+    startedAt: null,
+    completedAt: null,
+    createdAt: new Date(),
     ...overrides,
   };
 }
@@ -52,6 +72,15 @@ function createFakeRepo(
   };
 }
 
+function createFakeDraftRepo(
+  overrides: Partial<DraftRepository> = {},
+): DraftRepository {
+  return {
+    findByLeagueId: (_leagueId) => Promise.resolve(null as FakeDraft),
+    ...overrides,
+  };
+}
+
 Deno.test("leagueService.create: creates a league with generated invite code", async () => {
   let capturedData: { name: string; inviteCode: string } | undefined;
   const repo = createFakeRepo({
@@ -63,7 +92,10 @@ Deno.test("leagueService.create: creates a league with generated invite code", a
     },
   });
 
-  const service = createLeagueService({ leagueRepo: repo });
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo: createFakeDraftRepo(),
+  });
   const result = await service.create("user-1", { name: "My League" });
 
   assertEquals(result.name, "My League");
@@ -77,14 +109,20 @@ Deno.test("leagueService.getById: returns league when found", async () => {
     findById: (_id) => Promise.resolve(fakeLeague),
   });
 
-  const service = createLeagueService({ leagueRepo: repo });
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo: createFakeDraftRepo(),
+  });
   const result = await service.getById(fakeLeague.id);
   assertEquals(result.name, "Found League");
 });
 
 Deno.test("leagueService.getById: throws NOT_FOUND when missing", async () => {
   const repo = createFakeRepo();
-  const service = createLeagueService({ leagueRepo: repo });
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo: createFakeDraftRepo(),
+  });
 
   const error = await assertRejects(
     () => service.getById("nonexistent"),
@@ -99,14 +137,20 @@ Deno.test("leagueService.join: joins a league via invite code", async () => {
     findByInviteCode: (_code) => Promise.resolve(fakeLeague),
   });
 
-  const service = createLeagueService({ leagueRepo: repo });
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo: createFakeDraftRepo(),
+  });
   const result = await service.join("user-2", "JOIN1234");
   assertEquals(result.id, fakeLeague.id);
 });
 
 Deno.test("leagueService.join: throws NOT_FOUND for invalid invite code", async () => {
   const repo = createFakeRepo();
-  const service = createLeagueService({ leagueRepo: repo });
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo: createFakeDraftRepo(),
+  });
 
   const error = await assertRejects(
     () => service.join("user-1", "BADCODE1"),
@@ -134,14 +178,20 @@ Deno.test("leagueService.delete: deletes a league when user is the commissioner"
     },
   });
 
-  const service = createLeagueService({ leagueRepo: repo });
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo: createFakeDraftRepo(),
+  });
   await service.delete("user-1", fakeLeague.id);
   assertEquals(deletedId, fakeLeague.id);
 });
 
 Deno.test("leagueService.delete: throws NOT_FOUND when league does not exist", async () => {
   const repo = createFakeRepo();
-  const service = createLeagueService({ leagueRepo: repo });
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo: createFakeDraftRepo(),
+  });
 
   const error = await assertRejects(
     () => service.delete("user-1", "nonexistent"),
@@ -164,7 +214,10 @@ Deno.test("leagueService.delete: throws FORBIDDEN when user is not the commissio
       }),
   });
 
-  const service = createLeagueService({ leagueRepo: repo });
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo: createFakeDraftRepo(),
+  });
 
   const error = await assertRejects(
     () => service.delete("user-2", fakeLeague.id),
@@ -198,7 +251,10 @@ Deno.test("leagueService.listPlayers: returns players for a league", async () =>
     findPlayersByLeagueId: (_leagueId) => Promise.resolve(fakePlayers),
   });
 
-  const service = createLeagueService({ leagueRepo: repo });
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo: createFakeDraftRepo(),
+  });
   const result = await service.listPlayers(fakeLeague.id);
   assertEquals(result.length, 2);
   assertEquals(result[0].name, "Commissioner");
@@ -207,7 +263,10 @@ Deno.test("leagueService.listPlayers: returns players for a league", async () =>
 
 Deno.test("leagueService.listPlayers: throws NOT_FOUND when league does not exist", async () => {
   const repo = createFakeRepo();
-  const service = createLeagueService({ leagueRepo: repo });
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo: createFakeDraftRepo(),
+  });
 
   const error = await assertRejects(
     () => service.listPlayers("nonexistent"),
@@ -230,7 +289,10 @@ Deno.test("leagueService.join: throws BAD_REQUEST if already a member", async ()
       }),
   });
 
-  const service = createLeagueService({ leagueRepo: repo });
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo: createFakeDraftRepo(),
+  });
 
   const error = await assertRejects(
     () => service.join("user-1", fakeLeague.inviteCode),
@@ -277,7 +339,10 @@ Deno.test("leagueService.updateSettings: updates settings when user is commissio
     },
   });
 
-  const service = createLeagueService({ leagueRepo: repo });
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo: createFakeDraftRepo(),
+  });
   const result = await service.updateSettings("user-1", validSettingsInput);
 
   assertEquals(result.sportType, "pokemon");
@@ -288,7 +353,10 @@ Deno.test("leagueService.updateSettings: updates settings when user is commissio
 
 Deno.test("leagueService.updateSettings: throws NOT_FOUND when league does not exist", async () => {
   const repo = createFakeRepo();
-  const service = createLeagueService({ leagueRepo: repo });
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo: createFakeDraftRepo(),
+  });
 
   const error = await assertRejects(
     () => service.updateSettings("user-1", validSettingsInput),
@@ -311,7 +379,10 @@ Deno.test("leagueService.updateSettings: throws FORBIDDEN when user is not commi
       }),
   });
 
-  const service = createLeagueService({ leagueRepo: repo });
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo: createFakeDraftRepo(),
+  });
 
   const error = await assertRejects(
     () => service.updateSettings("user-2", validSettingsInput),
@@ -326,7 +397,10 @@ Deno.test("leagueService.updateSettings: throws FORBIDDEN when user is not a mem
     findById: (_id) => Promise.resolve(fakeLeague),
   });
 
-  const service = createLeagueService({ leagueRepo: repo });
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo: createFakeDraftRepo(),
+  });
 
   const error = await assertRejects(
     () => service.updateSettings("user-1", validSettingsInput),
@@ -345,7 +419,10 @@ Deno.test("leagueService.join: throws BAD_REQUEST when league is full", async ()
     countPlayers: (_leagueId) => Promise.resolve(2),
   });
 
-  const service = createLeagueService({ leagueRepo: repo });
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo: createFakeDraftRepo(),
+  });
 
   const error = await assertRejects(
     () => service.join("user-3", "FULL0001"),
@@ -364,7 +441,10 @@ Deno.test("leagueService.join: allows join when under max_players", async () => 
     countPlayers: (_leagueId) => Promise.resolve(2),
   });
 
-  const service = createLeagueService({ leagueRepo: repo });
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo: createFakeDraftRepo(),
+  });
   const result = await service.join("user-3", "OPEN0001");
   assertEquals(result.id, fakeLeague.id);
 });
@@ -378,7 +458,10 @@ Deno.test("leagueService.join: allows join when max_players is null", async () =
     findByInviteCode: (_code) => Promise.resolve(fakeLeague),
   });
 
-  const service = createLeagueService({ leagueRepo: repo });
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo: createFakeDraftRepo(),
+  });
   const result = await service.join("user-3", "NOLIM001");
   assertEquals(result.id, fakeLeague.id);
 });
@@ -387,7 +470,10 @@ Deno.test("leagueService.join: allows join when max_players is null", async () =
 
 Deno.test("leagueService.advanceStatus: throws NOT_FOUND when league does not exist", async () => {
   const repo = createFakeRepo();
-  const service = createLeagueService({ leagueRepo: repo });
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo: createFakeDraftRepo(),
+  });
 
   const error = await assertRejects(
     () => service.advanceStatus("user-1", { leagueId: "nonexistent" }),
@@ -410,7 +496,10 @@ Deno.test("leagueService.advanceStatus: throws FORBIDDEN when user is not commis
       }),
   });
 
-  const service = createLeagueService({ leagueRepo: repo });
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo: createFakeDraftRepo(),
+  });
 
   const error = await assertRejects(
     () => service.advanceStatus("user-2", { leagueId: fakeLeague.id }),
@@ -425,7 +514,10 @@ Deno.test("leagueService.advanceStatus: throws FORBIDDEN when user is not a memb
     findById: (_id) => Promise.resolve(fakeLeague),
   });
 
-  const service = createLeagueService({ leagueRepo: repo });
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo: createFakeDraftRepo(),
+  });
 
   const error = await assertRejects(
     () => service.advanceStatus("user-1", { leagueId: fakeLeague.id }),
@@ -448,7 +540,10 @@ Deno.test("leagueService.advanceStatus: throws BAD_REQUEST when league is alread
       }),
   });
 
-  const service = createLeagueService({ leagueRepo: repo });
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo: createFakeDraftRepo(),
+  });
 
   const error = await assertRejects(
     () => service.advanceStatus("user-1", { leagueId: fakeLeague.id }),
@@ -475,7 +570,10 @@ Deno.test("leagueService.advanceStatus: throws BAD_REQUEST when advancing from s
       }),
   });
 
-  const service = createLeagueService({ leagueRepo: repo });
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo: createFakeDraftRepo(),
+  });
 
   const error = await assertRejects(
     () => service.advanceStatus("user-1", { leagueId: fakeLeague.id }),
@@ -502,7 +600,10 @@ Deno.test("leagueService.advanceStatus: throws BAD_REQUEST when advancing from s
       }),
   });
 
-  const service = createLeagueService({ leagueRepo: repo });
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo: createFakeDraftRepo(),
+  });
 
   const error = await assertRejects(
     () => service.advanceStatus("user-1", { leagueId: fakeLeague.id }),
@@ -538,7 +639,10 @@ Deno.test("leagueService.advanceStatus: advances from setup to drafting", async 
     },
   });
 
-  const service = createLeagueService({ leagueRepo: repo });
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo: createFakeDraftRepo(),
+  });
   const result = await service.advanceStatus("user-1", {
     leagueId: fakeLeague.id,
   });
@@ -547,7 +651,7 @@ Deno.test("leagueService.advanceStatus: advances from setup to drafting", async 
   assertEquals(result.status, "drafting");
 });
 
-Deno.test("leagueService.advanceStatus: advances from drafting to competing", async () => {
+Deno.test("leagueService.advanceStatus: advances from drafting to competing when draft is complete", async () => {
   const fakeLeague = createFakeLeague({ status: "drafting" });
   let capturedStatus: string | undefined;
   const repo = createFakeRepo({
@@ -565,14 +669,104 @@ Deno.test("leagueService.advanceStatus: advances from drafting to competing", as
       return Promise.resolve(createFakeLeague({ status: status as "setup" }));
     },
   });
+  const draftRepo = createFakeDraftRepo({
+    findByLeagueId: (_leagueId) =>
+      Promise.resolve(
+        createFakeDraft({ leagueId: fakeLeague.id, status: "complete" }),
+      ),
+  });
 
-  const service = createLeagueService({ leagueRepo: repo });
+  const service = createLeagueService({ leagueRepo: repo, draftRepo });
   const result = await service.advanceStatus("user-1", {
     leagueId: fakeLeague.id,
   });
 
   assertEquals(capturedStatus, "competing");
   assertEquals(result.status, "competing");
+});
+
+Deno.test("leagueService.advanceStatus: throws BAD_REQUEST when advancing from drafting with no draft", async () => {
+  const fakeLeague = createFakeLeague({ status: "drafting" });
+  const repo = createFakeRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve({
+        id: crypto.randomUUID(),
+        leagueId: fakeLeague.id,
+        userId: "user-1",
+        role: "commissioner" as const,
+        joinedAt: new Date(),
+      }),
+  });
+  const draftRepo = createFakeDraftRepo({
+    findByLeagueId: (_leagueId) => Promise.resolve(null),
+  });
+
+  const service = createLeagueService({ leagueRepo: repo, draftRepo });
+
+  const error = await assertRejects(
+    () => service.advanceStatus("user-1", { leagueId: fakeLeague.id }),
+    TRPCError,
+  );
+  assertEquals(error.code, "BAD_REQUEST");
+});
+
+Deno.test("leagueService.advanceStatus: throws BAD_REQUEST when advancing from drafting with pending draft", async () => {
+  const fakeLeague = createFakeLeague({ status: "drafting" });
+  const repo = createFakeRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve({
+        id: crypto.randomUUID(),
+        leagueId: fakeLeague.id,
+        userId: "user-1",
+        role: "commissioner" as const,
+        joinedAt: new Date(),
+      }),
+  });
+  const draftRepo = createFakeDraftRepo({
+    findByLeagueId: (_leagueId) =>
+      Promise.resolve(
+        createFakeDraft({ leagueId: fakeLeague.id, status: "pending" }),
+      ),
+  });
+
+  const service = createLeagueService({ leagueRepo: repo, draftRepo });
+
+  const error = await assertRejects(
+    () => service.advanceStatus("user-1", { leagueId: fakeLeague.id }),
+    TRPCError,
+  );
+  assertEquals(error.code, "BAD_REQUEST");
+});
+
+Deno.test("leagueService.advanceStatus: throws BAD_REQUEST when advancing from drafting with in-progress draft", async () => {
+  const fakeLeague = createFakeLeague({ status: "drafting" });
+  const repo = createFakeRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve({
+        id: crypto.randomUUID(),
+        leagueId: fakeLeague.id,
+        userId: "user-1",
+        role: "commissioner" as const,
+        joinedAt: new Date(),
+      }),
+  });
+  const draftRepo = createFakeDraftRepo({
+    findByLeagueId: (_leagueId) =>
+      Promise.resolve(
+        createFakeDraft({ leagueId: fakeLeague.id, status: "in_progress" }),
+      ),
+  });
+
+  const service = createLeagueService({ leagueRepo: repo, draftRepo });
+
+  const error = await assertRejects(
+    () => service.advanceStatus("user-1", { leagueId: fakeLeague.id }),
+    TRPCError,
+  );
+  assertEquals(error.code, "BAD_REQUEST");
 });
 
 Deno.test("leagueService.advanceStatus: advances from competing to complete", async () => {
@@ -594,7 +788,10 @@ Deno.test("leagueService.advanceStatus: advances from competing to complete", as
     },
   });
 
-  const service = createLeagueService({ leagueRepo: repo });
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo: createFakeDraftRepo(),
+  });
   const result = await service.advanceStatus("user-1", {
     leagueId: fakeLeague.id,
   });
@@ -636,7 +833,10 @@ Deno.test("leagueService.removePlayer: removes a player when user is commissione
     },
   });
 
-  const service = createLeagueService({ leagueRepo: repo });
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo: createFakeDraftRepo(),
+  });
   await service.removePlayer("commissioner-1", {
     leagueId: fakeLeague.id,
     playerUserId: "member-1",
@@ -648,7 +848,10 @@ Deno.test("leagueService.removePlayer: removes a player when user is commissione
 
 Deno.test("leagueService.removePlayer: throws NOT_FOUND when league does not exist", async () => {
   const repo = createFakeRepo();
-  const service = createLeagueService({ leagueRepo: repo });
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo: createFakeDraftRepo(),
+  });
 
   const error = await assertRejects(
     () =>
@@ -675,7 +878,10 @@ Deno.test("leagueService.removePlayer: throws FORBIDDEN when user is not commiss
       }),
   });
 
-  const service = createLeagueService({ leagueRepo: repo });
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo: createFakeDraftRepo(),
+  });
 
   const error = await assertRejects(
     () =>
@@ -694,7 +900,10 @@ Deno.test("leagueService.removePlayer: throws FORBIDDEN when user is not a membe
     findById: (_id) => Promise.resolve(fakeLeague),
   });
 
-  const service = createLeagueService({ leagueRepo: repo });
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo: createFakeDraftRepo(),
+  });
 
   const error = await assertRejects(
     () =>
@@ -723,7 +932,10 @@ Deno.test("leagueService.removePlayer: throws BAD_REQUEST when trying to remove 
       }),
   });
 
-  const service = createLeagueService({ leagueRepo: repo });
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo: createFakeDraftRepo(),
+  });
 
   const error = await assertRejects(
     () =>
@@ -754,7 +966,10 @@ Deno.test("leagueService.removePlayer: throws NOT_FOUND when target player is no
     },
   });
 
-  const service = createLeagueService({ leagueRepo: repo });
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo: createFakeDraftRepo(),
+  });
 
   const error = await assertRejects(
     () =>

@@ -96,6 +96,30 @@ export const league = pgTable("league", {
     .notNull(),
 });
 
+export const draftFormatEnum = pgEnum("draft_format", ["snake"]);
+
+export const draftStatusEnum = pgEnum("draft_status", [
+  "pending",
+  "in_progress",
+  "complete",
+]);
+
+export const draft = pgTable("draft", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  leagueId: uuid("league_id").notNull().references(() => league.id, {
+    onDelete: "cascade",
+  }).unique(),
+  poolId: uuid("pool_id").notNull().references(() => draftPool.id),
+  format: draftFormatEnum("format").notNull().default("snake"),
+  status: draftStatusEnum("status").notNull().default("pending"),
+  pickOrder: jsonb("pick_order").notNull(),
+  currentPick: integer("current_pick").notNull().default(0),
+  startedAt: timestamp("started_at", { withTimezone: true }),
+  completedAt: timestamp("completed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow()
+    .notNull(),
+});
+
 export const draftPool = pgTable("draft_pool", {
   id: uuid("id").primaryKey().defaultRandom(),
   leagueId: uuid("league_id").notNull().references(() => league.id, {

@@ -216,6 +216,28 @@ await db.insert(schema.draftPoolItem).values(draftPoolItems)
   .onConflictDoNothing();
 log.info({ count: draftPoolItems.length }, "draft pool items seeded");
 
+const drafts = [
+  {
+    id: "e5f6a7b8-0001-4000-8000-000000000001",
+    leagueId: leagues[0].id,
+    poolId: draftPools[0].id,
+    format: "snake" as const,
+    status: "pending" as const,
+    pickOrder: [
+      leaguePlayers[0].id,
+      leaguePlayers[1].id,
+      leaguePlayers[2].id,
+    ],
+    currentPick: 0,
+    startedAt: null,
+    completedAt: null,
+    createdAt: now,
+  },
+];
+
+await db.insert(schema.draft).values(drafts).onConflictDoNothing();
+log.info({ count: drafts.length }, "drafts seeded");
+
 for (const league of leagues) {
   log.info(
     { name: league.name, inviteCode: league.inviteCode },

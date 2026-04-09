@@ -1,8 +1,11 @@
 export { db } from "./connection.ts";
 export {
   account,
+  draft,
+  draftFormatEnum,
   draftPool,
   draftPoolItem,
+  draftStatusEnum,
   healthChecks,
   league,
   leaguePlayer,

@@ -1,5 +1,6 @@
 import { LEAGUE_STATUS_TRANSITIONS } from "@make-the-pick/shared";
 import { TRPCError } from "@trpc/server";
+import type { DraftRepository } from "../draft/draft.repository.ts";
 import { logger } from "../../logger.ts";
 import type { LeagueRepository } from "./league.repository.ts";
 
@@ -18,7 +19,7 @@ function generateInviteCode(): string {
 }
 
 export function createLeagueService(
-  deps: { leagueRepo: LeagueRepository },
+  deps: { leagueRepo: LeagueRepository; draftRepo: DraftRepository },
 ) {
   return {
     create(userId: string, input: { name: string }) {
@@ -163,6 +164,16 @@ export function createLeagueService(
             code: "BAD_REQUEST",
             message:
               "League settings must be configured before advancing from setup",
+          });
+        }
+      }
+      if (league.status === "drafting") {
+        const draft = await deps.draftRepo.findByLeagueId(input.leagueId);
+        if (!draft || draft.status !== "complete") {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message:
+              "The draft must be completed before advancing from drafting",
           });
         }
       }

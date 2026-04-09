@@ -2,6 +2,7 @@ import type { Pokemon } from "@make-the-pick/shared";
 import pokemonJson from "../../packages/shared/data/pokemon.json" with {
   type: "json",
 };
+import { createDraftRepository } from "./draft/mod.ts";
 import {
   createDraftPoolRepository,
   createDraftPoolRouter,
@@ -21,7 +22,8 @@ import {
 
 export function createFeatureRouters(db: Database) {
   const leagueRepo = createLeagueRepository(db);
-  const leagueService = createLeagueService({ leagueRepo });
+  const draftRepo = createDraftRepository(db);
+  const leagueService = createLeagueService({ leagueRepo, draftRepo });
   const leagueRouter = createLeagueRouter(leagueService);
 
   const userRepo = createUserRepository(db);
