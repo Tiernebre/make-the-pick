@@ -219,10 +219,6 @@ export function DraftPoolPage() {
             {league.data.name} — Draft Pool
           </Title>
 
-          <Title order={3} mb="sm">
-            {draftPool.data?.items.length ?? 0} Pokémon
-          </Title>
-
           <MantineReactTable table={table} />
         </>
       )}
