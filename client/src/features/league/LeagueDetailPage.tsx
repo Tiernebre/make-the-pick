@@ -21,6 +21,7 @@ import { useDisclosure } from "@mantine/hooks";
 import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "wouter";
 import { useSession } from "../../auth";
+import { usePokemonVersions } from "../pokemon-version/use-pokemon-versions";
 import {
   useAdvanceLeagueStatus,
   useDeleteLeague,
@@ -50,7 +51,9 @@ export function LeagueDetailPage() {
     number | string
   >("");
   const [maxPlayers, setMaxPlayers] = useState<number | string>("");
+  const [gameVersion, setGameVersion] = useState<string | null>(null);
   const [settingsSaved, setSettingsSaved] = useState(false);
+  const pokemonVersions = usePokemonVersions();
 
   useEffect(() => {
     if (league.data) {
@@ -60,12 +63,16 @@ export function LeagueDetailPage() {
         draftFormat?: string;
         numberOfRounds?: number;
         pickTimeLimitSeconds?: number | null;
+        gameVersion?: string;
       } | null;
       if (rules) {
         if (rules.draftFormat) setDraftFormat(rules.draftFormat);
         if (rules.numberOfRounds) setNumberOfRounds(rules.numberOfRounds);
         if (rules.pickTimeLimitSeconds) {
           setPickTimeLimitSeconds(rules.pickTimeLimitSeconds);
+        }
+        if (rules.gameVersion) {
+          setGameVersion(rules.gameVersion);
         }
       }
     }
@@ -93,6 +100,7 @@ export function LeagueDetailPage() {
           pickTimeLimitSeconds: pickTimeLimitSeconds
             ? Number(pickTimeLimitSeconds)
             : null,
+          ...(gameVersion ? { gameVersion } : {}),
         },
       },
       {
@@ -195,6 +203,22 @@ export function LeagueDetailPage() {
                     onChange={setSportType}
                     required
                   />
+                  {sportType === "pokemon" && (
+                    <Select
+                      label="Game Version"
+                      description="Optionally limit the draft pool to a specific game's regional dex"
+                      placeholder="All Pokemon"
+                      data={pokemonVersions.data?.map((v) => ({
+                        value: v.id,
+                        label: `${v.name} (${v.region})`,
+                        group: `Generation ${v.generation}`,
+                      })) ?? []}
+                      value={gameVersion}
+                      onChange={setGameVersion}
+                      clearable
+                      searchable
+                    />
+                  )}
                   <Select
                     label="Draft Format"
                     data={[
@@ -256,6 +280,19 @@ export function LeagueDetailPage() {
                   {league.data.rulesConfig &&
                     typeof league.data.rulesConfig === "object" && (
                     <>
+                      {(league.data.rulesConfig as { gameVersion?: string })
+                        .gameVersion && (
+                        <Group>
+                          <Text fw={500}>Game Version</Text>
+                          <Badge variant="light">
+                            {(
+                              league.data.rulesConfig as {
+                                gameVersion: string;
+                              }
+                            ).gameVersion}
+                          </Badge>
+                        </Group>
+                      )}
                       <Group>
                         <Text fw={500}>Draft Format</Text>
                         <Badge variant="light">
