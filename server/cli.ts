@@ -3,18 +3,16 @@ import { eq } from "drizzle-orm";
 import { db, user } from "./db/mod.ts";
 import { appRouter } from "./trpc/router.ts";
 
-const email = Deno.env.get("TRPC_CLI_USER_EMAIL");
-if (!email) {
-  console.error(
-    "TRPC_CLI_USER_EMAIL environment variable is required.\n" +
-      "Set it to the email of a user in your database to authenticate CLI calls.",
-  );
-  Deno.exit(1);
-}
+const CLI_USER_EMAIL = "cli@dev.local";
 
-const [dbUser] = await db.select().from(user).where(eq(user.email, email));
+const [dbUser] = await db
+  .select()
+  .from(user)
+  .where(eq(user.email, CLI_USER_EMAIL));
 if (!dbUser) {
-  console.error(`No user found with email: ${email}`);
+  console.error(
+    `CLI user not found (${CLI_USER_EMAIL}). Run \`deno task db:seed\` first.`,
+  );
   Deno.exit(1);
 }
 

@@ -15,7 +15,18 @@ const db = drizzle(client, { schema });
 
 const now = new Date();
 
+const CLI_USER_EMAIL = "cli@dev.local";
+
 const users = [
+  {
+    id: "dev-cli-user",
+    name: "CLI User",
+    email: CLI_USER_EMAIL,
+    emailVerified: true,
+    image: null,
+    createdAt: now,
+    updatedAt: now,
+  },
   {
     id: "dev-user-1",
     name: "Alice Johnson",
@@ -171,6 +182,11 @@ for (const league of leagues) {
     "league invite code",
   );
 }
+
+log.info(
+  { email: CLI_USER_EMAIL },
+  "CLI user seeded — use with TRPC_CLI_USER_EMAIL",
+);
 
 log.info("dev database seeding complete");
 await client.end();
