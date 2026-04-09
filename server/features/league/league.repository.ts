@@ -165,6 +165,17 @@ export function createLeagueRepository(db: Database) {
       log.debug({ leagueId, userId, found: !!result }, "findPlayer result");
       return result ?? null;
     },
+
+    async deletePlayer(leagueId: string, userId: string): Promise<void> {
+      log.debug({ leagueId, userId }, "deleting player from league");
+      await db.delete(leaguePlayer).where(
+        and(
+          eq(leaguePlayer.leagueId, leagueId),
+          eq(leaguePlayer.userId, userId),
+        ),
+      );
+      log.debug({ leagueId, userId }, "player deleted from league");
+    },
   };
 }
 

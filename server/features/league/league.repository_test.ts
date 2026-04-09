@@ -401,6 +401,46 @@ Deno.test({
 });
 
 Deno.test({
+  name: "leagueRepository.deletePlayer: removes a player from a league",
+  sanitizeResources: false,
+  sanitizeOps: false,
+  fn: async () => {
+    const { db, client } = createTestDb();
+    const repo = createLeagueRepository(db);
+    const creatorId = crypto.randomUUID();
+    const memberId = crypto.randomUUID();
+
+    try {
+      await createTestUser(db, creatorId);
+      await createTestUser(db, memberId);
+      const created = await repo.createWithCommissioner(creatorId, {
+        name: "Remove Player League",
+        inviteCode: "REMOVE01",
+      });
+      await repo.addPlayer(created.id, memberId);
+
+      const before = await repo.findPlayer(created.id, memberId);
+      assertEquals(before?.userId, memberId);
+
+      await repo.deletePlayer(created.id, memberId);
+
+      const after = await repo.findPlayer(created.id, memberId);
+      assertEquals(after, null);
+
+      // Commissioner still exists
+      const commissioner = await repo.findPlayer(created.id, creatorId);
+      assertEquals(commissioner?.role, "commissioner");
+    } finally {
+      await db.delete(leaguePlayer);
+      await db.delete(league);
+      await db.delete(user).where(eq(user.id, creatorId));
+      await db.delete(user).where(eq(user.id, memberId));
+      await client.end();
+    }
+  },
+});
+
+Deno.test({
   name: "leagueRepository.findAllByUserId: returns leagues the user belongs to",
   sanitizeResources: false,
   sanitizeOps: false,
