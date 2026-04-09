@@ -10,6 +10,7 @@
     "postgres": "npm:postgres@^3.4",
     "@trpc/server": "npm:@trpc/server@^11",
     "@trpc/server/": "npm:/@trpc/server@^11/",
+    "trpc-cli": "npm:trpc-cli@^0",
     "trpc-ui": "npm:trpc-ui@^1",
     "zod": "npm:zod@^3.24",
     "better-auth": "npm:better-auth@^1",
@@ -17,6 +18,7 @@
     "pino": "npm:pino@^9"
   },
   "tasks": {
-    "dev": "deno run --watch --allow-net --allow-env --allow-read --allow-sys main.ts"
+    "dev": "deno run --watch --allow-net --allow-env --allow-read --allow-sys main.ts",
+    "trpc": "DENO_ENV=production deno run --allow-net --allow-env --allow-read --allow-sys cli.ts"
   }
 }
