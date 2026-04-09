@@ -1,6 +1,8 @@
 export { db } from "./connection.ts";
 export {
   account,
+  draftPool,
+  draftPoolItem,
   healthChecks,
   league,
   leaguePlayer,

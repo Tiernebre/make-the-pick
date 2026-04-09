@@ -96,6 +96,28 @@ export const league = pgTable("league", {
     .notNull(),
 });
 
+export const draftPool = pgTable("draft_pool", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  leagueId: uuid("league_id").notNull().references(() => league.id, {
+    onDelete: "cascade",
+  }).unique(),
+  name: text("name").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow()
+    .notNull(),
+});
+
+export const draftPoolItem = pgTable("draft_pool_item", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  draftPoolId: uuid("draft_pool_id").notNull().references(() => draftPool.id, {
+    onDelete: "cascade",
+  }),
+  name: text("name").notNull(),
+  thumbnailUrl: text("thumbnail_url"),
+  metadata: jsonb("metadata"),
+}, (table) => [
+  unique("draft_pool_item_unique").on(table.draftPoolId, table.name),
+]);
+
 export const leaguePlayer = pgTable("league_player", {
   id: uuid("id").primaryKey().defaultRandom(),
   leagueId: uuid("league_id").notNull().references(() => league.id, {
