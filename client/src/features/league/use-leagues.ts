@@ -39,6 +39,16 @@ export function useUpdateLeagueSettings() {
   });
 }
 
+export function useAdvanceLeagueStatus() {
+  const utils = trpc.useUtils();
+  return trpc.league.advanceStatus.useMutation({
+    onSuccess: (_data, variables) => {
+      utils.league.getById.invalidate({ id: variables.leagueId });
+      utils.league.list.invalidate();
+    },
+  });
+}
+
 export function useDeleteLeague() {
   const utils = trpc.useUtils();
   return trpc.league.delete.useMutation({

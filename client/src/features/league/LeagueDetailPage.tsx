@@ -22,6 +22,7 @@ import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "wouter";
 import { useSession } from "../../auth";
 import {
+  useAdvanceLeagueStatus,
   useDeleteLeague,
   useLeague,
   useLeaguePlayers,
@@ -35,8 +36,11 @@ export function LeagueDetailPage() {
   const { data: session } = useSession();
   const deleteLeague = useDeleteLeague();
   const updateSettings = useUpdateLeagueSettings();
+  const advanceStatus = useAdvanceLeagueStatus();
   const [, navigate] = useLocation();
   const [deleteOpened, { open: openDelete, close: closeDelete }] =
+    useDisclosure(false);
+  const [advanceOpened, { open: openAdvance, close: closeAdvance }] =
     useDisclosure(false);
 
   const [sportType, setSportType] = useState<string | null>(null);
@@ -107,6 +111,26 @@ export function LeagueDetailPage() {
           navigate("/");
         },
       },
+    );
+  };
+
+  const NEXT_STATUS: Record<string, string | null> = {
+    setup: "drafting",
+    drafting: "trading",
+    trading: "competing",
+    competing: "complete",
+    complete: null,
+  };
+
+  const nextStatus = league.data ? NEXT_STATUS[league.data.status] : null;
+
+  const setupPrerequisitesMet = league.data?.status !== "setup" ||
+    (!!league.data?.sportType && !!league.data?.rulesConfig);
+
+  const handleAdvance = () => {
+    advanceStatus.mutate(
+      { leagueId: id! },
+      { onSuccess: () => closeAdvance() },
     );
   };
 
@@ -315,6 +339,13 @@ export function LeagueDetailPage() {
             </Stack>
           </Card>
 
+          {isCommissioner && nextStatus && setupPrerequisitesMet && (
+            <Button mt="lg" onClick={openAdvance}>
+              Advance to {nextStatus.charAt(0).toUpperCase() +
+                nextStatus.slice(1)}
+            </Button>
+          )}
+
           {isCommissioner && (
             <Button
               color="red"
@@ -325,6 +356,35 @@ export function LeagueDetailPage() {
               Delete League
             </Button>
           )}
+
+          <Modal
+            opened={advanceOpened}
+            onClose={closeAdvance}
+            title="Advance League Status"
+          >
+            <Text mb="lg">
+              Are you sure you want to advance{" "}
+              <Text span fw={700}>
+                {league.data.name}
+              </Text>{" "}
+              to{" "}
+              <Text span fw={700}>
+                {nextStatus}
+              </Text>
+              ? This action cannot be undone.
+            </Text>
+            <Group justify="flex-end">
+              <Button variant="default" onClick={closeAdvance}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleAdvance}
+                loading={advanceStatus.isPending}
+              >
+                Advance
+              </Button>
+            </Group>
+          </Modal>
 
           <Modal
             opened={deleteOpened}

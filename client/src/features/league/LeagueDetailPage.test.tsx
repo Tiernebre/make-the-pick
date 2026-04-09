@@ -9,6 +9,8 @@ const {
   mockUseDeleteLeague,
   mockDeleteMutate,
   mockUseUpdateLeagueSettings,
+  mockUseAdvanceLeagueStatus,
+  mockAdvanceMutate,
 } = vi.hoisted(
   () => ({
     mockUseLeague: vi.fn(),
@@ -16,6 +18,8 @@ const {
     mockUseDeleteLeague: vi.fn(),
     mockDeleteMutate: vi.fn(),
     mockUseUpdateLeagueSettings: vi.fn(),
+    mockUseAdvanceLeagueStatus: vi.fn(),
+    mockAdvanceMutate: vi.fn(),
   }),
 );
 
@@ -24,6 +28,7 @@ vi.mock("./use-leagues", () => ({
   useLeaguePlayers: mockUseLeaguePlayers,
   useDeleteLeague: mockUseDeleteLeague,
   useUpdateLeagueSettings: mockUseUpdateLeagueSettings,
+  useAdvanceLeagueStatus: mockUseAdvanceLeagueStatus,
 }));
 
 vi.mock("../../auth", () => ({
@@ -67,6 +72,10 @@ describe("LeagueDetailPage", () => {
     });
     mockUseUpdateLeagueSettings.mockReturnValue({
       mutate: vi.fn(),
+      isPending: false,
+    });
+    mockUseAdvanceLeagueStatus.mockReturnValue({
+      mutate: mockAdvanceMutate,
       isPending: false,
     });
   });
@@ -157,6 +166,123 @@ describe("LeagueDetailPage", () => {
     renderPage();
     expect(
       screen.queryByRole("button", { name: /delete league/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows advance button when commissioner and league has a next status", () => {
+    mockUseLeague.mockReturnValue({
+      data: {
+        ...mockLeague,
+        sportType: "pokemon",
+        rulesConfig: {
+          draftFormat: "snake",
+          numberOfRounds: 10,
+          pickTimeLimitSeconds: null,
+        },
+      },
+      isLoading: false,
+    });
+    mockUseLeaguePlayers.mockReturnValue({
+      data: [
+        {
+          id: "p1",
+          userId: "user-1",
+          name: "Alice",
+          image: null,
+          role: "commissioner",
+          joinedAt: "2026-01-01T00:00:00Z",
+        },
+      ],
+      isLoading: false,
+    });
+    renderPage();
+    expect(
+      screen.getByRole("button", { name: /advance to drafting/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("does not show advance button when user is not commissioner", () => {
+    mockUseLeague.mockReturnValue({
+      data: {
+        ...mockLeague,
+        sportType: "pokemon",
+        rulesConfig: {
+          draftFormat: "snake",
+          numberOfRounds: 10,
+          pickTimeLimitSeconds: null,
+        },
+      },
+      isLoading: false,
+    });
+    mockUseLeaguePlayers.mockReturnValue({
+      data: [
+        {
+          id: "p1",
+          userId: "user-1",
+          name: "Alice",
+          image: null,
+          role: "member",
+          joinedAt: "2026-01-01T00:00:00Z",
+        },
+      ],
+      isLoading: false,
+    });
+    renderPage();
+    expect(
+      screen.queryByRole("button", { name: /advance to/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("does not show advance button when league is complete", () => {
+    mockUseLeague.mockReturnValue({
+      data: { ...mockLeague, status: "complete" },
+      isLoading: false,
+    });
+    mockUseLeaguePlayers.mockReturnValue({
+      data: [
+        {
+          id: "p1",
+          userId: "user-1",
+          name: "Alice",
+          image: null,
+          role: "commissioner",
+          joinedAt: "2026-01-01T00:00:00Z",
+        },
+      ],
+      isLoading: false,
+    });
+    renderPage();
+    expect(
+      screen.queryByRole("button", { name: /advance to/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("does not show advance button when setup settings are not configured", () => {
+    mockUseLeague.mockReturnValue({
+      data: {
+        ...mockLeague,
+        status: "setup",
+        sportType: null,
+        rulesConfig: null,
+      },
+      isLoading: false,
+    });
+    mockUseLeaguePlayers.mockReturnValue({
+      data: [
+        {
+          id: "p1",
+          userId: "user-1",
+          name: "Alice",
+          image: null,
+          role: "commissioner",
+          joinedAt: "2026-01-01T00:00:00Z",
+        },
+      ],
+      isLoading: false,
+    });
+    renderPage();
+    expect(
+      screen.queryByRole("button", { name: /advance to/i }),
     ).not.toBeInTheDocument();
   });
 });
