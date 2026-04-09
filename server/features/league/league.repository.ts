@@ -76,6 +76,7 @@ export function createLeagueRepository(db: Database) {
           id: leaguePlayer.id,
           userId: leaguePlayer.userId,
           name: user.name,
+          image: user.image,
           role: leaguePlayer.role,
           joinedAt: leaguePlayer.joinedAt,
         })

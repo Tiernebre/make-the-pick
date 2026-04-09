@@ -100,6 +100,8 @@ export function LeagueDetailPage() {
                 <Group key={player.id} justify="space-between">
                   <Group gap="sm">
                     <Avatar
+                      src={player.image}
+                      alt={player.name}
                       radius="xl"
                       size="sm"
                       color="blue"

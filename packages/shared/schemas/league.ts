@@ -46,12 +46,14 @@ export const leaguePlayerSchema: z.ZodObject<{
   id: z.ZodString;
   userId: z.ZodString;
   name: z.ZodString;
+  image: z.ZodNullable<z.ZodString>;
   role: typeof leaguePlayerRoleSchema;
   joinedAt: z.ZodString;
 }> = object({
   id: string(),
   userId: string(),
   name: string(),
+  image: string().nullable(),
   role: leaguePlayerRoleSchema,
   joinedAt: string(),
 });

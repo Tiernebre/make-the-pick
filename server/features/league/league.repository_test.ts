@@ -297,8 +297,10 @@ Deno.test({
 
       assertEquals(creator?.role, "creator");
       assertEquals(creator?.name, "Test User");
+      assertEquals(creator?.image, null);
       assertEquals(member?.role, "member");
       assertEquals(member?.name, "Member User");
+      assertEquals(member?.image, null);
 
       for (const p of players) {
         assertEquals(typeof p.id, "string");
