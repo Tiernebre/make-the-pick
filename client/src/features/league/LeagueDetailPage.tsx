@@ -416,40 +416,39 @@ export function LeagueDetailPage() {
             </Stack>
           </Card>
 
-          {league.data.status === "drafting" && (
-            <Button
-              component={Link}
-              href={`/leagues/${league.data.id}/draft`}
-              mt="lg"
-              variant="filled"
-            >
-              Go to Draft
-            </Button>
-          )}
+          <Group mt="lg">
+            {league.data.status === "drafting" && (
+              <Button
+                component={Link}
+                href={`/leagues/${league.data.id}/draft`}
+                variant="filled"
+              >
+                Go to Draft
+              </Button>
+            )}
 
-          {isCommissioner && nextStatus && setupPrerequisitesMet && (
-            <Button
-              mt="lg"
-              onClick={() => {
-                advanceStatus.reset();
-                openAdvance();
-              }}
-            >
-              Advance to {nextStatus.charAt(0).toUpperCase() +
-                nextStatus.slice(1)}
-            </Button>
-          )}
+            {isCommissioner && nextStatus && setupPrerequisitesMet && (
+              <Button
+                onClick={() => {
+                  advanceStatus.reset();
+                  openAdvance();
+                }}
+              >
+                Advance to {nextStatus.charAt(0).toUpperCase() +
+                  nextStatus.slice(1)}
+              </Button>
+            )}
 
-          {isCommissioner && (
-            <Button
-              color="red"
-              variant="light"
-              mt="lg"
-              onClick={openDelete}
-            >
-              Delete League
-            </Button>
-          )}
+            {isCommissioner && (
+              <Button
+                color="red"
+                variant="light"
+                onClick={openDelete}
+              >
+                Delete League
+              </Button>
+            )}
+          </Group>
 
           <Modal
             opened={advanceOpened}
