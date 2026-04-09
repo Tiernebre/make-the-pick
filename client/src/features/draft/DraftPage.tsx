@@ -88,7 +88,7 @@ export function DraftPage() {
                           />
                         </Table.Td>
                         <Table.Td>
-                          <Text size="sm" fw={500}>
+                          <Text size="sm" fw={500} tt="capitalize">
                             {item.name}
                           </Text>
                         </Table.Td>
