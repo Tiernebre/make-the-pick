@@ -1,0 +1,165 @@
+import type { Pokemon } from "@make-the-pick/shared";
+import { TRPCError } from "@trpc/server";
+import { logger } from "../../logger.ts";
+import type { LeagueRepository } from "../league/league.repository.ts";
+import type { DraftPoolRepository } from "./draft-pool.repository.ts";
+
+const log = logger.child({ module: "draft-pool.service" });
+
+const DEFAULT_POOL_SIZE_MULTIPLIER = 2;
+
+interface RulesConfig {
+  numberOfRounds: number;
+  poolSizeMultiplier?: number;
+}
+
+function fisherYatesShuffle<T>(
+  array: T[],
+  randomFn: () => number = Math.random,
+): T[] {
+  const result = [...array];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(randomFn() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
+export function createDraftPoolService(deps: {
+  draftPoolRepo: DraftPoolRepository;
+  leagueRepo: LeagueRepository;
+  pokemonData: Pokemon[];
+}) {
+  return {
+    async generate(userId: string, input: { leagueId: string }) {
+      log.debug(
+        { userId, leagueId: input.leagueId },
+        "generating draft pool",
+      );
+
+      const league = await deps.leagueRepo.findById(input.leagueId);
+      if (!league) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "League not found" });
+      }
+
+      if (league.status !== "setup") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Draft pool can only be generated during league setup",
+        });
+      }
+
+      const player = await deps.leagueRepo.findPlayer(
+        input.leagueId,
+        userId,
+      );
+      if (player?.role !== "commissioner") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only the league commissioner can generate the draft pool",
+        });
+      }
+
+      if (!league.rulesConfig) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            "League rules must be configured before generating a draft pool",
+        });
+      }
+
+      const playerCount = await deps.leagueRepo.countPlayers(input.leagueId);
+      if (playerCount < 2) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "League needs at least 2 players to generate a draft pool",
+        });
+      }
+
+      const rulesConfig = league.rulesConfig as RulesConfig;
+      const multiplier = rulesConfig.poolSizeMultiplier ??
+        DEFAULT_POOL_SIZE_MULTIPLIER;
+      const rawPoolSize = Math.floor(
+        rulesConfig.numberOfRounds * playerCount * multiplier,
+      );
+      const poolSize = Math.min(rawPoolSize, deps.pokemonData.length);
+
+      log.debug(
+        {
+          leagueId: input.leagueId,
+          playerCount,
+          numberOfRounds: rulesConfig.numberOfRounds,
+          multiplier,
+          poolSize,
+        },
+        "calculated pool size",
+      );
+
+      // Delete existing pool (re-roll support)
+      await deps.draftPoolRepo.deleteByLeagueId(input.leagueId);
+
+      // Shuffle and select
+      const shuffled = fisherYatesShuffle(deps.pokemonData);
+      const selected = shuffled.slice(0, poolSize);
+
+      // Create pool
+      const pool = await deps.draftPoolRepo.create(
+        input.leagueId,
+        "Draft Pool",
+      );
+
+      // Map to pool items
+      const poolItems = selected.map((pokemon) => ({
+        draftPoolId: pool.id,
+        name: pokemon.name,
+        thumbnailUrl: pokemon.spriteUrl,
+        metadata: {
+          pokemonId: pokemon.id,
+          types: pokemon.types,
+          baseStats: pokemon.baseStats,
+          generation: pokemon.generation,
+        },
+      }));
+
+      const items = await deps.draftPoolRepo.createItems(poolItems);
+
+      log.debug(
+        { poolId: pool.id, itemCount: items.length },
+        "draft pool generated",
+      );
+
+      return { ...pool, items };
+    },
+
+    async getByLeagueId(userId: string, leagueId: string) {
+      log.debug({ userId, leagueId }, "fetching draft pool");
+
+      const league = await deps.leagueRepo.findById(leagueId);
+      if (!league) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "League not found" });
+      }
+
+      const player = await deps.leagueRepo.findPlayer(leagueId, userId);
+      if (!player) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You must be a member of the league to view the draft pool",
+        });
+      }
+
+      const pool = await deps.draftPoolRepo.findByLeagueId(leagueId);
+      if (!pool) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "No draft pool has been generated for this league yet",
+        });
+      }
+
+      const items = await deps.draftPoolRepo.findItemsByPoolId(pool.id);
+
+      return { ...pool, items };
+    },
+  };
+}
+
+export type DraftPoolService = ReturnType<typeof createDraftPoolService>;
