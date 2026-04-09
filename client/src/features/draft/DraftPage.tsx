@@ -125,7 +125,7 @@ export function DraftPage() {
                               {item.metadata.types.map((type) => (
                                 <Badge
                                   key={type}
-                                  size="sm"
+                                  size="md"
                                   variant="light"
                                   color={POKEMON_TYPE_COLORS[type] ?? "gray"}
                                   tt="capitalize"
