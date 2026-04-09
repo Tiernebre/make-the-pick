@@ -1,4 +1,5 @@
 import {
+  advanceLeagueStatusSchema,
   createLeagueSchema,
   updateLeagueSettingsSchema,
 } from "@make-the-pick/shared";
@@ -41,6 +42,12 @@ export function createLeagueRouter(leagueService: LeagueService) {
       .input(updateLeagueSettingsSchema)
       .mutation(({ ctx, input }) => {
         return leagueService.updateSettings(ctx.user.id, input);
+      }),
+
+    advanceStatus: protectedProcedure
+      .input(advanceLeagueStatusSchema)
+      .mutation(({ ctx, input }) => {
+        return leagueService.advanceStatus(ctx.user.id, input);
       }),
 
     delete: protectedProcedure
