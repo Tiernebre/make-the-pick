@@ -1,5 +1,9 @@
+import type { Pokemon } from "@make-the-pick/shared";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
+import pokemonJson from "../../packages/shared/data/pokemon.json" with {
+  type: "json",
+};
 import { logger } from "../logger.ts";
 import * as schema from "./schema.ts";
 
@@ -93,6 +97,7 @@ const leagues = [
       draftFormat: "snake",
       numberOfRounds: 10,
       pickTimeLimitSeconds: null,
+      poolSizeMultiplier: 2,
     },
     maxPlayers: 8,
     inviteCode: "ALPHA-INVITE",
@@ -109,6 +114,7 @@ const leagues = [
       draftFormat: "linear",
       numberOfRounds: 6,
       pickTimeLimitSeconds: 120,
+      poolSizeMultiplier: 2,
     },
     maxPlayers: 4,
     inviteCode: "BETA-INVITE",
@@ -175,6 +181,40 @@ log.info({ count: leagues.length }, "leagues seeded");
 await db.insert(schema.leaguePlayer).values(leaguePlayers)
   .onConflictDoNothing();
 log.info({ count: leaguePlayers.length }, "league players seeded");
+
+// Seed a draft pool for League Alpha (3 players * 10 rounds * 2 multiplier = 60 items)
+const pokemonData = pokemonJson as Pokemon[];
+const poolSize = 60;
+const selectedPokemon = pokemonData.slice(0, poolSize);
+
+const draftPools = [
+  {
+    id: "c3d4e5f6-0001-4000-8000-000000000001",
+    leagueId: leagues[0].id,
+    name: "Draft Pool",
+    createdAt: now,
+  },
+];
+
+const draftPoolItems = selectedPokemon.map((pokemon, i) => ({
+  id: `d4e5f6a7-0001-4000-8000-${String(i + 1).padStart(12, "0")}`,
+  draftPoolId: draftPools[0].id,
+  name: pokemon.name,
+  thumbnailUrl: pokemon.spriteUrl,
+  metadata: {
+    pokemonId: pokemon.id,
+    types: pokemon.types,
+    baseStats: pokemon.baseStats,
+    generation: pokemon.generation,
+  },
+}));
+
+await db.insert(schema.draftPool).values(draftPools).onConflictDoNothing();
+log.info({ count: draftPools.length }, "draft pools seeded");
+
+await db.insert(schema.draftPoolItem).values(draftPoolItems)
+  .onConflictDoNothing();
+log.info({ count: draftPoolItems.length }, "draft pool items seeded");
 
 for (const league of leagues) {
   log.info(
