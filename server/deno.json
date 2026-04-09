@@ -16,6 +16,6 @@
     "better-auth/": "npm:/better-auth@^1/"
   },
   "tasks": {
-    "dev": "deno run --allow-net --allow-env --allow-read main.ts"
+    "dev": "deno run --watch --allow-net --allow-env --allow-read main.ts"
   }
 }

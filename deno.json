@@ -9,7 +9,7 @@
   "tasks": {
     "setup": "test -f .env || cp .env.example .env && deno install",
     "dev": "deno task setup && deno task db:start; deno run -A npm:concurrently -n server,client -c blue,green \"deno task dev:server\" \"deno task dev:client\"",
-    "dev:server": "cd server && deno run --allow-net --allow-env --allow-read --env main.ts",
+    "dev:server": "cd server && deno run --watch --allow-net --allow-env --allow-read --env main.ts",
     "dev:client": "cd client && deno run -A npm:vite",
     "test": "deno task test:server && deno task test:client",
     "test:e2e": "deno run --allow-net --allow-env --allow-read --allow-run e2e/setup.ts && cd e2e && npx playwright test",
