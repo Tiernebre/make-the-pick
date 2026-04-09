@@ -4,10 +4,12 @@ import {
   Avatar,
   Badge,
   Container,
+  Grid,
   Group,
   LoadingOverlay,
   Title,
 } from "@mantine/core";
+import { WatchlistPanel } from "./WatchlistPanel";
 import { IconStar, IconStarFilled } from "@tabler/icons-react";
 import type { DraftPoolItem } from "@make-the-pick/shared";
 import { Link, useParams } from "wouter";
@@ -271,7 +273,17 @@ export function DraftPoolPage() {
             {league.data.name} — Draft Pool
           </Title>
 
-          <MantineReactTable table={table} />
+          <Grid>
+            <Grid.Col span={{ base: 12, lg: 9 }}>
+              <MantineReactTable table={table} />
+            </Grid.Col>
+            <Grid.Col span={{ base: 12, lg: 3 }}>
+              <WatchlistPanel
+                leagueId={id!}
+                poolItems={draftPool.data?.items ?? []}
+              />
+            </Grid.Col>
+          </Grid>
         </>
       )}
     </Container>
