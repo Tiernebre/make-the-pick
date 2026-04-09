@@ -74,6 +74,56 @@ export function createLeagueService(
       return deps.leagueRepo.findPlayersByLeagueId(leagueId);
     },
 
+    async updateSettings(
+      userId: string,
+      input: {
+        leagueId: string;
+        sportType: string;
+        maxPlayers: number;
+        rulesConfig: {
+          draftFormat: string;
+          numberOfRounds: number;
+          pickTimeLimitSeconds: number | null;
+        };
+      },
+    ) {
+      log.debug(
+        { userId, leagueId: input.leagueId },
+        "attempting league settings update",
+      );
+      const league = await deps.leagueRepo.findById(input.leagueId);
+      if (!league) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "League not found" });
+      }
+      if (league.status !== "setup") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "League settings can only be changed during setup",
+        });
+      }
+      const player = await deps.leagueRepo.findPlayer(
+        input.leagueId,
+        userId,
+      );
+      if (player?.role !== "commissioner") {
+        log.debug(
+          { userId, leagueId: input.leagueId },
+          "updateSettings forbidden — user is not commissioner",
+        );
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only the league commissioner can update settings",
+        });
+      }
+      const updated = await deps.leagueRepo.updateSettings(input.leagueId, {
+        sportType: input.sportType,
+        maxPlayers: input.maxPlayers,
+        rulesConfig: input.rulesConfig,
+      });
+      log.debug({ leagueId: input.leagueId }, "league settings updated");
+      return updated;
+    },
+
     async join(userId: string, inviteCode: string) {
       log.debug({ userId, inviteCode }, "attempting to join league");
       const league = await deps.leagueRepo.findByInviteCode(inviteCode);

@@ -13,7 +13,9 @@ function createFakeLeague(
     id: crypto.randomUUID(),
     name: "Test League",
     status: "setup",
+    sportType: null,
     rulesConfig: null,
+    maxPlayers: null,
     inviteCode: "ABCD1234",
     createdBy: "user-1",
     createdAt: new Date(),
@@ -42,6 +44,8 @@ function createFakeRepo(
     findPlayer: (_leagueId, _userId) => Promise.resolve(null as FakePlayer),
     findPlayersByLeagueId: (_leagueId) => Promise.resolve([]),
     deleteById: (_id) => Promise.resolve(),
+    updateSettings: (_id, _data) => Promise.resolve(createFakeLeague()),
+    countPlayers: (_leagueId) => Promise.resolve(0),
     ...overrides,
   };
 }
@@ -231,4 +235,100 @@ Deno.test("leagueService.join: throws BAD_REQUEST if already a member", async ()
     TRPCError,
   );
   assertEquals(error.code, "BAD_REQUEST");
+});
+
+const validSettingsInput = {
+  leagueId: crypto.randomUUID(),
+  sportType: "pokemon" as const,
+  maxPlayers: 8,
+  rulesConfig: {
+    draftFormat: "snake" as const,
+    numberOfRounds: 10,
+    pickTimeLimitSeconds: null,
+  },
+};
+
+Deno.test("leagueService.updateSettings: updates settings when user is commissioner and league is in setup", async () => {
+  const fakeLeague = createFakeLeague({ id: validSettingsInput.leagueId });
+  let capturedData:
+    | { sportType: string; maxPlayers: number; rulesConfig: unknown }
+    | undefined;
+  const repo = createFakeRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve({
+        id: crypto.randomUUID(),
+        leagueId: fakeLeague.id,
+        userId: "user-1",
+        role: "commissioner" as const,
+        joinedAt: new Date(),
+      }),
+    updateSettings: (_id, data) => {
+      capturedData = data;
+      return Promise.resolve(
+        createFakeLeague({
+          sportType: data.sportType as "pokemon",
+          maxPlayers: data.maxPlayers,
+          rulesConfig: data.rulesConfig,
+        }),
+      );
+    },
+  });
+
+  const service = createLeagueService({ leagueRepo: repo });
+  const result = await service.updateSettings("user-1", validSettingsInput);
+
+  assertEquals(result.sportType, "pokemon");
+  assertEquals(result.maxPlayers, 8);
+  assertEquals(capturedData?.sportType, "pokemon");
+  assertEquals(capturedData?.maxPlayers, 8);
+});
+
+Deno.test("leagueService.updateSettings: throws NOT_FOUND when league does not exist", async () => {
+  const repo = createFakeRepo();
+  const service = createLeagueService({ leagueRepo: repo });
+
+  const error = await assertRejects(
+    () => service.updateSettings("user-1", validSettingsInput),
+    TRPCError,
+  );
+  assertEquals(error.code, "NOT_FOUND");
+});
+
+Deno.test("leagueService.updateSettings: throws FORBIDDEN when user is not commissioner", async () => {
+  const fakeLeague = createFakeLeague({ id: validSettingsInput.leagueId });
+  const repo = createFakeRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve({
+        id: crypto.randomUUID(),
+        leagueId: fakeLeague.id,
+        userId: "user-2",
+        role: "member" as const,
+        joinedAt: new Date(),
+      }),
+  });
+
+  const service = createLeagueService({ leagueRepo: repo });
+
+  const error = await assertRejects(
+    () => service.updateSettings("user-2", validSettingsInput),
+    TRPCError,
+  );
+  assertEquals(error.code, "FORBIDDEN");
+});
+
+Deno.test("leagueService.updateSettings: throws FORBIDDEN when user is not a member", async () => {
+  const fakeLeague = createFakeLeague({ id: validSettingsInput.leagueId });
+  const repo = createFakeRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+  });
+
+  const service = createLeagueService({ leagueRepo: repo });
+
+  const error = await assertRejects(
+    () => service.updateSettings("user-1", validSettingsInput),
+    TRPCError,
+  );
+  assertEquals(error.code, "FORBIDDEN");
 });
