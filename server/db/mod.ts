@@ -14,4 +14,5 @@ export {
   session,
   user,
   verification,
+  watchlistItem,
 } from "./schema.ts";
