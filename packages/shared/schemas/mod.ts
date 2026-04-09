@@ -3,11 +3,11 @@ export {
   type CreateLeagueInput,
   createLeagueSchema,
   type League,
+  type LeaguePlayer,
   type LeaguePlayerRole,
   leaguePlayerRoleSchema,
-  leagueSchema,
-  type LeaguePlayer,
   leaguePlayerSchema,
+  leagueSchema,
   type LeagueStatus,
   leagueStatusSchema,
 } from "./league.ts";
