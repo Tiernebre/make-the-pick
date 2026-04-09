@@ -8,6 +8,10 @@ export function useLeague(id: string) {
   return trpc.league.getById.useQuery({ id });
 }
 
+export function useLeaguePlayers(leagueId: string) {
+  return trpc.league.listPlayers.useQuery({ leagueId });
+}
+
 export function useCreateLeague() {
   const utils = trpc.useUtils();
   return trpc.league.create.useMutation({

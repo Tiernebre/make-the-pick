@@ -51,6 +51,14 @@ export function createLeagueService(
       await deps.leagueRepo.deleteById(leagueId);
     },
 
+    async listPlayers(leagueId: string) {
+      const league = await deps.leagueRepo.findById(leagueId);
+      if (!league) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "League not found" });
+      }
+      return deps.leagueRepo.findPlayersByLeagueId(leagueId);
+    },
+
     async join(userId: string, inviteCode: string) {
       const league = await deps.leagueRepo.findByInviteCode(inviteCode);
       if (!league) {

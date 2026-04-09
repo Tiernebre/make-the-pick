@@ -6,6 +6,8 @@ export {
   type LeaguePlayerRole,
   leaguePlayerRoleSchema,
   leagueSchema,
+  type LeaguePlayer,
+  leaguePlayerSchema,
   type LeagueStatus,
   leagueStatusSchema,
 } from "./league.ts";

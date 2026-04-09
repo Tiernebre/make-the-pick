@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import type { db } from "../../db/mod.ts";
-import { league, leaguePlayer } from "../../db/mod.ts";
+import { league, leaguePlayer, user } from "../../db/mod.ts";
 
 export type Database = typeof db;
 
@@ -68,6 +68,21 @@ export function createLeagueRepository(db: Database) {
 
     async deleteById(id: string): Promise<void> {
       await db.delete(league).where(eq(league.id, id));
+    },
+
+    async findPlayersByLeagueId(leagueId: string) {
+      const rows = await db
+        .select({
+          id: leaguePlayer.id,
+          userId: leaguePlayer.userId,
+          name: user.name,
+          role: leaguePlayer.role,
+          joinedAt: leaguePlayer.joinedAt,
+        })
+        .from(leaguePlayer)
+        .innerJoin(user, eq(leaguePlayer.userId, user.id))
+        .where(eq(leaguePlayer.leagueId, leagueId));
+      return rows;
     },
 
     async findPlayer(

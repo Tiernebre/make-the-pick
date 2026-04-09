@@ -262,6 +262,59 @@ Deno.test({
 });
 
 Deno.test({
+  name:
+    "leagueRepository.findPlayersByLeagueId: returns players with user info",
+  sanitizeResources: false,
+  sanitizeOps: false,
+  fn: async () => {
+    const { db, client } = createTestDb();
+    const repo = createLeagueRepository(db);
+    const creatorId = crypto.randomUUID();
+    const memberId = crypto.randomUUID();
+
+    try {
+      await createTestUser(db, creatorId);
+      await db.insert(user).values({
+        id: memberId,
+        name: "Member User",
+        email: `${memberId}@test.com`,
+        emailVerified: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      const created = await repo.createWithCreator(creatorId, {
+        name: "Players League",
+        inviteCode: "PLAYERS1",
+      });
+      await repo.addPlayer(created.id, memberId);
+
+      const players = await repo.findPlayersByLeagueId(created.id);
+      assertEquals(players.length, 2);
+
+      const creator = players.find((p) => p.userId === creatorId);
+      const member = players.find((p) => p.userId === memberId);
+
+      assertEquals(creator?.role, "creator");
+      assertEquals(creator?.name, "Test User");
+      assertEquals(member?.role, "member");
+      assertEquals(member?.name, "Member User");
+
+      for (const p of players) {
+        assertEquals(typeof p.id, "string");
+        assertEquals(typeof p.joinedAt, "object");
+      }
+    } finally {
+      await db.delete(leaguePlayer);
+      await db.delete(league);
+      await db.delete(user).where(eq(user.id, creatorId));
+      await db.delete(user).where(eq(user.id, memberId));
+      await client.end();
+    }
+  },
+});
+
+Deno.test({
   name: "leagueRepository.findAllByUserId: returns leagues the user belongs to",
   sanitizeResources: false,
   sanitizeOps: false,

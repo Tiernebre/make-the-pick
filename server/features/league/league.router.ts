@@ -22,6 +22,12 @@ export function createLeagueRouter(leagueService: LeagueService) {
         return leagueService.getById(input.id);
       }),
 
+    listPlayers: protectedProcedure
+      .input(object({ leagueId: string().uuid() }))
+      .query(({ input }) => {
+        return leagueService.listPlayers(input.leagueId);
+      }),
+
     join: protectedProcedure
       .input(object({ inviteCode: string().min(1) }))
       .mutation(({ ctx, input }) => {

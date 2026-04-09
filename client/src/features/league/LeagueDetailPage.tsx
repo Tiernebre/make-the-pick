@@ -1,6 +1,7 @@
 import {
   ActionIcon,
   Anchor,
+  Avatar,
   Badge,
   Button,
   Card,
@@ -9,6 +10,7 @@ import {
   Group,
   LoadingOverlay,
   Modal,
+  Stack,
   Text,
   Title,
   Tooltip,
@@ -16,11 +18,12 @@ import {
 import { useDisclosure } from "@mantine/hooks";
 import { Link, useLocation, useParams } from "wouter";
 import { useSession } from "../../auth";
-import { useDeleteLeague, useLeague } from "./use-leagues";
+import { useDeleteLeague, useLeague, useLeaguePlayers } from "./use-leagues";
 
 export function LeagueDetailPage() {
   const { id } = useParams<{ id: string }>();
   const league = useLeague(id!);
+  const players = useLeaguePlayers(id!);
   const { data: session } = useSession();
   const deleteLeague = useDeleteLeague();
   const [, navigate] = useLocation();
@@ -86,6 +89,38 @@ export function LeagueDetailPage() {
                 {new Date(league.data.createdAt).toLocaleDateString()}
               </Text>
             </Group>
+          </Card>
+
+          <Title order={3} mt="xl" mb="sm">
+            Participants
+          </Title>
+          <Card shadow="sm" padding="lg" radius="md" withBorder>
+            <Stack gap="sm">
+              {players.data?.map((player) => (
+                <Group key={player.id} justify="space-between">
+                  <Group gap="sm">
+                    <Avatar
+                      radius="xl"
+                      size="sm"
+                      color="blue"
+                    >
+                      {player.name
+                        .split(" ")
+                        .map((n) =>
+                          n[0]
+                        )
+                        .join("")
+                        .toUpperCase()
+                        .slice(0, 2)}
+                    </Avatar>
+                    <Text size="sm">{player.name}</Text>
+                  </Group>
+                  <Badge variant="light" size="sm">
+                    {player.role}
+                  </Badge>
+                </Group>
+              ))}
+            </Stack>
           </Card>
 
           {isCreator && (

@@ -41,3 +41,19 @@ export const leagueSchema: z.ZodObject<{
 });
 
 export type League = z.infer<typeof leagueSchema>;
+
+export const leaguePlayerSchema: z.ZodObject<{
+  id: z.ZodString;
+  userId: z.ZodString;
+  name: z.ZodString;
+  role: typeof leaguePlayerRoleSchema;
+  joinedAt: z.ZodString;
+}> = object({
+  id: string(),
+  userId: string(),
+  name: string(),
+  role: leaguePlayerRoleSchema,
+  joinedAt: string(),
+});
+
+export type LeaguePlayer = z.infer<typeof leaguePlayerSchema>;

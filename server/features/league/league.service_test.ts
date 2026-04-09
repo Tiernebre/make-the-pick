@@ -39,6 +39,7 @@ function createFakeRepo(
         joinedAt: new Date(),
       }),
     findPlayer: (_leagueId, _userId) => Promise.resolve(null as FakePlayer),
+    findPlayersByLeagueId: (_leagueId) => Promise.resolve([]),
     deleteById: (_id) => Promise.resolve(),
     ...overrides,
   };
@@ -147,6 +148,47 @@ Deno.test("leagueService.delete: throws FORBIDDEN when user is not the creator",
     TRPCError,
   );
   assertEquals(error.code, "FORBIDDEN");
+});
+
+Deno.test("leagueService.listPlayers: returns players for a league", async () => {
+  const fakeLeague = createFakeLeague();
+  const fakePlayers = [
+    {
+      id: crypto.randomUUID(),
+      userId: "user-1",
+      name: "Creator",
+      role: "creator" as const,
+      joinedAt: new Date(),
+    },
+    {
+      id: crypto.randomUUID(),
+      userId: "user-2",
+      name: "Member",
+      role: "member" as const,
+      joinedAt: new Date(),
+    },
+  ];
+  const repo = createFakeRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayersByLeagueId: (_leagueId) => Promise.resolve(fakePlayers),
+  });
+
+  const service = createLeagueService({ leagueRepo: repo });
+  const result = await service.listPlayers(fakeLeague.id);
+  assertEquals(result.length, 2);
+  assertEquals(result[0].name, "Creator");
+  assertEquals(result[1].name, "Member");
+});
+
+Deno.test("leagueService.listPlayers: throws NOT_FOUND when league does not exist", async () => {
+  const repo = createFakeRepo();
+  const service = createLeagueService({ leagueRepo: repo });
+
+  const error = await assertRejects(
+    () => service.listPlayers("nonexistent"),
+    TRPCError,
+  );
+  assertEquals(error.code, "NOT_FOUND");
 });
 
 Deno.test("leagueService.join: throws BAD_REQUEST if already a member", async () => {
