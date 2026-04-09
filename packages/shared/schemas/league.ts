@@ -1,5 +1,5 @@
 import type { z } from "zod";
-import { enum as enum_, object, string, unknown } from "zod";
+import { enum as enum_, number, object, string, unknown } from "zod";
 
 export const leagueStatusSchema: z.ZodEnum<["setup"]> = enum_(["setup"]);
 
@@ -12,6 +12,45 @@ export const leaguePlayerRoleSchema: z.ZodEnum<["commissioner", "member"]> =
   ]);
 
 export type LeaguePlayerRole = z.infer<typeof leaguePlayerRoleSchema>;
+
+export const sportTypeSchema: z.ZodEnum<["pokemon"]> = enum_(["pokemon"]);
+
+export type SportType = z.infer<typeof sportTypeSchema>;
+
+export const draftFormatSchema: z.ZodEnum<["snake", "linear"]> = enum_([
+  "snake",
+  "linear",
+]);
+
+export type DraftFormat = z.infer<typeof draftFormatSchema>;
+
+export const rulesConfigSchema: z.ZodObject<{
+  draftFormat: typeof draftFormatSchema;
+  numberOfRounds: z.ZodNumber;
+  pickTimeLimitSeconds: z.ZodNullable<z.ZodNumber>;
+}> = object({
+  draftFormat: draftFormatSchema,
+  numberOfRounds: number().int().min(1),
+  pickTimeLimitSeconds: number().int().min(1).nullable(),
+});
+
+export type RulesConfig = z.infer<typeof rulesConfigSchema>;
+
+export const updateLeagueSettingsSchema: z.ZodObject<{
+  leagueId: z.ZodString;
+  sportType: typeof sportTypeSchema;
+  maxPlayers: z.ZodNumber;
+  rulesConfig: typeof rulesConfigSchema;
+}> = object({
+  leagueId: string().uuid(),
+  sportType: sportTypeSchema,
+  maxPlayers: number().int().min(2),
+  rulesConfig: rulesConfigSchema,
+});
+
+export type UpdateLeagueSettingsInput = z.infer<
+  typeof updateLeagueSettingsSchema
+>;
 
 export const createLeagueSchema: z.ZodObject<{
   name: z.ZodString;
@@ -26,6 +65,8 @@ export const leagueSchema: z.ZodObject<{
   name: z.ZodString;
   status: typeof leagueStatusSchema;
   rulesConfig: z.ZodNullable<z.ZodUnknown>;
+  sportType: z.ZodNullable<z.ZodString>;
+  maxPlayers: z.ZodNullable<z.ZodNumber>;
   inviteCode: z.ZodString;
   createdBy: z.ZodString;
   createdAt: z.ZodString;
@@ -35,6 +76,8 @@ export const leagueSchema: z.ZodObject<{
   name: string(),
   status: leagueStatusSchema,
   rulesConfig: unknown().nullable(),
+  sportType: string().nullable(),
+  maxPlayers: number().nullable(),
   inviteCode: string(),
   createdBy: string(),
   createdAt: string(),

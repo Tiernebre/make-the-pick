@@ -2,6 +2,8 @@ export { type HealthResponse, healthResponseSchema } from "./schemas/mod.ts";
 export {
   type CreateLeagueInput,
   createLeagueSchema,
+  type DraftFormat,
+  draftFormatSchema,
   type League,
   type LeaguePlayer,
   type LeaguePlayerRole,
@@ -10,5 +12,11 @@ export {
   leagueSchema,
   type LeagueStatus,
   leagueStatusSchema,
+  type RulesConfig,
+  rulesConfigSchema,
+  type SportType,
+  sportTypeSchema,
+  type UpdateLeagueSettingsInput,
+  updateLeagueSettingsSchema,
 } from "./schemas/mod.ts";
 export { type Pokemon, pokemonSchema } from "./schemas/mod.ts";
