@@ -13,9 +13,10 @@
     "trpc-ui": "npm:trpc-ui@^1",
     "zod": "npm:zod@^3.24",
     "better-auth": "npm:better-auth@^1",
-    "better-auth/": "npm:/better-auth@^1/"
+    "better-auth/": "npm:/better-auth@^1/",
+    "pino": "npm:pino@^9"
   },
   "tasks": {
-    "dev": "deno run --watch --allow-net --allow-env --allow-read main.ts"
+    "dev": "deno run --watch --allow-net --allow-env --allow-read --allow-sys main.ts"
   }
 }

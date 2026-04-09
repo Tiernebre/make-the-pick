@@ -8,24 +8,31 @@ import { createContext } from "./trpc/context.ts";
 import { registerEchoWebSocket } from "./ws/echo.ts";
 import { auth } from "./auth/mod.ts";
 import { renderTrpcPanel } from "trpc-ui";
+import { logger } from "./logger.ts";
 
 export const app: Hono = new Hono();
 
 registerEchoWebSocket(app);
 
 // Auth routes — must come before tRPC
-app.on(["GET", "POST"], "/api/auth/**", (c) => auth.handler(c.req.raw));
+app.on(["GET", "POST"], "/api/auth/**", (c) => {
+  logger.debug({ path: c.req.path, method: c.req.method }, "auth request");
+  return auth.handler(c.req.raw);
+});
 
 app.get("/api/health", async (c) => {
+  logger.debug("health check requested");
   const [check] = await db.insert(healthChecks).values({}).returning();
   const response: HealthResponse = {
     status: "ok",
     timestamp: check.checkedAt.toISOString(),
   };
+  logger.debug({ timestamp: response.timestamp }, "health check ok");
   return c.json(response);
 });
 
 app.all("/api/trpc/*", (c) => {
+  logger.debug({ path: c.req.path, method: c.req.method }, "trpc request");
   return fetchRequestHandler({
     endpoint: "/api/trpc",
     req: c.req.raw,
@@ -56,7 +63,7 @@ if (import.meta.main) {
     port: 3000,
     onListen: ({ hostname, port }) => {
       if (isProduction) {
-        console.log(`Listening on http://${hostname}:${port}/`);
+        logger.info(`Listening on http://${hostname}:${port}/`);
       } else {
         const bold = (s: string) => `\x1b[1m${s}\x1b[0m`;
         const cyan = (s: string) => `\x1b[36m${s}\x1b[0m`;
