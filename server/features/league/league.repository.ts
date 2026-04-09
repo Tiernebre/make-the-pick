@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, count, eq } from "drizzle-orm";
 import type { db } from "../../db/mod.ts";
 import { league, leaguePlayer, user } from "../../db/mod.ts";
 import { logger } from "../../logger.ts";
@@ -108,6 +108,34 @@ export function createLeagueRepository(db: Database) {
         "findPlayersByLeagueId result",
       );
       return rows;
+    },
+
+    async updateSettings(
+      id: string,
+      data: {
+        sportType: string;
+        maxPlayers: number;
+        rulesConfig: unknown;
+      },
+    ): Promise<LeagueRow> {
+      log.debug({ leagueId: id }, "updating league settings");
+      const [updated] = await db.update(league).set({
+        sportType: data.sportType as "pokemon",
+        maxPlayers: data.maxPlayers,
+        rulesConfig: data.rulesConfig,
+        updatedAt: new Date(),
+      }).where(eq(league.id, id)).returning();
+      log.debug({ leagueId: id }, "league settings updated");
+      return updated;
+    },
+
+    async countPlayers(leagueId: string): Promise<number> {
+      log.debug({ leagueId }, "counting players in league");
+      const [result] = await db.select({ count: count() }).from(leaguePlayer)
+        .where(eq(leaguePlayer.leagueId, leagueId));
+      const playerCount = result?.count ?? 0;
+      log.debug({ leagueId, count: playerCount }, "countPlayers result");
+      return playerCount;
     },
 
     async findPlayer(
