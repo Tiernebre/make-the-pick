@@ -418,13 +418,22 @@ export function LeagueDetailPage() {
 
           <Group mt="lg">
             {league.data.status === "drafting" && (
-              <Button
-                component={Link}
-                href={`/leagues/${league.data.id}/draft`}
-                variant="filled"
-              >
-                Go to Draft
-              </Button>
+              <>
+                <Button
+                  component={Link}
+                  href={`/leagues/${league.data.id}/draft`}
+                  variant="filled"
+                >
+                  Go to Draft
+                </Button>
+                <Button
+                  component={Link}
+                  href={`/leagues/${league.data.id}/draft/pool`}
+                  variant="light"
+                >
+                  View Draft Pool
+                </Button>
+              </>
             )}
 
             {isCommissioner && nextStatus && setupPrerequisitesMet && (

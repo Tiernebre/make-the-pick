@@ -63,13 +63,6 @@ describe("DraftPage", () => {
     expect(backLink).toHaveAttribute("href", "/leagues/league-1");
   });
 
-  it("has a link to the draft pool page", () => {
-    renderPage();
-    const poolLink = screen.getByRole("link", { name: /view draft pool/i });
-    expect(poolLink).toBeInTheDocument();
-    expect(poolLink).toHaveAttribute("href", "/leagues/league-1/draft/pool");
-  });
-
   it("shows loading overlay when league is loading", () => {
     mockUseLeague.mockReturnValue({ data: undefined, isLoading: true });
     renderPage();
