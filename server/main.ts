@@ -58,13 +58,31 @@ if (import.meta.main) {
       if (isProduction) {
         console.log(`Listening on http://${hostname}:${port}/`);
       } else {
-        console.log(`API server running on http://${hostname}:${port}/`);
+        const bold = (s: string) => `\x1b[1m${s}\x1b[0m`;
+        const cyan = (s: string) => `\x1b[36m${s}\x1b[0m`;
+        const green = (s: string) => `\x1b[32m${s}\x1b[0m`;
+        const magenta = (s: string) => `\x1b[35m${s}\x1b[0m`;
+        const dim = (s: string) => `\x1b[2m${s}\x1b[0m`;
+        const yellow = (s: string) => `\x1b[33m${s}\x1b[0m`;
+
+        const divider = dim("─".repeat(48));
+        const apiUrl = `http://${hostname}:${port}/`;
+        const appUrl = "http://localhost:5173/";
+        const trpcUrl = `http://${hostname}:${port}/dev/trpc`;
+
+        console.log();
+        console.log(divider);
+        console.log(bold(yellow("  🏈  Make the Pick — Dev Server")));
+        console.log(divider);
+        console.log();
+        console.log(`  ${green("▸")} ${bold("App:")}        ${cyan(appUrl)}`);
+        console.log(`  ${green("▸")} ${bold("API:")}        ${cyan(apiUrl)}`);
         console.log(
-          `Open http://localhost:5173/ in your browser to use the app.`,
+          `  ${green("▸")} ${bold("tRPC Panel:")} ${magenta(trpcUrl)}`,
         );
-        console.log(
-          `tRPC Panel available at http://${hostname}:${port}/dev/trpc`,
-        );
+        console.log();
+        console.log(divider);
+        console.log();
       }
     },
   }, app.fetch);
