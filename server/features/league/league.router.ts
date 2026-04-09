@@ -1,4 +1,7 @@
-import { createLeagueSchema } from "@make-the-pick/shared";
+import {
+  createLeagueSchema,
+  updateLeagueSettingsSchema,
+} from "@make-the-pick/shared";
 import { object, string } from "zod";
 import { protectedProcedure, router } from "../../trpc/trpc.ts";
 import type { LeagueService } from "./league.service.ts";
@@ -32,6 +35,12 @@ export function createLeagueRouter(leagueService: LeagueService) {
       .input(object({ inviteCode: string().min(1) }))
       .mutation(({ ctx, input }) => {
         return leagueService.join(ctx.user.id, input.inviteCode);
+      }),
+
+    updateSettings: protectedProcedure
+      .input(updateLeagueSettingsSchema)
+      .mutation(({ ctx, input }) => {
+        return leagueService.updateSettings(ctx.user.id, input);
       }),
 
     delete: protectedProcedure
