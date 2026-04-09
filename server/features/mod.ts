@@ -36,6 +36,11 @@ import {
   createUserService,
 } from "./user/mod.ts";
 import {
+  createPoolItemNoteRepository,
+  createPoolItemNoteRouter,
+  createPoolItemNoteService,
+} from "./pool-item-note/mod.ts";
+import {
   createWatchlistRepository,
   createWatchlistRouter,
   createWatchlistService,
@@ -79,11 +84,19 @@ export function createFeatureRouters(db: Database) {
   });
   const watchlistRouter = createWatchlistRouter(watchlistService);
 
+  const poolItemNoteRepo = createPoolItemNoteRepository(db);
+  const poolItemNoteService = createPoolItemNoteService({
+    poolItemNoteRepo,
+    leagueRepo,
+  });
+  const poolItemNoteRouter = createPoolItemNoteRouter(poolItemNoteService);
+
   return {
     leagueRouter,
     userRouter,
     draftPoolRouter,
     pokemonVersionRouter,
     watchlistRouter,
+    poolItemNoteRouter,
   };
 }

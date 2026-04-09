@@ -38,6 +38,16 @@ export {
   pokemonVersionSchema,
 } from "./pokemon-version.ts";
 export {
+  type DeletePoolItemNoteInput,
+  deletePoolItemNoteSchema,
+  type GetPoolItemNotesInput,
+  getPoolItemNotesSchema,
+  type PoolItemNote,
+  poolItemNoteSchema,
+  type UpsertPoolItemNoteInput,
+  upsertPoolItemNoteSchema,
+} from "./pool-item-note.ts";
+export {
   type AddToWatchlistInput,
   addToWatchlistSchema,
   type GetWatchlistInput,

@@ -19,6 +19,7 @@ const {
   draftPoolRouter,
   pokemonVersionRouter,
   watchlistRouter,
+  poolItemNoteRouter,
 } = createFeatureRouters(db);
 
 export const appRouter = router({
@@ -28,6 +29,7 @@ export const appRouter = router({
   draftPool: draftPoolRouter,
   pokemonVersion: pokemonVersionRouter,
   watchlist: watchlistRouter,
+  poolItemNote: poolItemNoteRouter,
 });
 
 export type AppRouter = typeof appRouter;

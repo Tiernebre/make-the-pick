@@ -176,3 +176,25 @@ export const watchlistItem = pgTable("watchlist_item", {
     table.draftPoolItemId,
   ),
 ]);
+
+export const poolItemNote = pgTable("pool_item_note", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  leaguePlayerId: uuid("league_player_id").notNull().references(
+    () => leaguePlayer.id,
+    { onDelete: "cascade" },
+  ),
+  draftPoolItemId: uuid("draft_pool_item_id").notNull().references(
+    () => draftPoolItem.id,
+    { onDelete: "cascade" },
+  ),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow()
+    .notNull(),
+}, (table) => [
+  unique("pool_item_note_unique").on(
+    table.leaguePlayerId,
+    table.draftPoolItemId,
+  ),
+]);
