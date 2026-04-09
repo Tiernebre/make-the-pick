@@ -7,6 +7,7 @@ import {
   UnstyledButton,
 } from "@mantine/core";
 import type { ReactNode } from "react";
+import { Link } from "wouter";
 import { signOut, useSession } from "../auth";
 
 interface AppLayoutProps {
@@ -27,7 +28,14 @@ export function AppLayout({ children }: AppLayoutProps) {
     <AppShell header={{ height: 60 }} padding="md">
       <AppShell.Header>
         <Group h="100%" px="md" justify="space-between">
-          <Text fw={700} size="lg">
+          <Text
+            fw={700}
+            size="lg"
+            component={Link}
+            to="/"
+            td="none"
+            c="inherit"
+          >
             Make the Pick
           </Text>
 
