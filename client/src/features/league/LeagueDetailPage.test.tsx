@@ -257,6 +257,54 @@ describe("LeagueDetailPage", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("shows a link to the draft page when league status is drafting", () => {
+    mockUseLeague.mockReturnValue({
+      data: {
+        ...mockLeague,
+        status: "drafting",
+        sportType: "pokemon",
+        rulesConfig: {
+          draftFormat: "snake",
+          numberOfRounds: 10,
+          pickTimeLimitSeconds: null,
+        },
+      },
+      isLoading: false,
+    });
+    mockUseLeaguePlayers.mockReturnValue({
+      data: [
+        {
+          id: "p1",
+          userId: "user-1",
+          name: "Alice",
+          image: null,
+          role: "commissioner",
+          joinedAt: "2026-01-01T00:00:00Z",
+        },
+      ],
+      isLoading: false,
+    });
+    renderPage();
+    const draftLink = screen.getByRole("link", { name: /go to draft/i });
+    expect(draftLink).toBeInTheDocument();
+    expect(draftLink).toHaveAttribute("href", "/leagues/league-1/draft");
+  });
+
+  it("does not show draft link when league status is setup", () => {
+    mockUseLeague.mockReturnValue({
+      data: mockLeague,
+      isLoading: false,
+    });
+    mockUseLeaguePlayers.mockReturnValue({
+      data: [],
+      isLoading: false,
+    });
+    renderPage();
+    expect(
+      screen.queryByRole("link", { name: /go to draft/i }),
+    ).not.toBeInTheDocument();
+  });
+
   it("does not show advance button when setup settings are not configured", () => {
     mockUseLeague.mockReturnValue({
       data: {

@@ -338,6 +338,17 @@ export function LeagueDetailPage() {
             </Stack>
           </Card>
 
+          {league.data.status === "drafting" && (
+            <Button
+              component={Link}
+              href={`/leagues/${league.data.id}/draft`}
+              mt="lg"
+              variant="filled"
+            >
+              Go to Draft
+            </Button>
+          )}
+
           {isCommissioner && nextStatus && setupPrerequisitesMet && (
             <Button mt="lg" onClick={openAdvance}>
               Advance to {nextStatus.charAt(0).toUpperCase() +
