@@ -1,5 +1,11 @@
-import type { Pokemon } from "@make-the-pick/shared";
+import type { Pokemon, PokemonVersion } from "@make-the-pick/shared";
 import pokemonJson from "../../packages/shared/data/pokemon.json" with {
+  type: "json",
+};
+import pokemonVersionsJson from "../../packages/shared/data/pokemon-versions.json" with {
+  type: "json",
+};
+import regionalPokedexesJson from "../../packages/shared/data/regional-pokedexes.json" with {
   type: "json",
 };
 import { createDraftRepository } from "./draft/mod.ts";
@@ -35,6 +41,8 @@ export function createFeatureRouters(db: Database) {
     draftPoolRepo,
     leagueRepo,
     pokemonData: pokemonJson as Pokemon[],
+    pokemonVersions: pokemonVersionsJson as PokemonVersion[],
+    regionalPokedexes: regionalPokedexesJson as Record<string, number[]>,
   });
   const draftPoolRouter = createDraftPoolRouter(draftPoolService);
 
