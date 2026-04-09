@@ -30,6 +30,15 @@ export function useJoinLeague() {
   });
 }
 
+export function useUpdateLeagueSettings() {
+  const utils = trpc.useUtils();
+  return trpc.league.updateSettings.useMutation({
+    onSuccess: (_data, variables) => {
+      utils.league.getById.invalidate({ id: variables.leagueId });
+    },
+  });
+}
+
 export function useDeleteLeague() {
   const utils = trpc.useUtils();
   return trpc.league.delete.useMutation({

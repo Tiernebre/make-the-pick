@@ -10,15 +10,23 @@ import {
   Group,
   LoadingOverlay,
   Modal,
+  NumberInput,
+  Select,
   Stack,
   Text,
   Title,
   Tooltip,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "wouter";
 import { useSession } from "../../auth";
-import { useDeleteLeague, useLeague, useLeaguePlayers } from "./use-leagues";
+import {
+  useDeleteLeague,
+  useLeague,
+  useLeaguePlayers,
+  useUpdateLeagueSettings,
+} from "./use-leagues";
 
 export function LeagueDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -26,13 +34,70 @@ export function LeagueDetailPage() {
   const players = useLeaguePlayers(id!);
   const { data: session } = useSession();
   const deleteLeague = useDeleteLeague();
+  const updateSettings = useUpdateLeagueSettings();
   const [, navigate] = useLocation();
   const [deleteOpened, { open: openDelete, close: closeDelete }] =
     useDisclosure(false);
 
+  const [sportType, setSportType] = useState<string | null>(null);
+  const [draftFormat, setDraftFormat] = useState<string | null>("snake");
+  const [numberOfRounds, setNumberOfRounds] = useState<number | string>("");
+  const [pickTimeLimitSeconds, setPickTimeLimitSeconds] = useState<
+    number | string
+  >("");
+  const [maxPlayers, setMaxPlayers] = useState<number | string>("");
+  const [settingsSaved, setSettingsSaved] = useState(false);
+
+  useEffect(() => {
+    if (league.data) {
+      if (league.data.sportType) setSportType(league.data.sportType);
+      if (league.data.maxPlayers) setMaxPlayers(league.data.maxPlayers);
+      const rules = league.data.rulesConfig as {
+        draftFormat?: string;
+        numberOfRounds?: number;
+        pickTimeLimitSeconds?: number | null;
+      } | null;
+      if (rules) {
+        if (rules.draftFormat) setDraftFormat(rules.draftFormat);
+        if (rules.numberOfRounds) setNumberOfRounds(rules.numberOfRounds);
+        if (rules.pickTimeLimitSeconds) {
+          setPickTimeLimitSeconds(rules.pickTimeLimitSeconds);
+        }
+      }
+    }
+  }, [league.data]);
+
   const isCommissioner = players.data?.some(
     (p) => p.userId === session?.user?.id && p.role === "commissioner",
   );
+
+  const handleSaveSettings = () => {
+    if (
+      !sportType || !draftFormat || !numberOfRounds || !maxPlayers
+    ) {
+      return;
+    }
+    setSettingsSaved(false);
+    updateSettings.mutate(
+      {
+        leagueId: id!,
+        sportType: sportType as "pokemon",
+        maxPlayers: Number(maxPlayers),
+        rulesConfig: {
+          draftFormat: draftFormat as "snake" | "linear",
+          numberOfRounds: Number(numberOfRounds),
+          pickTimeLimitSeconds: pickTimeLimitSeconds
+            ? Number(pickTimeLimitSeconds)
+            : null,
+        },
+      },
+      {
+        onSuccess: () => {
+          setSettingsSaved(true);
+        },
+      },
+    );
+  };
 
   const handleDelete = () => {
     deleteLeague.mutate(
@@ -92,6 +157,129 @@ export function LeagueDetailPage() {
               </Text>
             </Group>
           </Card>
+
+          {isCommissioner && league.data.status === "setup" && (
+            <>
+              <Title order={3} mt="xl" mb="sm">
+                League Settings
+              </Title>
+              <Card shadow="sm" padding="lg" radius="md" withBorder>
+                <Stack gap="md">
+                  <Select
+                    label="Sport Type"
+                    data={[{ value: "pokemon", label: "Pokemon" }]}
+                    value={sportType}
+                    onChange={setSportType}
+                    required
+                  />
+                  <Select
+                    label="Draft Format"
+                    data={[
+                      { value: "snake", label: "Snake" },
+                      { value: "linear", label: "Linear" },
+                    ]}
+                    value={draftFormat}
+                    onChange={setDraftFormat}
+                    required
+                  />
+                  <NumberInput
+                    label="Number of Rounds"
+                    min={1}
+                    value={numberOfRounds}
+                    onChange={setNumberOfRounds}
+                    required
+                  />
+                  <NumberInput
+                    label="Pick Time Limit (seconds)"
+                    description="Leave empty for no time limit"
+                    min={1}
+                    value={pickTimeLimitSeconds}
+                    onChange={setPickTimeLimitSeconds}
+                  />
+                  <NumberInput
+                    label="Max Players"
+                    min={2}
+                    value={maxPlayers}
+                    onChange={setMaxPlayers}
+                    required
+                  />
+                  <Group>
+                    <Button
+                      onClick={handleSaveSettings}
+                      loading={updateSettings.isPending}
+                    >
+                      Save Settings
+                    </Button>
+                    {settingsSaved && (
+                      <Text c="teal" size="sm">Settings saved</Text>
+                    )}
+                  </Group>
+                </Stack>
+              </Card>
+            </>
+          )}
+
+          {!isCommissioner && league.data.sportType && (
+            <>
+              <Title order={3} mt="xl" mb="sm">
+                League Settings
+              </Title>
+              <Card shadow="sm" padding="lg" radius="md" withBorder>
+                <Stack gap="xs">
+                  <Group>
+                    <Text fw={500}>Sport Type</Text>
+                    <Badge variant="light">{league.data.sportType}</Badge>
+                  </Group>
+                  {league.data.rulesConfig &&
+                    typeof league.data.rulesConfig === "object" && (
+                    <>
+                      <Group>
+                        <Text fw={500}>Draft Format</Text>
+                        <Badge variant="light">
+                          {(league.data.rulesConfig as { draftFormat: string })
+                            .draftFormat}
+                        </Badge>
+                      </Group>
+                      <Group>
+                        <Text fw={500}>Rounds</Text>
+                        <Text c="dimmed">
+                          {(
+                            league.data.rulesConfig as {
+                              numberOfRounds: number;
+                            }
+                          ).numberOfRounds}
+                        </Text>
+                      </Group>
+                      <Group>
+                        <Text fw={500}>Pick Time Limit</Text>
+                        <Text c="dimmed">
+                          {(
+                              league.data.rulesConfig as {
+                                pickTimeLimitSeconds: number | null;
+                              }
+                            ).pickTimeLimitSeconds
+                            ? `${
+                              (
+                                league.data.rulesConfig as {
+                                  pickTimeLimitSeconds: number;
+                                }
+                              ).pickTimeLimitSeconds
+                            }s`
+                            : "No limit"}
+                        </Text>
+                      </Group>
+                    </>
+                  )}
+                  {league.data.maxPlayers && (
+                    <Group>
+                      <Text fw={500}>Max Players</Text>
+                      <Text c="dimmed">{league.data.maxPlayers}</Text>
+                    </Group>
+                  )}
+                </Stack>
+              </Card>
+            </>
+          )}
 
           <Title order={3} mt="xl" mb="sm">
             Players
