@@ -217,6 +217,44 @@ async function createWatchlistForCommissioner(
   );
 }
 
+const SAMPLE_NOTES = [
+  "Sleeper pick — everyone underestimates this bulk",
+  "Pairs well with rain teams, only worth it if I get a setter first",
+  "Alex always targets this early, don't bother unless I'm picking before him",
+  "Trade bait for Jordan, he loves this type",
+  "Great coverage move pool, solid late-round value",
+];
+
+async function createNotesForCommissioner(
+  db: Db,
+  leagueId: string,
+  userId: string,
+  poolId: string,
+) {
+  const [player] = await db.select().from(schema.leaguePlayer).where(
+    eq(schema.leaguePlayer.leagueId, leagueId),
+  ).then((rows) => rows.filter((r) => r.userId === userId));
+
+  if (!player) return;
+
+  const poolItems = await db.select().from(schema.draftPoolItem).where(
+    eq(schema.draftPoolItem.draftPoolId, poolId),
+  ).limit(5);
+
+  for (let i = 0; i < poolItems.length; i++) {
+    await db.insert(schema.poolItemNote).values({
+      leaguePlayerId: player.id,
+      draftPoolItemId: poolItems[i].id,
+      content: SAMPLE_NOTES[i % SAMPLE_NOTES.length],
+    }).onConflictDoNothing();
+  }
+
+  log.info(
+    { leagueId, count: poolItems.length },
+    "pool item notes created for dev user",
+  );
+}
+
 async function seedLeague(
   db: Db,
   spec: DevLeagueSpec,
@@ -282,6 +320,14 @@ async function seedLeague(
 
     // Add watchlist items for the dev user
     await createWatchlistForCommissioner(
+      db,
+      league.id,
+      commissioner.id,
+      pool.id,
+    );
+
+    // Add sample notes for the dev user
+    await createNotesForCommissioner(
       db,
       league.id,
       commissioner.id,
