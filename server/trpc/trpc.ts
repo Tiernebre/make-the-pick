@@ -4,7 +4,16 @@ import type { Context } from "./context.ts";
 
 const log = logger.child({ module: "trpc" });
 
-const t = initTRPC.context<Context>().create();
+const t = initTRPC.context<Context>().create({
+  errorFormatter({ shape, error, path, input }) {
+    log.error(
+      { code: shape.code, path, input, cause: error.cause },
+      "tRPC error: %s",
+      shape.message,
+    );
+    return shape;
+  },
+});
 
 export const router = t.router;
 export const procedure = t.procedure;
