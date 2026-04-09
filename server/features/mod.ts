@@ -35,6 +35,11 @@ import {
   createUserRouter,
   createUserService,
 } from "./user/mod.ts";
+import {
+  createWatchlistRepository,
+  createWatchlistRouter,
+  createWatchlistService,
+} from "./watchlist/mod.ts";
 
 export function createFeatureRouters(db: Database) {
   const leagueRepo = createLeagueRepository(db);
@@ -67,5 +72,18 @@ export function createFeatureRouters(db: Database) {
     pokemonVersionsJson as PokemonVersion[],
   );
 
-  return { leagueRouter, userRouter, draftPoolRouter, pokemonVersionRouter };
+  const watchlistRepo = createWatchlistRepository(db);
+  const watchlistService = createWatchlistService({
+    watchlistRepo,
+    leagueRepo,
+  });
+  const watchlistRouter = createWatchlistRouter(watchlistService);
+
+  return {
+    leagueRouter,
+    userRouter,
+    draftPoolRouter,
+    pokemonVersionRouter,
+    watchlistRouter,
+  };
 }
