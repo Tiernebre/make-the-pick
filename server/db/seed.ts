@@ -153,5 +153,12 @@ await db.insert(schema.leaguePlayer).values(leaguePlayers)
   .onConflictDoNothing();
 log.info({ count: leaguePlayers.length }, "league players seeded");
 
+for (const league of leagues) {
+  log.info(
+    { name: league.name, inviteCode: league.inviteCode },
+    "league invite code",
+  );
+}
+
 log.info("dev database seeding complete");
 await client.end();
