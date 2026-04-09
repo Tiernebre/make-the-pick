@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MantineProvider } from "@mantine/core";
 import { DraftPage } from "./DraftPage";
@@ -49,14 +49,38 @@ const mockPool = {
       draftPoolId: "pool-1",
       name: "Pikachu",
       thumbnailUrl: "https://example.com/pikachu.png",
-      metadata: { pokemonId: 25, types: ["electric"], generation: "1" },
+      metadata: {
+        pokemonId: 25,
+        types: ["electric"],
+        generation: "1",
+        baseStats: {
+          hp: 35,
+          attack: 55,
+          defense: 40,
+          specialAttack: 50,
+          specialDefense: 50,
+          speed: 90,
+        },
+      },
     },
     {
       id: "item-2",
       draftPoolId: "pool-1",
       name: "Charizard",
       thumbnailUrl: "https://example.com/charizard.png",
-      metadata: { pokemonId: 6, types: ["fire", "flying"], generation: "1" },
+      metadata: {
+        pokemonId: 6,
+        types: ["fire", "flying"],
+        generation: "1",
+        baseStats: {
+          hp: 78,
+          attack: 84,
+          defense: 78,
+          specialAttack: 109,
+          specialDefense: 85,
+          speed: 100,
+        },
+      },
     },
   ],
 };
@@ -103,14 +127,58 @@ describe("DraftPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("displays the draft pool items", () => {
+  it("shows pool item count", () => {
     renderPage();
+    expect(screen.getByText(/2 items/i)).toBeInTheDocument();
+  });
+
+  it("renders a table with stat column headers", () => {
+    renderPage();
+    const table = screen.getByRole("table");
+    expect(table).toBeInTheDocument();
+
+    const headers = within(table).getAllByRole("columnheader");
+    const headerTexts = headers.map((h) => h.textContent);
+    expect(headerTexts).toContain("Name");
+    expect(headerTexts).toContain("Type");
+    expect(headerTexts).toContain("HP");
+    expect(headerTexts).toContain("ATK");
+    expect(headerTexts).toContain("DEF");
+    expect(headerTexts).toContain("SPA");
+    expect(headerTexts).toContain("SPD");
+    expect(headerTexts).toContain("SPE");
+    expect(headerTexts).toContain("Total");
+  });
+
+  it("displays draft pool items as table rows with stats", () => {
+    renderPage();
+    const table = screen.getByRole("table");
+    const rows = within(table).getAllByRole("row");
+    // header row + 2 data rows
+    expect(rows.length).toBe(3);
+
     expect(screen.getByText("Pikachu")).toBeInTheDocument();
     expect(screen.getByText("Charizard")).toBeInTheDocument();
   });
 
-  it("shows pool item count", () => {
+  it("shows base stat totals for each pokemon", () => {
     renderPage();
-    expect(screen.getByText(/2 items/i)).toBeInTheDocument();
+    // Pikachu total: 35+55+40+50+50+90 = 320
+    // Charizard total: 78+84+78+109+85+100 = 534
+    expect(screen.getByText("320")).toBeInTheDocument();
+    expect(screen.getByText("534")).toBeInTheDocument();
+  });
+
+  it("shows type badges for each pokemon", () => {
+    renderPage();
+    expect(screen.getByText("electric")).toBeInTheDocument();
+    expect(screen.getByText("fire")).toBeInTheDocument();
+    expect(screen.getByText("flying")).toBeInTheDocument();
+  });
+
+  it("displays thumbnail images for each pokemon", () => {
+    renderPage();
+    const images = screen.getAllByRole("img");
+    expect(images.length).toBeGreaterThanOrEqual(2);
   });
 });
