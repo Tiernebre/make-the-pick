@@ -1,0 +1,268 @@
+[
+  {
+    "id": "red",
+    "name": "Red",
+    "versionGroup": "red-blue",
+    "region": "Kanto",
+    "generation": 1
+  },
+  {
+    "id": "blue",
+    "name": "Blue",
+    "versionGroup": "red-blue",
+    "region": "Kanto",
+    "generation": 1
+  },
+  {
+    "id": "yellow",
+    "name": "Yellow",
+    "versionGroup": "yellow",
+    "region": "Kanto",
+    "generation": 1
+  },
+  {
+    "id": "gold",
+    "name": "Gold",
+    "versionGroup": "gold-silver",
+    "region": "Johto",
+    "generation": 2
+  },
+  {
+    "id": "silver",
+    "name": "Silver",
+    "versionGroup": "gold-silver",
+    "region": "Johto",
+    "generation": 2
+  },
+  {
+    "id": "crystal",
+    "name": "Crystal",
+    "versionGroup": "crystal",
+    "region": "Johto",
+    "generation": 2
+  },
+  {
+    "id": "ruby",
+    "name": "Ruby",
+    "versionGroup": "ruby-sapphire",
+    "region": "Hoenn",
+    "generation": 3
+  },
+  {
+    "id": "sapphire",
+    "name": "Sapphire",
+    "versionGroup": "ruby-sapphire",
+    "region": "Hoenn",
+    "generation": 3
+  },
+  {
+    "id": "emerald",
+    "name": "Emerald",
+    "versionGroup": "emerald",
+    "region": "Hoenn",
+    "generation": 3
+  },
+  {
+    "id": "firered",
+    "name": "FireRed",
+    "versionGroup": "firered-leafgreen",
+    "region": "Kanto",
+    "generation": 3
+  },
+  {
+    "id": "leafgreen",
+    "name": "LeafGreen",
+    "versionGroup": "firered-leafgreen",
+    "region": "Kanto",
+    "generation": 3
+  },
+  {
+    "id": "diamond",
+    "name": "Diamond",
+    "versionGroup": "diamond-pearl",
+    "region": "Sinnoh",
+    "generation": 4
+  },
+  {
+    "id": "pearl",
+    "name": "Pearl",
+    "versionGroup": "diamond-pearl",
+    "region": "Sinnoh",
+    "generation": 4
+  },
+  {
+    "id": "platinum",
+    "name": "Platinum",
+    "versionGroup": "platinum",
+    "region": "Sinnoh",
+    "generation": 4
+  },
+  {
+    "id": "heartgold",
+    "name": "HeartGold",
+    "versionGroup": "heartgold-soulsilver",
+    "region": "Johto",
+    "generation": 4
+  },
+  {
+    "id": "soulsilver",
+    "name": "SoulSilver",
+    "versionGroup": "heartgold-soulsilver",
+    "region": "Johto",
+    "generation": 4
+  },
+  {
+    "id": "black",
+    "name": "Black",
+    "versionGroup": "black-white",
+    "region": "Unova",
+    "generation": 5
+  },
+  {
+    "id": "white",
+    "name": "White",
+    "versionGroup": "black-white",
+    "region": "Unova",
+    "generation": 5
+  },
+  {
+    "id": "black-2",
+    "name": "Black 2",
+    "versionGroup": "black-2-white-2",
+    "region": "Unova",
+    "generation": 5
+  },
+  {
+    "id": "white-2",
+    "name": "White 2",
+    "versionGroup": "black-2-white-2",
+    "region": "Unova",
+    "generation": 5
+  },
+  {
+    "id": "x",
+    "name": "X",
+    "versionGroup": "x-y",
+    "region": "Kalos",
+    "generation": 6
+  },
+  {
+    "id": "y",
+    "name": "Y",
+    "versionGroup": "x-y",
+    "region": "Kalos",
+    "generation": 6
+  },
+  {
+    "id": "omega-ruby",
+    "name": "Omega Ruby",
+    "versionGroup": "omega-ruby-alpha-sapphire",
+    "region": "Hoenn",
+    "generation": 6
+  },
+  {
+    "id": "alpha-sapphire",
+    "name": "Alpha Sapphire",
+    "versionGroup": "omega-ruby-alpha-sapphire",
+    "region": "Hoenn",
+    "generation": 6
+  },
+  {
+    "id": "sun",
+    "name": "Sun",
+    "versionGroup": "sun-moon",
+    "region": "Alola",
+    "generation": 7
+  },
+  {
+    "id": "moon",
+    "name": "Moon",
+    "versionGroup": "sun-moon",
+    "region": "Alola",
+    "generation": 7
+  },
+  {
+    "id": "ultra-sun",
+    "name": "Ultra Sun",
+    "versionGroup": "ultra-sun-ultra-moon",
+    "region": "Alola",
+    "generation": 7
+  },
+  {
+    "id": "ultra-moon",
+    "name": "Ultra Moon",
+    "versionGroup": "ultra-sun-ultra-moon",
+    "region": "Alola",
+    "generation": 7
+  },
+  {
+    "id": "lets-go-pikachu",
+    "name": "Let\u2019s Go, Pikachu!",
+    "versionGroup": "lets-go-pikachu-lets-go-eevee",
+    "region": "Kanto",
+    "generation": 7
+  },
+  {
+    "id": "lets-go-eevee",
+    "name": "Let\u2019s Go, Eevee!",
+    "versionGroup": "lets-go-pikachu-lets-go-eevee",
+    "region": "Kanto",
+    "generation": 7
+  },
+  {
+    "id": "sword",
+    "name": "Sword",
+    "versionGroup": "sword-shield",
+    "region": "Galar",
+    "generation": 8
+  },
+  {
+    "id": "shield",
+    "name": "Shield",
+    "versionGroup": "sword-shield",
+    "region": "Galar",
+    "generation": 8
+  },
+  {
+    "id": "brilliant-diamond",
+    "name": "Brilliant Diamond",
+    "versionGroup": "brilliant-diamond-shining-pearl",
+    "region": "Sinnoh",
+    "generation": 8
+  },
+  {
+    "id": "shining-pearl",
+    "name": "Shining Pearl",
+    "versionGroup": "brilliant-diamond-shining-pearl",
+    "region": "Sinnoh",
+    "generation": 8
+  },
+  {
+    "id": "legends-arceus",
+    "name": "Legends: Arceus",
+    "versionGroup": "legends-arceus",
+    "region": "Hisui",
+    "generation": 8
+  },
+  {
+    "id": "scarlet",
+    "name": "Scarlet",
+    "versionGroup": "scarlet-violet",
+    "region": "Paldea",
+    "generation": 9
+  },
+  {
+    "id": "violet",
+    "name": "Violet",
+    "versionGroup": "scarlet-violet",
+    "region": "Paldea",
+    "generation": 9
+  },
+  {
+    "id": "legends-za",
+    "name": "Legends: Z-A",
+    "versionGroup": "legends-za",
+    "region": "Kalos",
+    "generation": 9
+  }
+]
