@@ -14,6 +14,27 @@ import { Link, useParams } from "wouter";
 import { useLeague } from "../league/use-leagues";
 import { useDraftPool } from "./use-draft";
 
+const POKEMON_TYPE_COLORS: Record<string, string> = {
+  normal: "#A8A77A",
+  fire: "#EE8130",
+  water: "#6390F0",
+  electric: "#F7D02C",
+  grass: "#7AC74C",
+  ice: "#96D9D6",
+  fighting: "#C22E28",
+  poison: "#A33EA1",
+  ground: "#E2BF65",
+  flying: "#A98FF3",
+  psychic: "#F95587",
+  bug: "#A6B91A",
+  rock: "#B6A136",
+  ghost: "#735797",
+  dragon: "#6F35FC",
+  dark: "#705746",
+  steel: "#B7B7CE",
+  fairy: "#D685AD",
+};
+
 function getBaseStats(item: DraftPoolItem) {
   if (!item.metadata) return null;
   return item.metadata.baseStats;
@@ -96,7 +117,13 @@ export function DraftPage() {
                           {item.metadata && (
                             <Group gap={4}>
                               {item.metadata.types.map((type) => (
-                                <Badge key={type} size="xs" variant="light">
+                                <Badge
+                                  key={type}
+                                  size="xs"
+                                  variant="light"
+                                  color={POKEMON_TYPE_COLORS[type] ?? "gray"}
+                                  tt="capitalize"
+                                >
                                   {type}
                                 </Badge>
                               ))}
