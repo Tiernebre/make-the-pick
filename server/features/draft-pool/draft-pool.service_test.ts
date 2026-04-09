@@ -440,14 +440,6 @@ Deno.test("draftPoolService.generate: maps Pokemon metadata correctly", async ()
     findById: (_id) => Promise.resolve(fakeLeague),
     findPlayer: (_leagueId, _userId) =>
       Promise.resolve(createCommissionerPlayer(fakeLeague.id)),
-    countPlayers: (_leagueId) => Promise.resolve(1),
-  });
-  // Need >= 2 players for the check, but let's just use the clamp path
-  // Actually, we need >= 2 players. Let me fix that.
-  const leagueRepo2 = createFakeLeagueRepo({
-    findById: (_id) => Promise.resolve(fakeLeague),
-    findPlayer: (_leagueId, _userId) =>
-      Promise.resolve(createCommissionerPlayer(fakeLeague.id)),
     countPlayers: (_leagueId) => Promise.resolve(2),
   });
   const draftPoolRepo = createFakeDraftPoolRepo({
@@ -467,7 +459,7 @@ Deno.test("draftPoolService.generate: maps Pokemon metadata correctly", async ()
 
   const service = createDraftPoolService({
     draftPoolRepo,
-    leagueRepo: leagueRepo2,
+    leagueRepo,
     pokemonData,
   });
 

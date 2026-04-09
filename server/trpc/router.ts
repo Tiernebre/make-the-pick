@@ -13,12 +13,13 @@ const healthRouter = router({
   }),
 });
 
-const { leagueRouter, userRouter } = createFeatureRouters(db);
+const { leagueRouter, userRouter, draftPoolRouter } = createFeatureRouters(db);
 
 export const appRouter = router({
   health: healthRouter,
   league: leagueRouter,
   user: userRouter,
+  draftPool: draftPoolRouter,
 });
 
 export type AppRouter = typeof appRouter;
