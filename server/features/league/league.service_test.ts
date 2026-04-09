@@ -332,3 +332,51 @@ Deno.test("leagueService.updateSettings: throws FORBIDDEN when user is not a mem
   );
   assertEquals(error.code, "FORBIDDEN");
 });
+
+Deno.test("leagueService.join: throws BAD_REQUEST when league is full", async () => {
+  const fakeLeague = createFakeLeague({
+    maxPlayers: 2,
+    inviteCode: "FULL0001",
+  });
+  const repo = createFakeRepo({
+    findByInviteCode: (_code) => Promise.resolve(fakeLeague),
+    countPlayers: (_leagueId) => Promise.resolve(2),
+  });
+
+  const service = createLeagueService({ leagueRepo: repo });
+
+  const error = await assertRejects(
+    () => service.join("user-3", "FULL0001"),
+    TRPCError,
+  );
+  assertEquals(error.code, "BAD_REQUEST");
+});
+
+Deno.test("leagueService.join: allows join when under max_players", async () => {
+  const fakeLeague = createFakeLeague({
+    maxPlayers: 4,
+    inviteCode: "OPEN0001",
+  });
+  const repo = createFakeRepo({
+    findByInviteCode: (_code) => Promise.resolve(fakeLeague),
+    countPlayers: (_leagueId) => Promise.resolve(2),
+  });
+
+  const service = createLeagueService({ leagueRepo: repo });
+  const result = await service.join("user-3", "OPEN0001");
+  assertEquals(result.id, fakeLeague.id);
+});
+
+Deno.test("leagueService.join: allows join when max_players is null", async () => {
+  const fakeLeague = createFakeLeague({
+    maxPlayers: null,
+    inviteCode: "NOLIM001",
+  });
+  const repo = createFakeRepo({
+    findByInviteCode: (_code) => Promise.resolve(fakeLeague),
+  });
+
+  const service = createLeagueService({ leagueRepo: repo });
+  const result = await service.join("user-3", "NOLIM001");
+  assertEquals(result.id, fakeLeague.id);
+});

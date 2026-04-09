@@ -150,6 +150,20 @@ export function createLeagueService(
         });
       }
 
+      if (league.maxPlayers !== null) {
+        const playerCount = await deps.leagueRepo.countPlayers(league.id);
+        if (playerCount >= league.maxPlayers) {
+          log.debug(
+            { userId, leagueId: league.id, maxPlayers: league.maxPlayers },
+            "league is full",
+          );
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "League is full",
+          });
+        }
+      }
+
       await deps.leagueRepo.addPlayer(league.id, userId);
       log.debug({ userId, leagueId: league.id }, "user joined league");
       return league;
