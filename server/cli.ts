@@ -1,37 +1,28 @@
-import { createCli } from "trpc-cli";
-import { eq } from "drizzle-orm";
-import { db, user } from "./db/mod.ts";
-import { appRouter } from "./trpc/router.ts";
+const command = Deno.args[0];
+const rest = Deno.args.slice(1);
 
-const CLI_USER_EMAIL = "cli@dev.local";
+switch (command) {
+  case "seed": {
+    const { runSeedCommand } = await import("./cli/seed/mod.ts");
+    await runSeedCommand(rest);
+    break;
+  }
+  case "trpc":
+  case undefined: {
+    const { runTrpcCommand } = await import("./cli/trpc.ts");
+    await runTrpcCommand();
+    break;
+  }
+  default:
+    console.error(`Unknown command: ${command}`);
+    console.log(`
+Usage: deno task cli <command>
 
-const [dbUser] = await db
-  .select()
-  .from(user)
-  .where(eq(user.email, CLI_USER_EMAIL));
-if (!dbUser) {
-  console.error(
-    `CLI user not found (${CLI_USER_EMAIL}). Run \`deno task db:seed\` first.`,
-  );
-  Deno.exit(1);
+Commands:
+  trpc      Run tRPC CLI (default)
+  seed      Seed fake data into the dev database
+
+Run 'deno task cli <command> --help' for more information.
+`);
+    Deno.exit(1);
 }
-
-const cli = createCli({
-  router: appRouter,
-  context: {
-    db,
-    session: {
-      id: "cli-session",
-      expiresAt: new Date(Date.now() + 86400000),
-      token: "cli-token",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      ipAddress: null,
-      userAgent: "trpc-cli",
-      userId: dbUser.id,
-    },
-    user: dbUser,
-  },
-});
-
-cli.run();

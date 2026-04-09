@@ -19,6 +19,7 @@
   },
   "tasks": {
     "dev": "deno run --watch --allow-net --allow-env --allow-read --allow-sys main.ts",
-    "trpc": "deno run --allow-net --allow-env --allow-read --allow-sys --env=../.env cli.ts"
+    "cli": "deno run --allow-net --allow-env --allow-read --allow-sys --env=../.env cli.ts",
+    "trpc": "deno run --allow-net --allow-env --allow-read --allow-sys --env=../.env cli.ts trpc"
   }
 }
