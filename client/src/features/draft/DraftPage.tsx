@@ -193,10 +193,7 @@ export function DraftPage() {
       showGlobalFilter: true,
       sorting: [{ id: "total", desc: true }],
     },
-    mantineTableContainerProps: { style: { maxHeight: "70vh" } },
-    mantinePaginationProps: {
-      showRowsPerPage: true,
-    },
+    enablePagination: false,
     state: {
       isLoading,
     },
