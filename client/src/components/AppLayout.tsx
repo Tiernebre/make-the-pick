@@ -1,14 +1,19 @@
 import {
   AppShell,
   Avatar,
+  Button,
   Group,
   Menu,
+  Modal,
+  Stack,
   Text,
   UnstyledButton,
 } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import type { ReactNode } from "react";
 import { Link } from "wouter";
 import { signOut, useSession } from "../auth";
+import { trpc } from "../trpc";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -23,6 +28,13 @@ export function AppLayout({ children }: AppLayoutProps) {
     .join("")
     .toUpperCase()
     .slice(0, 2);
+  const [deleteOpened, { open: openDelete, close: closeDelete }] =
+    useDisclosure(false);
+  const deleteAccount = trpc.user.deleteAccount.useMutation({
+    onSuccess: () => {
+      globalThis.location.replace("/login");
+    },
+  });
 
   return (
     <AppShell header={{ height: 60 }} padding="md">
@@ -69,6 +81,10 @@ export function AppLayout({ children }: AppLayoutProps) {
                 >
                   Sign out
                 </Menu.Item>
+                <Menu.Divider />
+                <Menu.Item color="red" onClick={openDelete}>
+                  Delete account
+                </Menu.Item>
               </Menu.Dropdown>
             </Menu>
           )}
@@ -76,6 +92,31 @@ export function AppLayout({ children }: AppLayoutProps) {
       </AppShell.Header>
 
       <AppShell.Main>{children}</AppShell.Main>
+
+      <Modal
+        opened={deleteOpened}
+        onClose={closeDelete}
+        title="Delete account"
+      >
+        <Stack>
+          <Text>
+            Are you sure you want to delete your account? This action is
+            permanent and cannot be undone. All your data will be removed.
+          </Text>
+          <Group justify="flex-end">
+            <Button variant="default" onClick={closeDelete}>
+              Cancel
+            </Button>
+            <Button
+              color="red"
+              loading={deleteAccount.isPending}
+              onClick={() => deleteAccount.mutate()}
+            >
+              Delete account
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
     </AppShell>
   );
 }

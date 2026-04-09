@@ -716,7 +716,9 @@ Deno.test("leagueService.removePlayer: throws BAD_REQUEST when trying to remove 
         id: crypto.randomUUID(),
         leagueId,
         userId,
-        role: userId === "commissioner-1" ? "commissioner" as const : "member" as const,
+        role: userId === "commissioner-1"
+          ? "commissioner" as const
+          : "member" as const,
         joinedAt: new Date(),
       }),
   });
