@@ -37,7 +37,7 @@ import {
   LeagueDetailPage,
   LeagueListPage,
 } from "./features/league/mod";
-import { DraftPage } from "./features/draft/mod";
+import { DraftPage, DraftPoolPage } from "./features/draft/mod";
 
 export function App() {
   return (
@@ -49,6 +49,13 @@ export function App() {
             <Route path="/join/:inviteCode">
               <AuthGuard>
                 <JoinLeaguePage />
+              </AuthGuard>
+            </Route>
+            <Route path="/leagues/:id/draft/pool">
+              <AuthGuard>
+                <AppLayout>
+                  <DraftPoolPage />
+                </AppLayout>
               </AuthGuard>
             </Route>
             <Route path="/leagues/:id/draft">
