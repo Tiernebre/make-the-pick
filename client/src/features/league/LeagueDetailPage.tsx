@@ -1,5 +1,6 @@
 import {
   ActionIcon,
+  Alert,
   Anchor,
   Avatar,
   Badge,
@@ -427,7 +428,13 @@ export function LeagueDetailPage() {
           )}
 
           {isCommissioner && nextStatus && setupPrerequisitesMet && (
-            <Button mt="lg" onClick={openAdvance}>
+            <Button
+              mt="lg"
+              onClick={() => {
+                advanceStatus.reset();
+                openAdvance();
+              }}
+            >
               Advance to {nextStatus.charAt(0).toUpperCase() +
                 nextStatus.slice(1)}
             </Button>
@@ -449,28 +456,35 @@ export function LeagueDetailPage() {
             onClose={closeAdvance}
             title="Advance League Status"
           >
-            <Text mb="lg">
-              Are you sure you want to advance{" "}
-              <Text span fw={700}>
-                {league.data.name}
-              </Text>{" "}
-              to{" "}
-              <Text span fw={700}>
-                {nextStatus}
+            <Stack gap="md">
+              <Text>
+                Are you sure you want to advance{" "}
+                <Text span fw={700}>
+                  {league.data.name}
+                </Text>{" "}
+                to{" "}
+                <Text span fw={700}>
+                  {nextStatus}
+                </Text>
+                ? This action cannot be undone.
               </Text>
-              ? This action cannot be undone.
-            </Text>
-            <Group justify="flex-end">
-              <Button variant="default" onClick={closeAdvance}>
-                Cancel
-              </Button>
-              <Button
-                onClick={handleAdvance}
-                loading={advanceStatus.isPending}
-              >
-                Advance
-              </Button>
-            </Group>
+              {advanceStatus.isError && (
+                <Alert color="red" title="Failed to advance">
+                  {advanceStatus.error.message}
+                </Alert>
+              )}
+              <Group justify="flex-end">
+                <Button variant="default" onClick={closeAdvance}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleAdvance}
+                  loading={advanceStatus.isPending}
+                >
+                  Advance
+                </Button>
+              </Group>
+            </Stack>
           </Modal>
 
           <Modal
