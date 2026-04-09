@@ -21,6 +21,7 @@
     "db:stop": "docker compose down",
     "db:generate": "cd server && deno run -A npm:drizzle-kit generate",
     "db:migrate": "cd server && deno run --allow-net --allow-env --allow-read --allow-sys --env=../.env.example db/migrate.ts",
+    "db:seed": "cd server && deno run --allow-net --allow-env --allow-read --allow-sys --env db/seed.ts",
     "sync:pokemon": "deno run --allow-net --allow-write --allow-read scripts/sync-pokemon.ts"
   },
   "imports": {
