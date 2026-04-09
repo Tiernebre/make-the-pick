@@ -36,7 +36,7 @@ app.all("/api/trpc/*", (c) => {
 
 // Dev-only: tRPC Panel UI for exploring API endpoints
 if (Deno.env.get("DENO_ENV") !== "production") {
-  app.get("/dev/trpc", (c) => {
+  app.get("/dev/trpc/ui", (c) => {
     return c.html(
       renderTrpcPanel(appRouter, { url: "/api/trpc" }),
     );
@@ -68,7 +68,7 @@ if (import.meta.main) {
         const divider = dim("─".repeat(48));
         const apiUrl = `http://${hostname}:${port}/`;
         const appUrl = "http://localhost:5173/";
-        const trpcUrl = `http://${hostname}:${port}/dev/trpc`;
+        const trpcUrl = `http://${hostname}:${port}/dev/trpc/ui`;
 
         console.log();
         console.log(divider);
