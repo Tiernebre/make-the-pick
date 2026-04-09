@@ -142,11 +142,11 @@ describe("DraftPoolPage", () => {
     expect(headerTexts).toContain("Name");
     expect(headerTexts).toContain("Type");
     expect(headerTexts).toContain("HP");
-    expect(headerTexts).toContain("ATK");
-    expect(headerTexts).toContain("DEF");
-    expect(headerTexts).toContain("SPA");
-    expect(headerTexts).toContain("SPD");
-    expect(headerTexts).toContain("SPE");
+    expect(headerTexts).toContain("Attack");
+    expect(headerTexts).toContain("Defense");
+    expect(headerTexts).toContain("Sp. Atk");
+    expect(headerTexts).toContain("Sp. Def");
+    expect(headerTexts).toContain("Speed");
     expect(headerTexts).toContain("Total");
   });
 
