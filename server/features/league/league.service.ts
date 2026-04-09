@@ -1,3 +1,4 @@
+import { LEAGUE_STATUS_TRANSITIONS } from "@make-the-pick/shared";
 import { TRPCError } from "@trpc/server";
 import { logger } from "../../logger.ts";
 import type { LeagueRepository } from "./league.repository.ts";
@@ -121,6 +122,58 @@ export function createLeagueService(
         rulesConfig: input.rulesConfig,
       });
       log.debug({ leagueId: input.leagueId }, "league settings updated");
+      return updated;
+    },
+
+    async advanceStatus(userId: string, input: { leagueId: string }) {
+      log.debug(
+        { userId, leagueId: input.leagueId },
+        "attempting league status advance",
+      );
+      const league = await deps.leagueRepo.findById(input.leagueId);
+      if (!league) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "League not found" });
+      }
+      const player = await deps.leagueRepo.findPlayer(
+        input.leagueId,
+        userId,
+      );
+      if (player?.role !== "commissioner") {
+        log.debug(
+          { userId, leagueId: input.leagueId },
+          "advanceStatus forbidden — user is not commissioner",
+        );
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only the league commissioner can advance the league status",
+        });
+      }
+      const nextStatus = LEAGUE_STATUS_TRANSITIONS[
+        league.status as keyof typeof LEAGUE_STATUS_TRANSITIONS
+      ];
+      if (!nextStatus) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "League is already complete",
+        });
+      }
+      if (league.status === "setup") {
+        if (!league.sportType || !league.rulesConfig) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message:
+              "League settings must be configured before advancing from setup",
+          });
+        }
+      }
+      const updated = await deps.leagueRepo.updateStatus(
+        input.leagueId,
+        nextStatus,
+      );
+      log.debug(
+        { leagueId: input.leagueId, newStatus: nextStatus },
+        "league status advanced",
+      );
       return updated;
     },
 

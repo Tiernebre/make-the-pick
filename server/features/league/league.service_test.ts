@@ -45,6 +45,7 @@ function createFakeRepo(
     findPlayersByLeagueId: (_leagueId) => Promise.resolve([]),
     deleteById: (_id) => Promise.resolve(),
     updateSettings: (_id, _data) => Promise.resolve(createFakeLeague()),
+    updateStatus: (_id, _status) => Promise.resolve(createFakeLeague()),
     countPlayers: (_leagueId) => Promise.resolve(0),
     ...overrides,
   };
@@ -379,4 +380,252 @@ Deno.test("leagueService.join: allows join when max_players is null", async () =
   const service = createLeagueService({ leagueRepo: repo });
   const result = await service.join("user-3", "NOLIM001");
   assertEquals(result.id, fakeLeague.id);
+});
+
+// --- advanceStatus ---
+
+Deno.test("leagueService.advanceStatus: throws NOT_FOUND when league does not exist", async () => {
+  const repo = createFakeRepo();
+  const service = createLeagueService({ leagueRepo: repo });
+
+  const error = await assertRejects(
+    () => service.advanceStatus("user-1", { leagueId: "nonexistent" }),
+    TRPCError,
+  );
+  assertEquals(error.code, "NOT_FOUND");
+});
+
+Deno.test("leagueService.advanceStatus: throws FORBIDDEN when user is not commissioner", async () => {
+  const fakeLeague = createFakeLeague();
+  const repo = createFakeRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve({
+        id: crypto.randomUUID(),
+        leagueId: fakeLeague.id,
+        userId: "user-2",
+        role: "member" as const,
+        joinedAt: new Date(),
+      }),
+  });
+
+  const service = createLeagueService({ leagueRepo: repo });
+
+  const error = await assertRejects(
+    () => service.advanceStatus("user-2", { leagueId: fakeLeague.id }),
+    TRPCError,
+  );
+  assertEquals(error.code, "FORBIDDEN");
+});
+
+Deno.test("leagueService.advanceStatus: throws FORBIDDEN when user is not a member", async () => {
+  const fakeLeague = createFakeLeague();
+  const repo = createFakeRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+  });
+
+  const service = createLeagueService({ leagueRepo: repo });
+
+  const error = await assertRejects(
+    () => service.advanceStatus("user-1", { leagueId: fakeLeague.id }),
+    TRPCError,
+  );
+  assertEquals(error.code, "FORBIDDEN");
+});
+
+Deno.test("leagueService.advanceStatus: throws BAD_REQUEST when league is already complete", async () => {
+  const fakeLeague = createFakeLeague({ status: "complete" });
+  const repo = createFakeRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve({
+        id: crypto.randomUUID(),
+        leagueId: fakeLeague.id,
+        userId: "user-1",
+        role: "commissioner" as const,
+        joinedAt: new Date(),
+      }),
+  });
+
+  const service = createLeagueService({ leagueRepo: repo });
+
+  const error = await assertRejects(
+    () => service.advanceStatus("user-1", { leagueId: fakeLeague.id }),
+    TRPCError,
+  );
+  assertEquals(error.code, "BAD_REQUEST");
+});
+
+Deno.test("leagueService.advanceStatus: throws BAD_REQUEST when advancing from setup without settings", async () => {
+  const fakeLeague = createFakeLeague({
+    status: "setup",
+    sportType: null,
+    rulesConfig: null,
+  });
+  const repo = createFakeRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve({
+        id: crypto.randomUUID(),
+        leagueId: fakeLeague.id,
+        userId: "user-1",
+        role: "commissioner" as const,
+        joinedAt: new Date(),
+      }),
+  });
+
+  const service = createLeagueService({ leagueRepo: repo });
+
+  const error = await assertRejects(
+    () => service.advanceStatus("user-1", { leagueId: fakeLeague.id }),
+    TRPCError,
+  );
+  assertEquals(error.code, "BAD_REQUEST");
+});
+
+Deno.test("leagueService.advanceStatus: throws BAD_REQUEST when advancing from setup without rulesConfig", async () => {
+  const fakeLeague = createFakeLeague({
+    status: "setup",
+    sportType: "pokemon",
+    rulesConfig: null,
+  });
+  const repo = createFakeRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve({
+        id: crypto.randomUUID(),
+        leagueId: fakeLeague.id,
+        userId: "user-1",
+        role: "commissioner" as const,
+        joinedAt: new Date(),
+      }),
+  });
+
+  const service = createLeagueService({ leagueRepo: repo });
+
+  const error = await assertRejects(
+    () => service.advanceStatus("user-1", { leagueId: fakeLeague.id }),
+    TRPCError,
+  );
+  assertEquals(error.code, "BAD_REQUEST");
+});
+
+Deno.test("leagueService.advanceStatus: advances from setup to drafting", async () => {
+  const fakeLeague = createFakeLeague({
+    status: "setup",
+    sportType: "pokemon",
+    rulesConfig: {
+      draftFormat: "snake",
+      numberOfRounds: 10,
+      pickTimeLimitSeconds: null,
+    },
+  });
+  let capturedStatus: string | undefined;
+  const repo = createFakeRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve({
+        id: crypto.randomUUID(),
+        leagueId: fakeLeague.id,
+        userId: "user-1",
+        role: "commissioner" as const,
+        joinedAt: new Date(),
+      }),
+    updateStatus: (_id, status) => {
+      capturedStatus = status;
+      return Promise.resolve(createFakeLeague({ status: status as "setup" }));
+    },
+  });
+
+  const service = createLeagueService({ leagueRepo: repo });
+  const result = await service.advanceStatus("user-1", {
+    leagueId: fakeLeague.id,
+  });
+
+  assertEquals(capturedStatus, "drafting");
+  assertEquals(result.status, "drafting");
+});
+
+Deno.test("leagueService.advanceStatus: advances from drafting to trading", async () => {
+  const fakeLeague = createFakeLeague({ status: "drafting" });
+  let capturedStatus: string | undefined;
+  const repo = createFakeRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve({
+        id: crypto.randomUUID(),
+        leagueId: fakeLeague.id,
+        userId: "user-1",
+        role: "commissioner" as const,
+        joinedAt: new Date(),
+      }),
+    updateStatus: (_id, status) => {
+      capturedStatus = status;
+      return Promise.resolve(createFakeLeague({ status: status as "setup" }));
+    },
+  });
+
+  const service = createLeagueService({ leagueRepo: repo });
+  const result = await service.advanceStatus("user-1", {
+    leagueId: fakeLeague.id,
+  });
+
+  assertEquals(capturedStatus, "trading");
+  assertEquals(result.status, "trading");
+});
+
+Deno.test("leagueService.advanceStatus: advances from trading to competing", async () => {
+  const fakeLeague = createFakeLeague({ status: "trading" });
+  let capturedStatus: string | undefined;
+  const repo = createFakeRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve({
+        id: crypto.randomUUID(),
+        leagueId: fakeLeague.id,
+        userId: "user-1",
+        role: "commissioner" as const,
+        joinedAt: new Date(),
+      }),
+    updateStatus: (_id, status) => {
+      capturedStatus = status;
+      return Promise.resolve(createFakeLeague({ status: status as "setup" }));
+    },
+  });
+
+  const service = createLeagueService({ leagueRepo: repo });
+  const result = await service.advanceStatus("user-1", {
+    leagueId: fakeLeague.id,
+  });
+
+  assertEquals(capturedStatus, "competing");
+  assertEquals(result.status, "competing");
+});
+
+Deno.test("leagueService.advanceStatus: advances from competing to complete", async () => {
+  const fakeLeague = createFakeLeague({ status: "competing" });
+  let capturedStatus: string | undefined;
+  const repo = createFakeRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve({
+        id: crypto.randomUUID(),
+        leagueId: fakeLeague.id,
+        userId: "user-1",
+        role: "commissioner" as const,
+        joinedAt: new Date(),
+      }),
+    updateStatus: (_id, status) => {
+      capturedStatus = status;
+      return Promise.resolve(createFakeLeague({ status: status as "setup" }));
+    },
+  });
+
+  const service = createLeagueService({ leagueRepo: repo });
+  const result = await service.advanceStatus("user-1", {
+    leagueId: fakeLeague.id,
+  });
+
+  assertEquals(capturedStatus, "complete");
+  assertEquals(result.status, "complete");
 });
