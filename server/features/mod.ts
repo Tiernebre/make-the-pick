@@ -30,13 +30,6 @@ import {
 export function createFeatureRouters(db: Database) {
   const leagueRepo = createLeagueRepository(db);
   const draftRepo = createDraftRepository(db);
-  const leagueService = createLeagueService({ leagueRepo, draftRepo });
-  const leagueRouter = createLeagueRouter(leagueService);
-
-  const userRepo = createUserRepository(db);
-  const userService = createUserService({ userRepo });
-  const userRouter = createUserRouter(userService);
-
   const draftPoolRepo = createDraftPoolRepository(db);
   const draftPoolService = createDraftPoolService({
     draftPoolRepo,
@@ -46,6 +39,17 @@ export function createFeatureRouters(db: Database) {
     regionalPokedexes: regionalPokedexesJson as Record<string, number[]>,
   });
   const draftPoolRouter = createDraftPoolRouter(draftPoolService);
+
+  const leagueService = createLeagueService({
+    leagueRepo,
+    draftRepo,
+    draftPoolService,
+  });
+  const leagueRouter = createLeagueRouter(leagueService);
+
+  const userRepo = createUserRepository(db);
+  const userService = createUserService({ userRepo });
+  const userRouter = createUserRouter(userService);
 
   const pokemonVersionRouter = createPokemonVersionRouter(
     pokemonVersionsJson as PokemonVersion[],

@@ -1,6 +1,7 @@
 import { LEAGUE_STATUS_TRANSITIONS } from "@make-the-pick/shared";
 import { TRPCError } from "@trpc/server";
 import type { DraftRepository } from "../draft/draft.repository.ts";
+import type { DraftPoolService } from "../draft-pool/draft-pool.service.ts";
 import { logger } from "../../logger.ts";
 import type { LeagueRepository } from "./league.repository.ts";
 
@@ -19,7 +20,11 @@ function generateInviteCode(): string {
 }
 
 export function createLeagueService(
-  deps: { leagueRepo: LeagueRepository; draftRepo: DraftRepository },
+  deps: {
+    leagueRepo: LeagueRepository;
+    draftRepo: DraftRepository;
+    draftPoolService: DraftPoolService;
+  },
 ) {
   return {
     create(userId: string, input: { name: string }) {
@@ -166,6 +171,9 @@ export function createLeagueService(
               "League settings must be configured before advancing from setup",
           });
         }
+        await deps.draftPoolService.generate(userId, {
+          leagueId: input.leagueId,
+        });
       }
       if (league.status === "drafting") {
         const draft = await deps.draftRepo.findByLeagueId(input.leagueId);
