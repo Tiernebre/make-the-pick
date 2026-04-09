@@ -37,3 +37,15 @@ export {
   type PokemonVersion,
   pokemonVersionSchema,
 } from "./pokemon-version.ts";
+export {
+  type AddToWatchlistInput,
+  addToWatchlistSchema,
+  type GetWatchlistInput,
+  getWatchlistSchema,
+  type RemoveFromWatchlistInput,
+  removeFromWatchlistSchema,
+  type ReorderWatchlistInput,
+  reorderWatchlistSchema,
+  type WatchlistItem,
+  watchlistItemSchema,
+} from "./watchlist.ts";
