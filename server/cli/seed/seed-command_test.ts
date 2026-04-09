@@ -47,4 +47,12 @@ Deno.test("parseArgs", async (t) => {
       options: { leagueId: "xyz", players: 4 },
     });
   });
+
+  await t.step("parses dev command with no options", () => {
+    const result = parseArgs(["dev"]);
+    assertEquals(result, {
+      command: "dev",
+      options: null,
+    });
+  });
 });

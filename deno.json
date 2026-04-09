@@ -8,7 +8,9 @@
   },
   "tasks": {
     "setup": "test -f .env || cp .env.example .env && deno install",
-    "dev": "deno task setup && deno task db:start; deno run -A npm:concurrently -n server,client -c blue,green \"deno task dev:server\" \"deno task dev:client\"",
+    "dev": "deno task setup && deno task db:start && deno task db:migrate:dev && deno task seed:dev; deno run -A npm:concurrently -n server,client -c blue,green \"deno task dev:server\" \"deno task dev:client\"",
+    "db:migrate:dev": "cd server && deno run --allow-net --allow-env --allow-read --allow-sys --env=../.env db/migrate.ts",
+    "seed:dev": "cd server && deno run --allow-net --allow-env --allow-read --allow-sys --env=../.env cli.ts seed dev",
     "dev:server": "cd server && deno run --watch --allow-net --allow-env --allow-read --allow-sys --env main.ts | deno run -A npm:pino-pretty",
     "dev:client": "cd client && deno run -A npm:vite",
     "test": "deno task test:server && deno task test:client",
