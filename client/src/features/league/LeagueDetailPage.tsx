@@ -208,11 +208,22 @@ export function LeagueDetailPage() {
                       label="Game Version"
                       description="Optionally limit the draft pool to a specific game's regional dex"
                       placeholder="All Pokemon"
-                      data={pokemonVersions.data?.map((v) => ({
-                        value: v.id,
-                        label: `${v.name} (${v.region})`,
-                        group: `Generation ${v.generation}`,
-                      })) ?? []}
+                      data={Object.entries(
+                        (pokemonVersions.data ?? []).reduce<
+                          Record<
+                            string,
+                            { value: string; label: string }[]
+                          >
+                        >((acc, v) => {
+                          const group = `Generation ${v.generation}`;
+                          if (!acc[group]) acc[group] = [];
+                          acc[group].push({
+                            value: v.id,
+                            label: `${v.name} (${v.region})`,
+                          });
+                          return acc;
+                        }, {}),
+                      ).map(([group, items]) => ({ group, items }))}
                       value={gameVersion}
                       onChange={setGameVersion}
                       clearable
