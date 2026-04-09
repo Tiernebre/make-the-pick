@@ -8,6 +8,15 @@ import pokemonVersionsJson from "../../packages/shared/data/pokemon-versions.jso
 import regionalPokedexesJson from "../../packages/shared/data/regional-pokedexes.json" with {
   type: "json",
 };
+import legendaryPokemonJson from "../../packages/shared/data/legendary-pokemon.json" with {
+  type: "json",
+};
+import starterPokemonJson from "../../packages/shared/data/starter-pokemon.json" with {
+  type: "json",
+};
+import tradeEvolutionPokemonJson from "../../packages/shared/data/trade-evolution-pokemon.json" with {
+  type: "json",
+};
 import { createDraftRepository } from "./draft/mod.ts";
 import {
   createDraftPoolRepository,
@@ -37,6 +46,9 @@ export function createFeatureRouters(db: Database) {
     pokemonData: pokemonJson as Pokemon[],
     pokemonVersions: pokemonVersionsJson as PokemonVersion[],
     regionalPokedexes: regionalPokedexesJson as Record<string, number[]>,
+    legendaryPokemonIds: legendaryPokemonJson as number[],
+    starterPokemonIds: starterPokemonJson as number[],
+    tradeEvolutionPokemonIds: tradeEvolutionPokemonJson as number[],
   });
   const draftPoolRouter = createDraftPoolRouter(draftPoolService);
 

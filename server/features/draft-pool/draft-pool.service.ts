@@ -12,6 +12,9 @@ interface RulesConfig {
   numberOfRounds: number;
   poolSizeMultiplier?: number;
   gameVersion?: string;
+  excludeLegendaries?: boolean;
+  excludeStarters?: boolean;
+  excludeTradeEvolutions?: boolean;
 }
 
 function fisherYatesShuffle<T>(
@@ -32,6 +35,9 @@ export function createDraftPoolService(deps: {
   pokemonData: Pokemon[];
   pokemonVersions?: PokemonVersion[];
   regionalPokedexes?: Record<string, number[]>;
+  legendaryPokemonIds?: number[];
+  starterPokemonIds?: number[];
+  tradeEvolutionPokemonIds?: number[];
 }) {
   return {
     async generate(userId: string, input: { leagueId: string }) {
@@ -114,6 +120,28 @@ export function createDraftPoolService(deps: {
             eligibleCount: eligiblePokemon.length,
           },
           "filtered Pokemon by regional dex",
+        );
+      }
+
+      // Apply category exclusions
+      const excludeIds = new Set<number>();
+      if (rulesConfig.excludeLegendaries && deps.legendaryPokemonIds) {
+        for (const id of deps.legendaryPokemonIds) excludeIds.add(id);
+      }
+      if (rulesConfig.excludeStarters && deps.starterPokemonIds) {
+        for (const id of deps.starterPokemonIds) excludeIds.add(id);
+      }
+      if (rulesConfig.excludeTradeEvolutions && deps.tradeEvolutionPokemonIds) {
+        for (const id of deps.tradeEvolutionPokemonIds) excludeIds.add(id);
+      }
+      if (excludeIds.size > 0) {
+        eligiblePokemon = eligiblePokemon.filter((p) => !excludeIds.has(p.id));
+        log.debug(
+          {
+            excludedCount: excludeIds.size,
+            eligibleCount: eligiblePokemon.length,
+          },
+          "applied category exclusions",
         );
       }
 

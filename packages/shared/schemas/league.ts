@@ -1,5 +1,5 @@
 import type { z } from "zod";
-import { enum as enum_, number, object, string, unknown } from "zod";
+import { boolean, enum as enum_, number, object, string, unknown } from "zod";
 
 export const leagueStatusSchema: z.ZodEnum<
   ["setup", "drafting", "competing", "complete"]
@@ -42,12 +42,18 @@ export const rulesConfigSchema: z.ZodObject<{
   pickTimeLimitSeconds: z.ZodNullable<z.ZodNumber>;
   poolSizeMultiplier: z.ZodDefault<z.ZodNumber>;
   gameVersion: z.ZodOptional<z.ZodString>;
+  excludeLegendaries: z.ZodOptional<z.ZodBoolean>;
+  excludeStarters: z.ZodOptional<z.ZodBoolean>;
+  excludeTradeEvolutions: z.ZodOptional<z.ZodBoolean>;
 }> = object({
   draftFormat: draftFormatSchema,
   numberOfRounds: number().int().min(1),
   pickTimeLimitSeconds: number().int().min(1).nullable(),
   poolSizeMultiplier: number().min(1.5).max(3).default(2),
   gameVersion: string().optional(),
+  excludeLegendaries: boolean().optional(),
+  excludeStarters: boolean().optional(),
+  excludeTradeEvolutions: boolean().optional(),
 });
 
 export type RulesConfig = z.infer<typeof rulesConfigSchema>;

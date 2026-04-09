@@ -14,6 +14,7 @@ import {
   NumberInput,
   Select,
   Stack,
+  Switch,
   Text,
   Title,
   Tooltip,
@@ -56,6 +57,9 @@ export function LeagueDetailPage() {
   const [poolSizeMultiplier, setPoolSizeMultiplier] = useState<number | string>(
     2,
   );
+  const [excludeLegendaries, setExcludeLegendaries] = useState(false);
+  const [excludeStarters, setExcludeStarters] = useState(false);
+  const [excludeTradeEvolutions, setExcludeTradeEvolutions] = useState(false);
   const [settingsSaved, setSettingsSaved] = useState(false);
   const pokemonVersions = usePokemonVersions();
 
@@ -69,6 +73,9 @@ export function LeagueDetailPage() {
         pickTimeLimitSeconds?: number | null;
         poolSizeMultiplier?: number;
         gameVersion?: string;
+        excludeLegendaries?: boolean;
+        excludeStarters?: boolean;
+        excludeTradeEvolutions?: boolean;
       } | null;
       if (rules) {
         if (rules.draftFormat) setDraftFormat(rules.draftFormat);
@@ -82,6 +89,9 @@ export function LeagueDetailPage() {
         if (rules.poolSizeMultiplier) {
           setPoolSizeMultiplier(rules.poolSizeMultiplier);
         }
+        setExcludeLegendaries(rules.excludeLegendaries ?? false);
+        setExcludeStarters(rules.excludeStarters ?? false);
+        setExcludeTradeEvolutions(rules.excludeTradeEvolutions ?? false);
       }
     }
   }, [league.data]);
@@ -110,6 +120,9 @@ export function LeagueDetailPage() {
             : null,
           poolSizeMultiplier: Number(poolSizeMultiplier),
           ...(gameVersion ? { gameVersion } : {}),
+          excludeLegendaries,
+          excludeStarters,
+          excludeTradeEvolutions,
         },
       },
       {
@@ -213,31 +226,56 @@ export function LeagueDetailPage() {
                     required
                   />
                   {sportType === "pokemon" && (
-                    <Select
-                      label="Game Version"
-                      description="Optionally limit the draft pool to a specific game's regional dex"
-                      placeholder="All Pokemon"
-                      data={Object.entries(
-                        (pokemonVersions.data ?? []).reduce<
-                          Record<
-                            string,
-                            { value: string; label: string }[]
-                          >
-                        >((acc, v) => {
-                          const group = `Generation ${v.generation}`;
-                          if (!acc[group]) acc[group] = [];
-                          acc[group].push({
-                            value: v.id,
-                            label: `${v.name} (${v.region})`,
-                          });
-                          return acc;
-                        }, {}),
-                      ).map(([group, items]) => ({ group, items }))}
-                      value={gameVersion}
-                      onChange={setGameVersion}
-                      clearable
-                      searchable
-                    />
+                    <>
+                      <Select
+                        label="Game Version"
+                        description="Optionally limit the draft pool to a specific game's regional dex"
+                        placeholder="All Pokemon"
+                        data={Object.entries(
+                          (pokemonVersions.data ?? []).reduce<
+                            Record<
+                              string,
+                              { value: string; label: string }[]
+                            >
+                          >((acc, v) => {
+                            const group = `Generation ${v.generation}`;
+                            if (!acc[group]) acc[group] = [];
+                            acc[group].push({
+                              value: v.id,
+                              label: `${v.name} (${v.region})`,
+                            });
+                            return acc;
+                          }, {}),
+                        ).map(([group, items]) => ({ group, items }))}
+                        value={gameVersion}
+                        onChange={setGameVersion}
+                        clearable
+                        searchable
+                      />
+                      <Switch
+                        label="Exclude Legendaries"
+                        description="Remove legendary and mythical Pokemon from the draft pool"
+                        checked={excludeLegendaries}
+                        onChange={(event) =>
+                          setExcludeLegendaries(event.currentTarget.checked)}
+                      />
+                      <Switch
+                        label="Exclude Starters"
+                        description="Remove starter Pokemon and their evolutions from the draft pool"
+                        checked={excludeStarters}
+                        onChange={(event) =>
+                          setExcludeStarters(event.currentTarget.checked)}
+                      />
+                      <Switch
+                        label="Exclude Trade Evolutions"
+                        description="Remove Pokemon that can only be obtained through trade evolution (e.g. Golem, Gengar, Alakazam)"
+                        checked={excludeTradeEvolutions}
+                        onChange={(event) =>
+                          setExcludeTradeEvolutions(
+                            event.currentTarget.checked,
+                          )}
+                      />
+                    </>
                   )}
                   <Select
                     label="Draft Format"
@@ -369,6 +407,30 @@ export function LeagueDetailPage() {
                           ).poolSizeMultiplier ?? 2}x
                         </Text>
                       </Group>
+                      {(league.data.rulesConfig as {
+                        excludeLegendaries?: boolean;
+                      }).excludeLegendaries && (
+                        <Group>
+                          <Text fw={500}>Legendaries</Text>
+                          <Badge variant="light" color="red">Excluded</Badge>
+                        </Group>
+                      )}
+                      {(league.data.rulesConfig as {
+                        excludeStarters?: boolean;
+                      }).excludeStarters && (
+                        <Group>
+                          <Text fw={500}>Starters</Text>
+                          <Badge variant="light" color="red">Excluded</Badge>
+                        </Group>
+                      )}
+                      {(league.data.rulesConfig as {
+                        excludeTradeEvolutions?: boolean;
+                      }).excludeTradeEvolutions && (
+                        <Group>
+                          <Text fw={500}>Trade Evolutions</Text>
+                          <Badge variant="light" color="red">Excluded</Badge>
+                        </Group>
+                      )}
                     </>
                   )}
                   {league.data.maxPlayers && (

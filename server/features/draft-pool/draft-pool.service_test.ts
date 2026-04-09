@@ -790,6 +790,291 @@ Deno.test("draftPoolService.generate: uses all Pokemon when gameVersion is not s
   assertEquals(result.items.length, 4);
 });
 
+// --- generate with exclusion filters ---
+
+Deno.test("draftPoolService.generate: excludes legendary Pokemon when excludeLegendaries is true", async () => {
+  const fakeLeague = createFakeLeague({
+    rulesConfig: {
+      draftFormat: "snake",
+      numberOfRounds: 1,
+      pickTimeLimitSeconds: null,
+      poolSizeMultiplier: 3,
+      excludeLegendaries: true,
+    },
+  });
+  // Pokemon 1-10, where IDs 5 and 8 are "legendaries"
+  const pokemonData = createFakePokemonData(10);
+  const legendaryPokemonIds = [5, 8];
+  let capturedItems: unknown[] = [];
+
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve(createCommissionerPlayer(fakeLeague.id)),
+    countPlayers: (_leagueId) => Promise.resolve(2),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    createItems: (items) => {
+      capturedItems = items;
+      return Promise.resolve(
+        items.map((item) => ({
+          id: crypto.randomUUID(),
+          draftPoolId: item.draftPoolId as string,
+          name: item.name as string,
+          thumbnailUrl: (item.thumbnailUrl as string) ?? null,
+          metadata: item.metadata ?? null,
+        })),
+      );
+    },
+  });
+
+  const service = createDraftPoolService({
+    draftPoolRepo,
+    leagueRepo,
+    pokemonData,
+    legendaryPokemonIds,
+  });
+
+  const result = await service.generate("user-1", {
+    leagueId: fakeLeague.id,
+  });
+
+  // 1 round * 2 players * 3 multiplier = 6, but only 8 eligible (10 - 2 legendaries)
+  assertEquals(result.items.length, 6);
+
+  // No legendary Pokemon should be in the pool
+  const itemNames = capturedItems.map((i: unknown) =>
+    (i as { name: string }).name
+  );
+  for (const name of itemNames) {
+    const pokemonId = parseInt(name.replace("pokemon-", ""));
+    assertEquals(
+      legendaryPokemonIds.includes(pokemonId),
+      false,
+      `Legendary Pokemon ${name} (id ${pokemonId}) should not be in pool`,
+    );
+  }
+});
+
+Deno.test("draftPoolService.generate: excludes starter Pokemon when excludeStarters is true", async () => {
+  const fakeLeague = createFakeLeague({
+    rulesConfig: {
+      draftFormat: "snake",
+      numberOfRounds: 1,
+      pickTimeLimitSeconds: null,
+      poolSizeMultiplier: 3,
+      excludeStarters: true,
+    },
+  });
+  const pokemonData = createFakePokemonData(10);
+  const starterPokemonIds = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+  let capturedItems: unknown[] = [];
+
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve(createCommissionerPlayer(fakeLeague.id)),
+    countPlayers: (_leagueId) => Promise.resolve(2),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    createItems: (items) => {
+      capturedItems = items;
+      return Promise.resolve(
+        items.map((item) => ({
+          id: crypto.randomUUID(),
+          draftPoolId: item.draftPoolId as string,
+          name: item.name as string,
+          thumbnailUrl: (item.thumbnailUrl as string) ?? null,
+          metadata: item.metadata ?? null,
+        })),
+      );
+    },
+  });
+
+  const service = createDraftPoolService({
+    draftPoolRepo,
+    leagueRepo,
+    pokemonData,
+    starterPokemonIds,
+  });
+
+  const result = await service.generate("user-1", {
+    leagueId: fakeLeague.id,
+  });
+
+  // Only pokemon-10 is eligible (1-9 are starters), clamped to 1
+  assertEquals(result.items.length, 1);
+
+  const itemNames = capturedItems.map((i: unknown) =>
+    (i as { name: string }).name
+  );
+  assertEquals(itemNames, ["pokemon-10"]);
+});
+
+Deno.test("draftPoolService.generate: excludes trade evolution Pokemon when excludeTradeEvolutions is true", async () => {
+  const fakeLeague = createFakeLeague({
+    rulesConfig: {
+      draftFormat: "snake",
+      numberOfRounds: 1,
+      pickTimeLimitSeconds: null,
+      poolSizeMultiplier: 3,
+      excludeTradeEvolutions: true,
+    },
+  });
+  const pokemonData = createFakePokemonData(10);
+  const tradeEvolutionPokemonIds = [3, 7];
+  let capturedItems: unknown[] = [];
+
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve(createCommissionerPlayer(fakeLeague.id)),
+    countPlayers: (_leagueId) => Promise.resolve(2),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    createItems: (items) => {
+      capturedItems = items;
+      return Promise.resolve(
+        items.map((item) => ({
+          id: crypto.randomUUID(),
+          draftPoolId: item.draftPoolId as string,
+          name: item.name as string,
+          thumbnailUrl: (item.thumbnailUrl as string) ?? null,
+          metadata: item.metadata ?? null,
+        })),
+      );
+    },
+  });
+
+  const service = createDraftPoolService({
+    draftPoolRepo,
+    leagueRepo,
+    pokemonData,
+    tradeEvolutionPokemonIds,
+  });
+
+  const result = await service.generate("user-1", {
+    leagueId: fakeLeague.id,
+  });
+
+  // 1 * 2 * 3 = 6, 8 eligible (10 - 2 trade evos)
+  assertEquals(result.items.length, 6);
+
+  const itemNames = capturedItems.map((i: unknown) =>
+    (i as { name: string }).name
+  );
+  for (const name of itemNames) {
+    const pokemonId = parseInt(name.replace("pokemon-", ""));
+    assertEquals(
+      tradeEvolutionPokemonIds.includes(pokemonId),
+      false,
+      `Trade evolution Pokemon ${name} (id ${pokemonId}) should not be in pool`,
+    );
+  }
+});
+
+Deno.test("draftPoolService.generate: applies multiple exclusions together", async () => {
+  const fakeLeague = createFakeLeague({
+    rulesConfig: {
+      draftFormat: "snake",
+      numberOfRounds: 1,
+      pickTimeLimitSeconds: null,
+      poolSizeMultiplier: 3,
+      excludeLegendaries: true,
+      excludeStarters: true,
+      excludeTradeEvolutions: true,
+    },
+  });
+  const pokemonData = createFakePokemonData(10);
+  const legendaryPokemonIds = [1, 2];
+  const starterPokemonIds = [3, 4];
+  const tradeEvolutionPokemonIds = [5, 6];
+  let capturedItems: unknown[] = [];
+
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve(createCommissionerPlayer(fakeLeague.id)),
+    countPlayers: (_leagueId) => Promise.resolve(2),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    createItems: (items) => {
+      capturedItems = items;
+      return Promise.resolve(
+        items.map((item) => ({
+          id: crypto.randomUUID(),
+          draftPoolId: item.draftPoolId as string,
+          name: item.name as string,
+          thumbnailUrl: (item.thumbnailUrl as string) ?? null,
+          metadata: item.metadata ?? null,
+        })),
+      );
+    },
+  });
+
+  const service = createDraftPoolService({
+    draftPoolRepo,
+    leagueRepo,
+    pokemonData,
+    legendaryPokemonIds,
+    starterPokemonIds,
+    tradeEvolutionPokemonIds,
+  });
+
+  const result = await service.generate("user-1", {
+    leagueId: fakeLeague.id,
+  });
+
+  // 4 eligible (10 - 2 - 2 - 2), clamped from 6
+  assertEquals(result.items.length, 4);
+
+  const itemIds = capturedItems.map((i: unknown) => {
+    const name = (i as { name: string }).name;
+    return parseInt(name.replace("pokemon-", ""));
+  });
+  // Only 7, 8, 9, 10 should remain
+  assertEquals(itemIds.sort((a, b) => a - b), [7, 8, 9, 10]);
+});
+
+Deno.test("draftPoolService.generate: does not exclude when flags are false", async () => {
+  const fakeLeague = createFakeLeague({
+    rulesConfig: {
+      draftFormat: "snake",
+      numberOfRounds: 1,
+      pickTimeLimitSeconds: null,
+      poolSizeMultiplier: 3,
+      excludeLegendaries: false,
+      excludeStarters: false,
+      excludeTradeEvolutions: false,
+    },
+  });
+  const pokemonData = createFakePokemonData(10);
+
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve(createCommissionerPlayer(fakeLeague.id)),
+    countPlayers: (_leagueId) => Promise.resolve(2),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo();
+
+  const service = createDraftPoolService({
+    draftPoolRepo,
+    leagueRepo,
+    pokemonData,
+    legendaryPokemonIds: [1, 2, 3],
+    starterPokemonIds: [4, 5, 6],
+    tradeEvolutionPokemonIds: [7, 8],
+  });
+
+  const result = await service.generate("user-1", {
+    leagueId: fakeLeague.id,
+  });
+
+  // All 10 eligible since flags are false: 1 * 2 * 3 = 6
+  assertEquals(result.items.length, 6);
+});
+
 Deno.test("draftPoolService.generate: throws BAD_REQUEST for invalid gameVersion", async () => {
   const fakeLeague = createFakeLeague({
     rulesConfig: {
