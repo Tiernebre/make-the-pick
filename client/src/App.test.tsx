@@ -13,12 +13,30 @@ vi.mock("./auth", () => ({
   authClient: {},
 }));
 
+const { mockUseLeagues, mockUseCreateLeague, mockUseJoinLeague } = vi.hoisted(
+  () => ({
+    mockUseLeagues: vi.fn(),
+    mockUseCreateLeague: vi.fn(),
+    mockUseJoinLeague: vi.fn(),
+  }),
+);
+
+vi.mock("./features/league/use-leagues", () => ({
+  useLeagues: mockUseLeagues,
+  useCreateLeague: mockUseCreateLeague,
+  useJoinLeague: mockUseJoinLeague,
+}));
+
 afterEach(() => {
   queryClient.clear();
   cleanup();
 });
 
-test("renders Make The Pick title", () => {
+test("renders My Leagues title on the landing page", () => {
+  mockUseLeagues.mockReturnValue({ data: [], isLoading: false });
+  mockUseCreateLeague.mockReturnValue({ mutate: vi.fn(), isPending: false });
+  mockUseJoinLeague.mockReturnValue({ mutate: vi.fn(), isPending: false });
+
   render(<App />);
-  expect(screen.getByText("Make The Pick")).toBeInTheDocument();
+  expect(screen.getByText("My Leagues")).toBeInTheDocument();
 });
