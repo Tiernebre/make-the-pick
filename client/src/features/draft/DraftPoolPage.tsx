@@ -10,11 +10,13 @@ import {
   Title,
 } from "@mantine/core";
 import { WatchlistPanel } from "./WatchlistPanel";
+import { PoolItemNoteIcon } from "./PoolItemNoteIcon";
 import { IconStar, IconStarFilled } from "@tabler/icons-react";
 import type { DraftPoolItem } from "@make-the-pick/shared";
 import { Link, useParams } from "wouter";
 import { useLeague } from "../league/use-leagues";
 import { useDraftPool } from "./use-draft";
+import { usePoolItemNotes } from "./use-pool-item-notes";
 import {
   useAddToWatchlist,
   useRemoveFromWatchlist,
@@ -71,6 +73,8 @@ export function DraftPoolPage() {
   const addToWatchlist = useAddToWatchlist();
   const removeFromWatchlist = useRemoveFromWatchlist();
 
+  const poolItemNotes = usePoolItemNotes(id!);
+
   const watchlistedIds = useMemo(() => {
     const set = new Set<string>();
     for (const item of watchlist.data ?? []) {
@@ -78,6 +82,14 @@ export function DraftPoolPage() {
     }
     return set;
   }, [watchlist.data]);
+
+  const notesByItemId = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const note of poolItemNotes.data ?? []) {
+      map.set(note.draftPoolItemId, note.content);
+    }
+    return map;
+  }, [poolItemNotes.data]);
 
   const isLoading = league.isLoading || draftPool.isLoading;
 
@@ -116,6 +128,21 @@ export function DraftPoolPage() {
             </ActionIcon>
           );
         },
+      },
+      {
+        id: "note",
+        header: "",
+        size: 50,
+        enableSorting: false,
+        enableColumnFilter: false,
+        enableResizing: false,
+        Cell: ({ row }) => (
+          <PoolItemNoteIcon
+            leagueId={id!}
+            draftPoolItemId={row.original.id}
+            existingContent={notesByItemId.get(row.original.id)}
+          />
+        ),
       },
       {
         accessorKey: "thumbnailUrl",
@@ -231,7 +258,7 @@ export function DraftPoolPage() {
         ),
       },
     ],
-    [watchlistedIds, id, addToWatchlist, removeFromWatchlist],
+    [watchlistedIds, notesByItemId, id, addToWatchlist, removeFromWatchlist],
   );
 
   const table = useMantineReactTable({

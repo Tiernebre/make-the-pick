@@ -13,6 +13,8 @@ import {
   IconStarFilled,
 } from "@tabler/icons-react";
 import type { DraftPoolItem, WatchlistItem } from "@make-the-pick/shared";
+import { useMemo } from "react";
+import { usePoolItemNotes } from "./use-pool-item-notes";
 import {
   useRemoveFromWatchlist,
   useReorderWatchlist,
@@ -28,8 +30,17 @@ export function WatchlistPanel({ leagueId, poolItems }: WatchlistPanelProps) {
   const watchlist = useWatchlist(leagueId);
   const removeFromWatchlist = useRemoveFromWatchlist();
   const reorderWatchlist = useReorderWatchlist();
+  const poolItemNotes = usePoolItemNotes(leagueId);
 
   const poolItemMap = new Map(poolItems.map((item) => [item.id, item]));
+
+  const notesByItemId = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const note of poolItemNotes.data ?? []) {
+      map.set(note.draftPoolItemId, note.content);
+    }
+    return map;
+  }, [poolItemNotes.data]);
 
   const items = watchlist.data ?? [];
 
@@ -64,9 +75,11 @@ export function WatchlistPanel({ leagueId, poolItems }: WatchlistPanelProps) {
               const poolItem = poolItemMap.get(item.draftPoolItemId);
               if (!poolItem) return null;
 
+              const note = notesByItemId.get(item.draftPoolItemId);
+
               return (
-                <Group key={item.id} gap="xs" wrap="nowrap">
-                  <Text size="sm" c="dimmed" w={20} ta="right">
+                <Group key={item.id} gap="xs" wrap="nowrap" align="flex-start">
+                  <Text size="sm" c="dimmed" w={20} ta="right" mt={2}>
                     {index + 1}
                   </Text>
                   <Avatar
@@ -74,16 +87,25 @@ export function WatchlistPanel({ leagueId, poolItems }: WatchlistPanelProps) {
                     alt={poolItem.name}
                     size="sm"
                     radius="sm"
+                    mt={2}
                   />
-                  <Text size="sm" fw={500} tt="capitalize" style={{ flex: 1 }}>
-                    {poolItem.name}
-                  </Text>
+                  <Stack gap={0} style={{ flex: 1 }}>
+                    <Text size="sm" fw={500} tt="capitalize">
+                      {poolItem.name}
+                    </Text>
+                    {note && (
+                      <Text size="xs" c="dimmed" lineClamp={2}>
+                        {note}
+                      </Text>
+                    )}
+                  </Stack>
                   <Group gap={2} wrap="nowrap">
                     <ActionIcon
                       variant="subtle"
                       size="xs"
                       disabled={index === 0}
-                      onClick={() => moveItem(index, "up")}
+                      onClick={() =>
+                        moveItem(index, "up")}
                     >
                       <IconArrowUp size={14} />
                     </ActionIcon>
@@ -91,7 +113,8 @@ export function WatchlistPanel({ leagueId, poolItems }: WatchlistPanelProps) {
                       variant="subtle"
                       size="xs"
                       disabled={index === items.length - 1}
-                      onClick={() => moveItem(index, "down")}
+                      onClick={() =>
+                        moveItem(index, "down")}
                     >
                       <IconArrowDown size={14} />
                     </ActionIcon>
