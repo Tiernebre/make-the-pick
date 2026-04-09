@@ -39,6 +39,7 @@ function createFakeRepo(
         joinedAt: new Date(),
       }),
     findPlayer: (_leagueId, _userId) => Promise.resolve(null as FakePlayer),
+    deleteById: (_id) => Promise.resolve(),
     ...overrides,
   };
 }
@@ -104,6 +105,48 @@ Deno.test("leagueService.join: throws NOT_FOUND for invalid invite code", async 
     TRPCError,
   );
   assertEquals(error.code, "NOT_FOUND");
+});
+
+Deno.test("leagueService.delete: deletes a league when user is the creator", async () => {
+  const fakeLeague = createFakeLeague({ createdBy: "user-1" });
+  let deletedId: string | undefined;
+  const repo = createFakeRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    deleteById: (id) => {
+      deletedId = id;
+      return Promise.resolve();
+    },
+  });
+
+  const service = createLeagueService({ leagueRepo: repo });
+  await service.delete("user-1", fakeLeague.id);
+  assertEquals(deletedId, fakeLeague.id);
+});
+
+Deno.test("leagueService.delete: throws NOT_FOUND when league does not exist", async () => {
+  const repo = createFakeRepo();
+  const service = createLeagueService({ leagueRepo: repo });
+
+  const error = await assertRejects(
+    () => service.delete("user-1", "nonexistent"),
+    TRPCError,
+  );
+  assertEquals(error.code, "NOT_FOUND");
+});
+
+Deno.test("leagueService.delete: throws FORBIDDEN when user is not the creator", async () => {
+  const fakeLeague = createFakeLeague({ createdBy: "user-1" });
+  const repo = createFakeRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+  });
+
+  const service = createLeagueService({ leagueRepo: repo });
+
+  const error = await assertRejects(
+    () => service.delete("user-2", fakeLeague.id),
+    TRPCError,
+  );
+  assertEquals(error.code, "FORBIDDEN");
 });
 
 Deno.test("leagueService.join: throws BAD_REQUEST if already a member", async () => {

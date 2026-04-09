@@ -228,6 +228,40 @@ Deno.test({
 });
 
 Deno.test({
+  name: "leagueRepository.deleteById: deletes a league and cascades to players",
+  sanitizeResources: false,
+  sanitizeOps: false,
+  fn: async () => {
+    const { db, client } = createTestDb();
+    const repo = createLeagueRepository(db);
+    const userId = crypto.randomUUID();
+
+    try {
+      await createTestUser(db, userId);
+      const created = await repo.createWithCreator(userId, {
+        name: "Delete Me",
+        inviteCode: "DELETE01",
+      });
+
+      await repo.deleteById(created.id);
+
+      const found = await repo.findById(created.id);
+      assertEquals(found, null);
+
+      const players = await db.select().from(leaguePlayer).where(
+        eq(leaguePlayer.leagueId, created.id),
+      );
+      assertEquals(players.length, 0);
+    } finally {
+      await db.delete(leaguePlayer);
+      await db.delete(league);
+      await db.delete(user).where(eq(user.id, userId));
+      await client.end();
+    }
+  },
+});
+
+Deno.test({
   name: "leagueRepository.findAllByUserId: returns leagues the user belongs to",
   sanitizeResources: false,
   sanitizeOps: false,

@@ -2,21 +2,43 @@ import {
   ActionIcon,
   Anchor,
   Badge,
+  Button,
   Card,
   Container,
   CopyButton,
   Group,
   LoadingOverlay,
+  Modal,
   Text,
   Title,
   Tooltip,
 } from "@mantine/core";
-import { Link, useParams } from "wouter";
-import { useLeague } from "./use-leagues";
+import { useDisclosure } from "@mantine/hooks";
+import { Link, useLocation, useParams } from "wouter";
+import { useSession } from "../../auth";
+import { useDeleteLeague, useLeague } from "./use-leagues";
 
 export function LeagueDetailPage() {
   const { id } = useParams<{ id: string }>();
   const league = useLeague(id!);
+  const { data: session } = useSession();
+  const deleteLeague = useDeleteLeague();
+  const [, navigate] = useLocation();
+  const [deleteOpened, { open: openDelete, close: closeDelete }] =
+    useDisclosure(false);
+
+  const isCreator = league.data?.createdBy === session?.user?.id;
+
+  const handleDelete = () => {
+    deleteLeague.mutate(
+      { id: id! },
+      {
+        onSuccess: () => {
+          navigate("/");
+        },
+      },
+    );
+  };
 
   return (
     <Container size="sm" py="xl" pos="relative">
@@ -65,6 +87,43 @@ export function LeagueDetailPage() {
               </Text>
             </Group>
           </Card>
+
+          {isCreator && (
+            <Button
+              color="red"
+              variant="light"
+              mt="lg"
+              onClick={openDelete}
+            >
+              Delete League
+            </Button>
+          )}
+
+          <Modal
+            opened={deleteOpened}
+            onClose={closeDelete}
+            title="Delete League"
+          >
+            <Text mb="lg">
+              Are you sure you want to delete{" "}
+              <Text span fw={700}>
+                {league.data.name}
+              </Text>
+              ? This action cannot be undone.
+            </Text>
+            <Group justify="flex-end">
+              <Button variant="default" onClick={closeDelete}>
+                Cancel
+              </Button>
+              <Button
+                color="red"
+                onClick={handleDelete}
+                loading={deleteLeague.isPending}
+              >
+                Delete
+              </Button>
+            </Group>
+          </Modal>
         </>
       )}
     </Container>

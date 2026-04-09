@@ -66,6 +66,10 @@ export function createLeagueRepository(db: Database) {
       return player;
     },
 
+    async deleteById(id: string): Promise<void> {
+      await db.delete(league).where(eq(league.id, id));
+    },
+
     async findPlayer(
       leagueId: string,
       userId: string,

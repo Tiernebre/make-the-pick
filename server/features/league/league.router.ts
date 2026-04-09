@@ -27,5 +27,11 @@ export function createLeagueRouter(leagueService: LeagueService) {
       .mutation(({ ctx, input }) => {
         return leagueService.join(ctx.user.id, input.inviteCode);
       }),
+
+    delete: protectedProcedure
+      .input(object({ id: string().uuid() }))
+      .mutation(({ ctx, input }) => {
+        return leagueService.delete(ctx.user.id, input.id);
+      }),
   });
 }

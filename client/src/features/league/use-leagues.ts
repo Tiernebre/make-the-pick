@@ -25,3 +25,12 @@ export function useJoinLeague() {
     },
   });
 }
+
+export function useDeleteLeague() {
+  const utils = trpc.useUtils();
+  return trpc.league.delete.useMutation({
+    onSuccess: () => {
+      utils.league.list.invalidate();
+    },
+  });
+}

@@ -37,6 +37,20 @@ export function createLeagueService(
       return deps.leagueRepo.findAllByUserId(userId);
     },
 
+    async delete(userId: string, leagueId: string) {
+      const league = await deps.leagueRepo.findById(leagueId);
+      if (!league) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "League not found" });
+      }
+      if (league.createdBy !== userId) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only the league creator can delete a league",
+        });
+      }
+      await deps.leagueRepo.deleteById(leagueId);
+    },
+
     async join(userId: string, inviteCode: string) {
       const league = await deps.leagueRepo.findByInviteCode(inviteCode);
       if (!league) {

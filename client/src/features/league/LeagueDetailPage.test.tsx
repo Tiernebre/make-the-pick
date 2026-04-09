@@ -1,19 +1,32 @@
 import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MantineProvider } from "@mantine/core";
 import { LeagueDetailPage } from "./LeagueDetailPage";
 
-const { mockUseLeague } = vi.hoisted(() => ({
-  mockUseLeague: vi.fn(),
-}));
+const { mockUseLeague, mockUseDeleteLeague, mockDeleteMutate } = vi.hoisted(
+  () => ({
+    mockUseLeague: vi.fn(),
+    mockUseDeleteLeague: vi.fn(),
+    mockDeleteMutate: vi.fn(),
+  }),
+);
 
 vi.mock("./use-leagues", () => ({
   useLeague: mockUseLeague,
+  useDeleteLeague: mockUseDeleteLeague,
+}));
+
+vi.mock("../../auth", () => ({
+  useSession: () => ({ data: { user: { id: "user-1" } } }),
 }));
 
 vi.mock("wouter", async () => {
   const actual = await vi.importActual<typeof import("wouter")>("wouter");
-  return { ...actual, useParams: () => ({ id: "league-1" }) };
+  return {
+    ...actual,
+    useParams: () => ({ id: "league-1" }),
+    useLocation: () => ["/leagues/league-1", vi.fn()],
+  };
 });
 
 const mockLeague = {
@@ -36,6 +49,13 @@ function renderPage() {
 }
 
 describe("LeagueDetailPage", () => {
+  beforeEach(() => {
+    mockUseDeleteLeague.mockReturnValue({
+      mutate: mockDeleteMutate,
+      isPending: false,
+    });
+  });
+
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
@@ -81,5 +101,24 @@ describe("LeagueDetailPage", () => {
     mockUseLeague.mockReturnValue({ data: mockLeague, isLoading: false });
     renderPage();
     expect(mockUseLeague).toHaveBeenCalledWith("league-1");
+  });
+
+  it("shows delete button when user is the creator", () => {
+    mockUseLeague.mockReturnValue({ data: mockLeague, isLoading: false });
+    renderPage();
+    expect(
+      screen.getByRole("button", { name: /delete league/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("does not show delete button when user is not the creator", () => {
+    mockUseLeague.mockReturnValue({
+      data: { ...mockLeague, createdBy: "other-user" },
+      isLoading: false,
+    });
+    renderPage();
+    expect(
+      screen.queryByRole("button", { name: /delete league/i }),
+    ).not.toBeInTheDocument();
   });
 });
