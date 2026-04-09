@@ -9,30 +9,29 @@ import { registerEchoWebSocket } from "./ws/echo.ts";
 import { auth } from "./auth/mod.ts";
 import { renderTrpcPanel } from "trpc-ui";
 import { logger } from "./logger.ts";
+import { loggerMiddleware } from "./middleware/logger.ts";
 
 export const app: Hono = new Hono();
+
+app.use(loggerMiddleware(logger));
 
 registerEchoWebSocket(app);
 
 // Auth routes — must come before tRPC
 app.on(["GET", "POST"], "/api/auth/**", (c) => {
-  logger.debug({ path: c.req.path, method: c.req.method }, "auth request");
   return auth.handler(c.req.raw);
 });
 
 app.get("/api/health", async (c) => {
-  logger.debug("health check requested");
   const [check] = await db.insert(healthChecks).values({}).returning();
   const response: HealthResponse = {
     status: "ok",
     timestamp: check.checkedAt.toISOString(),
   };
-  logger.debug({ timestamp: response.timestamp }, "health check ok");
   return c.json(response);
 });
 
 app.all("/api/trpc/*", (c) => {
-  logger.debug({ path: c.req.path, method: c.req.method }, "trpc request");
   return fetchRequestHandler({
     endpoint: "/api/trpc",
     req: c.req.raw,
