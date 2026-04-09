@@ -50,6 +50,51 @@ jobs:
       - run: deno task db:migrate
       - run: deno task test
 
+  docker-smoke:
+    name: Docker Smoke Test
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: make_the_pick
+          POSTGRES_PASSWORD: make_the_pick
+          POSTGRES_DB: make_the_pick
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U make_the_pick"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Docker image
+        run: docker build -t make-the-pick:smoke .
+      - name: Start container
+        run: |
+          docker run -d --name smoke-app \
+            --network host \
+            -e DATABASE_URL="postgres://make_the_pick:make_the_pick@localhost:5432/make_the_pick" \
+            -e BETTER_AUTH_SECRET="smoke-test-secret" \
+            -e BETTER_AUTH_URL="http://localhost:3000" \
+            -e BETTER_AUTH_TRUSTED_ORIGINS="http://localhost:3000" \
+            make-the-pick:smoke
+      - name: Curl health endpoint
+        run: |
+          for i in $(seq 1 15); do
+            status=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/api/health 2>/dev/null || echo "000")
+            if [ "$status" = "200" ]; then
+              echo "Smoke test passed (HTTP $status)"
+              exit 0
+            fi
+            echo "Attempt $i: HTTP $status, retrying in 2s..."
+            sleep 2
+          done
+          echo "Smoke test failed. Container logs:"
+          docker logs smoke-app
+          exit 1
+
   e2e:
     name: E2E Tests
     needs: [test]
