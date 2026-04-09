@@ -7,8 +7,10 @@
     "jsr:@std/assert@1": "1.0.16",
     "jsr:@std/internal@^1.0.12": "1.0.12",
     "npm:@mantine/core@^7.17.0": "7.17.8_@mantine+hooks@7.17.8__react@19.2.4_react@19.2.4_react-dom@19.2.4__react@19.2.4_@types+react@19.2.14",
+    "npm:@mantine/dates@^7.17.0": "7.17.8_@mantine+core@7.17.8__@mantine+hooks@7.17.8___react@19.2.4__react@19.2.4__react-dom@19.2.4___react@19.2.4__@types+react@19.2.14_@mantine+hooks@7.17.8__react@19.2.4_dayjs@1.11.20_react@19.2.4_react-dom@19.2.4__react@19.2.4",
     "npm:@mantine/hooks@^7.17.0": "7.17.8_react@19.2.4",
     "npm:@playwright/test@^1.50.0": "1.59.1",
+    "npm:@tabler/icons-react@>=2.23.0": "3.41.1_react@19.2.4",
     "npm:@tanstack/react-query@5": "5.96.2_react@19.2.4",
     "npm:@testing-library/jest-dom@^6.6.0": "6.9.1",
     "npm:@testing-library/react@16": "16.3.2_@testing-library+dom@10.4.1_@types+react@19.2.14_@types+react-dom@19.2.3__@types+react@19.2.14_react@19.2.4_react-dom@19.2.4__react@19.2.4",
@@ -19,12 +21,15 @@
     "npm:@types/react@19": "19.2.14",
     "npm:@vitejs/plugin-react@4": "4.7.0_vite@6.4.2",
     "npm:better-auth@1": "1.6.1_drizzle-kit@0.31.10_drizzle-orm@0.44.7__@opentelemetry+api@1.9.1__kysely@0.28.15__postgres@3.4.9_react@19.2.4_react-dom@19.2.4__react@19.2.4_vitest@3.2.4__happy-dom@18.0.1_@opentelemetry+api@1.9.1",
+    "npm:clsx@>=2.0.0": "2.1.1",
     "npm:concurrently@*": "9.2.1",
     "npm:concurrently@^9.2.1": "9.2.1",
+    "npm:dayjs@>=1.11.0": "1.11.20",
     "npm:drizzle-kit@*": "0.31.10",
     "npm:drizzle-kit@0.31": "0.31.10",
     "npm:drizzle-orm@0.44": "0.44.7_@opentelemetry+api@1.9.1_kysely@0.28.15_postgres@3.4.9",
     "npm:happy-dom@18": "18.0.1",
+    "npm:mantine-react-table@2.0.0-beta.9": "2.0.0-beta.9_@mantine+core@7.17.8__@mantine+hooks@7.17.8___react@19.2.4__react@19.2.4__react-dom@19.2.4___react@19.2.4__@types+react@19.2.14_@mantine+dates@7.17.8__@mantine+core@7.17.8___@mantine+hooks@7.17.8____react@19.2.4___react@19.2.4___react-dom@19.2.4____react@19.2.4___@types+react@19.2.14__@mantine+hooks@7.17.8___react@19.2.4__dayjs@1.11.20__react@19.2.4__react-dom@19.2.4___react@19.2.4_@mantine+hooks@7.17.8__react@19.2.4_@tabler+icons-react@3.41.1__react@19.2.4_clsx@2.1.1_dayjs@1.11.20_react@19.2.4_react-dom@19.2.4__react@19.2.4",
     "npm:pino-pretty@*": "13.1.3",
     "npm:pino@9": "9.14.0",
     "npm:postgres@*": "3.4.9",
@@ -869,6 +874,17 @@
         "type-fest"
       ]
     },
+    "@mantine/dates@7.17.8_@mantine+core@7.17.8__@mantine+hooks@7.17.8___react@19.2.4__react@19.2.4__react-dom@19.2.4___react@19.2.4__@types+react@19.2.14_@mantine+hooks@7.17.8__react@19.2.4_dayjs@1.11.20_react@19.2.4_react-dom@19.2.4__react@19.2.4": {
+      "integrity": "sha512-KYog/YL83PnsMef7EZagpOFq9I2gfnK0eYSzC8YvV9Mb6t/x9InqRssGWVb0GIr+TNILpEkhKoGaSKZNy10Q1g==",
+      "dependencies": [
+        "@mantine/core",
+        "@mantine/hooks",
+        "clsx",
+        "dayjs",
+        "react",
+        "react-dom"
+      ]
+    },
     "@mantine/hooks@7.17.8_react@19.2.4": {
       "integrity": "sha512-96qygbkTjRhdkzd5HDU8fMziemN/h758/EwrFu7TlWrEP10Vw076u+Ap/sG6OT4RGPZYYoHrTlT+mkCZblWHuw==",
       "dependencies": [
@@ -1163,6 +1179,22 @@
         "json-pointer"
       ]
     },
+    "@tabler/icons-react@3.41.1_react@19.2.4": {
+      "integrity": "sha512-kUgweE+DJtAlMZVIns1FTDdcbpRVnkK7ZpUOXmoxy3JAF0rSHj0TcP4VHF14+gMJGnF+psH2Zt26BLT6owetBA==",
+      "dependencies": [
+        "@tabler/icons",
+        "react"
+      ]
+    },
+    "@tabler/icons@3.41.1": {
+      "integrity": "sha512-OaRnVbRmH2nHtFeg+RmMJ/7m2oBIF9XCJAUD5gQnMrpK9f05ydj8MZrAf3NZQqOXyxGN1UBL0D5IKLLEUfr74Q=="
+    },
+    "@tanstack/match-sorter-utils@8.19.4": {
+      "integrity": "sha512-Wo1iKt2b9OT7d+YGhvEPD3DXvPv2etTusIMhMUoG7fbhmxcXCtIjJDEygy91Y2JFlwGyjqiBPRozme7UD8hoqg==",
+      "dependencies": [
+        "remove-accents"
+      ]
+    },
     "@tanstack/query-core@5.96.2": {
       "integrity": "sha512-hzI6cTVh4KNRk8UtoIBS7Lv9g6BnJPXvBKsvYH1aGWvv0347jT3BnSvztOE+kD76XGvZnRC/t6qdW1CaIfwCeA=="
     },
@@ -1172,6 +1204,28 @@
         "@tanstack/query-core",
         "react"
       ]
+    },
+    "@tanstack/react-table@8.20.5_react@19.2.4_react-dom@19.2.4__react@19.2.4": {
+      "integrity": "sha512-WEHopKw3znbUZ61s9i0+i9g8drmDo6asTWbrQh8Us63DAk/M0FkmIqERew6P71HI75ksZ2Pxyuf4vvKh9rAkiA==",
+      "dependencies": [
+        "@tanstack/table-core",
+        "react",
+        "react-dom"
+      ]
+    },
+    "@tanstack/react-virtual@3.11.2_react@19.2.4_react-dom@19.2.4__react@19.2.4": {
+      "integrity": "sha512-OuFzMXPF4+xZgx8UzJha0AieuMihhhaWG0tCqpp6tDzlFwOmNBPYMuLOtMJ1Tr4pXLHmgjcWhG6RlknY2oNTdQ==",
+      "dependencies": [
+        "@tanstack/virtual-core",
+        "react",
+        "react-dom"
+      ]
+    },
+    "@tanstack/table-core@8.20.5": {
+      "integrity": "sha512-P9dF7XbibHph2PFRz8gfBKEXEY/HJPOhym8CHmjF8y3q5mWpKx9xtZapXQUWCgkqvsK0R46Azuz+VaxD4Xl+Tg=="
+    },
+    "@tanstack/virtual-core@3.11.2": {
+      "integrity": "sha512-vTtpNt7mKCiZ1pwU9hfKPhpdVO2sVzFQsxoVBGtOSHxlrRRzYr8iQ2TlwbAcRYCcEiZ9ECAM8kBzH0v2+VzfKw=="
     },
     "@testing-library/dom@10.4.1": {
       "integrity": "sha512-o4PXJQidqJl82ckFaXUeoAW+XysPLauYI43Abki5hABd853iMhitooc6znOnczgbTYmEP6U6/y1ZyKAIsvMKGg==",
@@ -1220,7 +1274,6 @@
         "@mui/material",
         "clsx",
         "copy-to-clipboard",
-        "react",
         "react-dom",
         "zustand"
       ]
@@ -1686,6 +1739,9 @@
     },
     "dateformat@4.6.3": {
       "integrity": "sha512-2P0p0pFGzHS5EMnhdxQi7aJN+iMheud0UhG4dlE1DLAlvL8JHjJJTX/CSm4JXwV0Ka5nGk3zC5mcb5bUQUxxMA=="
+    },
+    "dayjs@1.11.20": {
+      "integrity": "sha512-YbwwqR/uYpeoP4pu043q+LTDLFBLApUP6VxRihdfNTqu4ubqMlGDLd6ErXhEgsyvY0K6nCs7nggYumAN+9uEuQ=="
     },
     "debug@4.4.3": {
       "integrity": "sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==",
@@ -2223,6 +2279,22 @@
       "integrity": "sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==",
       "dependencies": [
         "@jridgewell/sourcemap-codec"
+      ]
+    },
+    "mantine-react-table@2.0.0-beta.9_@mantine+core@7.17.8__@mantine+hooks@7.17.8___react@19.2.4__react@19.2.4__react-dom@19.2.4___react@19.2.4__@types+react@19.2.14_@mantine+dates@7.17.8__@mantine+core@7.17.8___@mantine+hooks@7.17.8____react@19.2.4___react@19.2.4___react-dom@19.2.4____react@19.2.4___@types+react@19.2.14__@mantine+hooks@7.17.8___react@19.2.4__dayjs@1.11.20__react@19.2.4__react-dom@19.2.4___react@19.2.4_@mantine+hooks@7.17.8__react@19.2.4_@tabler+icons-react@3.41.1__react@19.2.4_clsx@2.1.1_dayjs@1.11.20_react@19.2.4_react-dom@19.2.4__react@19.2.4": {
+      "integrity": "sha512-ZdfcwebWaPERoDvAuk43VYcBCzamohARVclnbuepT0PHZ0wRcDPMBR+zgaocL+pFy8EXUGwvWTOKNh25ITpjNQ==",
+      "dependencies": [
+        "@mantine/core",
+        "@mantine/dates",
+        "@mantine/hooks",
+        "@tabler/icons-react",
+        "@tanstack/match-sorter-utils",
+        "@tanstack/react-table",
+        "@tanstack/react-virtual",
+        "clsx",
+        "dayjs",
+        "react",
+        "react-dom"
       ]
     },
     "marked@14.0.0": {
@@ -2882,6 +2954,9 @@
         "unified",
         "vfile"
       ]
+    },
+    "remove-accents@0.5.0": {
+      "integrity": "sha512-8g3/Otx1eJaVD12e31UbJj1YzdtVvzH85HV7t+9MJYk/u3XmkOUJ5Ys9wQrf9PCPK8+xn4ymzqYCiZl6QWKn+A=="
     },
     "require-directory@2.1.1": {
       "integrity": "sha512-fGxEI7+wsG9xrvdjsrlmL22OMTTiHRwAMroiEeMgq8gzoLC/PQr7RsRDSTLUg/bZAZtF+TVIkHc6/4RIKrui+Q=="
@@ -3573,7 +3648,9 @@
         "packageJson": {
           "dependencies": [
             "npm:@mantine/core@^7.17.0",
+            "npm:@mantine/dates@^7.17.0",
             "npm:@mantine/hooks@^7.17.0",
+            "npm:@tabler/icons-react@>=2.23.0",
             "npm:@tanstack/react-query@5",
             "npm:@testing-library/jest-dom@^6.6.0",
             "npm:@testing-library/react@16",
@@ -3583,7 +3660,10 @@
             "npm:@types/react@19",
             "npm:@vitejs/plugin-react@4",
             "npm:better-auth@1",
+            "npm:clsx@>=2.0.0",
+            "npm:dayjs@>=1.11.0",
             "npm:happy-dom@18",
+            "npm:mantine-react-table@2.0.0-beta.9",
             "npm:react-dom@19",
             "npm:react@19",
             "npm:vite@6",

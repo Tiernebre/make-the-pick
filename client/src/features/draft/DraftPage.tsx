@@ -5,14 +5,18 @@ import {
   Container,
   Group,
   LoadingOverlay,
-  Table,
-  Text,
   Title,
 } from "@mantine/core";
 import type { DraftPoolItem } from "@make-the-pick/shared";
 import { Link, useParams } from "wouter";
 import { useLeague } from "../league/use-leagues";
 import { useDraftPool } from "./use-draft";
+import { useMemo } from "react";
+import {
+  MantineReactTable,
+  type MRT_ColumnDef,
+  useMantineReactTable,
+} from "mantine-react-table";
 
 const POKEMON_TYPE_COLORS: Record<string, string> = {
   normal: "#A8A77A",
@@ -35,13 +39,8 @@ const POKEMON_TYPE_COLORS: Record<string, string> = {
   fairy: "#D685AD",
 };
 
-function getBaseStats(item: DraftPoolItem) {
-  if (!item.metadata) return null;
-  return item.metadata.baseStats;
-}
-
 function getStatTotal(item: DraftPoolItem): number | null {
-  const stats = getBaseStats(item);
+  const stats = item.metadata?.baseStats;
   if (!stats) return null;
   return (
     stats.hp +
@@ -53,12 +52,155 @@ function getStatTotal(item: DraftPoolItem): number | null {
   );
 }
 
+const ALL_POKEMON_TYPES = Object.keys(POKEMON_TYPE_COLORS);
+
 export function DraftPage() {
   const { id } = useParams<{ id: string }>();
   const league = useLeague(id!);
   const draftPool = useDraftPool(id!);
 
   const isLoading = league.isLoading || draftPool.isLoading;
+
+  const columns = useMemo<MRT_ColumnDef<DraftPoolItem>[]>(
+    () => [
+      {
+        accessorKey: "thumbnailUrl",
+        header: "",
+        size: 60,
+        enableSorting: false,
+        enableColumnFilter: false,
+        Cell: ({ row }) => (
+          <Avatar
+            src={row.original.thumbnailUrl}
+            alt={row.original.name}
+            size="md"
+            radius="sm"
+          />
+        ),
+      },
+      {
+        accessorKey: "name",
+        header: "Name",
+        Cell: ({ renderedCellValue }) => (
+          <span style={{ fontWeight: 500, textTransform: "capitalize" }}>
+            {renderedCellValue}
+          </span>
+        ),
+      },
+      {
+        id: "types",
+        accessorFn: (row) => row.metadata?.types?.join(", ") ?? "",
+        header: "Type",
+        filterVariant: "multi-select",
+        mantineFilterMultiSelectProps: {
+          data: ALL_POKEMON_TYPES.map((type) => ({
+            value: type,
+            label: type.charAt(0).toUpperCase() + type.slice(1),
+          })),
+        },
+        filterFn: (row, _columnId, filterValues: string[]) => {
+          if (!filterValues || filterValues.length === 0) return true;
+          const types = row.original.metadata?.types ?? [];
+          return filterValues.some((filter) => types.includes(filter));
+        },
+        Cell: ({ row }) =>
+          row.original.metadata
+            ? (
+              <Group gap={4}>
+                {row.original.metadata.types.map((type) => (
+                  <Badge
+                    key={type}
+                    size="md"
+                    variant="light"
+                    color={POKEMON_TYPE_COLORS[type] ?? "gray"}
+                    tt="capitalize"
+                  >
+                    {type}
+                  </Badge>
+                ))}
+              </Group>
+            )
+            : null,
+      },
+      {
+        accessorFn: (row) => row.metadata?.baseStats?.hp ?? null,
+        id: "hp",
+        header: "HP",
+        size: 80,
+        filterVariant: "range",
+      },
+      {
+        accessorFn: (row) => row.metadata?.baseStats?.attack ?? null,
+        id: "attack",
+        header: "ATK",
+        size: 80,
+        filterVariant: "range",
+      },
+      {
+        accessorFn: (row) => row.metadata?.baseStats?.defense ?? null,
+        id: "defense",
+        header: "DEF",
+        size: 80,
+        filterVariant: "range",
+      },
+      {
+        accessorFn: (row) => row.metadata?.baseStats?.specialAttack ?? null,
+        id: "specialAttack",
+        header: "SPA",
+        size: 80,
+        filterVariant: "range",
+      },
+      {
+        accessorFn: (row) => row.metadata?.baseStats?.specialDefense ?? null,
+        id: "specialDefense",
+        header: "SPD",
+        size: 80,
+        filterVariant: "range",
+      },
+      {
+        accessorFn: (row) => row.metadata?.baseStats?.speed ?? null,
+        id: "speed",
+        header: "SPE",
+        size: 80,
+        filterVariant: "range",
+      },
+      {
+        accessorFn: (row) => getStatTotal(row),
+        id: "total",
+        header: "Total",
+        size: 90,
+        filterVariant: "range",
+        Cell: ({ cell }) => (
+          <span style={{ fontWeight: 600 }}>
+            {cell.getValue<number | null>() ?? "—"}
+          </span>
+        ),
+      },
+    ],
+    [],
+  );
+
+  const table = useMantineReactTable({
+    columns,
+    data: draftPool.data?.items ?? [],
+    enableColumnResizing: true,
+    enableGlobalFilter: true,
+    enableStickyHeader: true,
+    enableDensityToggle: true,
+    initialState: {
+      density: "xs",
+      showColumnFilters: false,
+      showGlobalFilter: true,
+      sorting: [{ id: "total", desc: true }],
+    },
+    mantineTableContainerProps: { style: { maxHeight: "70vh" } },
+    mantinePaginationProps: {
+      showRowsPerPage: true,
+    },
+    state: {
+      isLoading,
+    },
+  });
 
   return (
     <Container size="xl" py="xl" pos="relative">
@@ -74,96 +216,11 @@ export function DraftPage() {
             {league.data.name} — Draft
           </Title>
 
-          {draftPool.data && (
-            <>
-              <Title order={3} mb="sm">
-                Draft Pool ({draftPool.data.items.length} items)
-              </Title>
-              <Table
-                striped
-                highlightOnHover
-                withTableBorder
-                withColumnBorders
-                fz="md"
-              >
-                <Table.Thead>
-                  <Table.Tr>
-                    <Table.Th />
-                    <Table.Th>Name</Table.Th>
-                    <Table.Th>Type</Table.Th>
-                    <Table.Th ta="center">HP</Table.Th>
-                    <Table.Th ta="center">ATK</Table.Th>
-                    <Table.Th ta="center">DEF</Table.Th>
-                    <Table.Th ta="center">SPA</Table.Th>
-                    <Table.Th ta="center">SPD</Table.Th>
-                    <Table.Th ta="center">SPE</Table.Th>
-                    <Table.Th ta="center">Total</Table.Th>
-                  </Table.Tr>
-                </Table.Thead>
-                <Table.Tbody>
-                  {draftPool.data.items.map((item) => {
-                    const stats = getBaseStats(item);
-                    const total = getStatTotal(item);
-                    return (
-                      <Table.Tr key={item.id}>
-                        <Table.Td w={48}>
-                          <Avatar
-                            src={item.thumbnailUrl}
-                            alt={item.name}
-                            size="md"
-                            radius="sm"
-                          />
-                        </Table.Td>
-                        <Table.Td>
-                          <Text size="md" fw={500} tt="capitalize">
-                            {item.name}
-                          </Text>
-                        </Table.Td>
-                        <Table.Td>
-                          {item.metadata && (
-                            <Group gap={4}>
-                              {item.metadata.types.map((type) => (
-                                <Badge
-                                  key={type}
-                                  size="md"
-                                  variant="light"
-                                  color={POKEMON_TYPE_COLORS[type] ?? "gray"}
-                                  tt="capitalize"
-                                >
-                                  {type}
-                                </Badge>
-                              ))}
-                            </Group>
-                          )}
-                        </Table.Td>
-                        <Table.Td ta="center">
-                          {stats?.hp ?? "—"}
-                        </Table.Td>
-                        <Table.Td ta="center">
-                          {stats?.attack ?? "—"}
-                        </Table.Td>
-                        <Table.Td ta="center">
-                          {stats?.defense ?? "—"}
-                        </Table.Td>
-                        <Table.Td ta="center">
-                          {stats?.specialAttack ?? "—"}
-                        </Table.Td>
-                        <Table.Td ta="center">
-                          {stats?.specialDefense ?? "—"}
-                        </Table.Td>
-                        <Table.Td ta="center">
-                          {stats?.speed ?? "—"}
-                        </Table.Td>
-                        <Table.Td ta="center" fw={600}>
-                          {total ?? "—"}
-                        </Table.Td>
-                      </Table.Tr>
-                    );
-                  })}
-                </Table.Tbody>
-              </Table>
-            </>
-          )}
+          <Title order={3} mb="sm">
+            Draft Pool ({draftPool.data?.items.length ?? 0} items)
+          </Title>
+
+          <MantineReactTable table={table} />
         </>
       )}
     </Container>
