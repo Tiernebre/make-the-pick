@@ -20,6 +20,7 @@ import {
   createLeagueRouter,
   createLeagueService,
 } from "./league/mod.ts";
+import { createPokemonVersionRouter } from "./pokemon-version/mod.ts";
 import {
   createUserRepository,
   createUserRouter,
@@ -46,5 +47,9 @@ export function createFeatureRouters(db: Database) {
   });
   const draftPoolRouter = createDraftPoolRouter(draftPoolService);
 
-  return { leagueRouter, userRouter, draftPoolRouter };
+  const pokemonVersionRouter = createPokemonVersionRouter(
+    pokemonVersionsJson as PokemonVersion[],
+  );
+
+  return { leagueRouter, userRouter, draftPoolRouter, pokemonVersionRouter };
 }
