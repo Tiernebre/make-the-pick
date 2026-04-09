@@ -281,7 +281,12 @@ async function seedLeague(
     );
 
     // Add watchlist items for the dev user
-    await createWatchlistForCommissioner(db, league.id, commissioner.id, pool.id);
+    await createWatchlistForCommissioner(
+      db,
+      league.id,
+      commissioner.id,
+      pool.id,
+    );
   }
 
   log.info(
