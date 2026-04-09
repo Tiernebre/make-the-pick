@@ -54,9 +54,6 @@ once.
 
 ## State Transitions
 
-The `league_status` enum currently contains only `setup`. Future statuses will
-be added as features are built:
-
 ```
 setup → drafting → trading → competing → complete
 ```
@@ -64,13 +61,20 @@ setup → drafting → trading → competing → complete
 Only the league commissioner may trigger status transitions. Transitions are
 forward-only — a league cannot move backward in status.
 
+**Prerequisites for setup → drafting:** The league must have `sportType` and
+`rulesConfig` configured before it can advance from setup.
+
 ## Enums
 
 ### league_status
 
-| Value | Meaning                           |
-| ----- | --------------------------------- |
-| setup | League created, accepting players |
+| Value     | Meaning                           |
+| --------- | --------------------------------- |
+| setup     | League created, accepting players |
+| drafting  | Draft is in progress              |
+| trading   | Trading period after draft        |
+| competing | Active competition period         |
+| complete  | League has concluded              |
 
 ### sport_type
 
