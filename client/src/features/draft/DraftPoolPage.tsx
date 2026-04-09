@@ -1,4 +1,5 @@
 import {
+  ActionIcon,
   Anchor,
   Avatar,
   Badge,
@@ -7,10 +8,16 @@ import {
   LoadingOverlay,
   Title,
 } from "@mantine/core";
+import { IconStar, IconStarFilled } from "@tabler/icons-react";
 import type { DraftPoolItem } from "@make-the-pick/shared";
 import { Link, useParams } from "wouter";
 import { useLeague } from "../league/use-leagues";
 import { useDraftPool } from "./use-draft";
+import {
+  useAddToWatchlist,
+  useRemoveFromWatchlist,
+  useWatchlist,
+} from "./use-watchlist";
 import { useMemo } from "react";
 import {
   MantineReactTable,
@@ -58,11 +65,56 @@ export function DraftPoolPage() {
   const { id } = useParams<{ id: string }>();
   const league = useLeague(id!);
   const draftPool = useDraftPool(id!);
+  const watchlist = useWatchlist(id!);
+  const addToWatchlist = useAddToWatchlist();
+  const removeFromWatchlist = useRemoveFromWatchlist();
+
+  const watchlistedIds = useMemo(() => {
+    const set = new Set<string>();
+    for (const item of watchlist.data ?? []) {
+      set.add(item.draftPoolItemId);
+    }
+    return set;
+  }, [watchlist.data]);
 
   const isLoading = league.isLoading || draftPool.isLoading;
 
   const columns = useMemo<MRT_ColumnDef<DraftPoolItem>[]>(
     () => [
+      {
+        id: "watchlist",
+        header: "",
+        size: 50,
+        enableSorting: false,
+        enableColumnFilter: false,
+        enableResizing: false,
+        Cell: ({ row }) => {
+          const isWatchlisted = watchlistedIds.has(row.original.id);
+          return (
+            <ActionIcon
+              variant="subtle"
+              color={isWatchlisted ? "yellow" : "gray"}
+              onClick={() => {
+                if (isWatchlisted) {
+                  removeFromWatchlist.mutate({
+                    leagueId: id!,
+                    draftPoolItemId: row.original.id,
+                  });
+                } else {
+                  addToWatchlist.mutate({
+                    leagueId: id!,
+                    draftPoolItemId: row.original.id,
+                  });
+                }
+              }}
+            >
+              {isWatchlisted
+                ? <IconStarFilled size={18} />
+                : <IconStar size={18} />}
+            </ActionIcon>
+          );
+        },
+      },
       {
         accessorKey: "thumbnailUrl",
         header: "",
@@ -177,7 +229,7 @@ export function DraftPoolPage() {
         ),
       },
     ],
-    [],
+    [watchlistedIds, id, addToWatchlist, removeFromWatchlist],
   );
 
   const table = useMantineReactTable({
