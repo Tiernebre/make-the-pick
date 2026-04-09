@@ -66,10 +66,9 @@ export function DraftPage() {
       {
         accessorKey: "thumbnailUrl",
         header: "",
-        size: 70,
+        size: 60,
         enableSorting: false,
         enableColumnFilter: false,
-        enableResizing: false,
         Cell: ({ row }) => (
           <Avatar
             src={row.original.thumbnailUrl}
@@ -82,7 +81,6 @@ export function DraftPage() {
       {
         accessorKey: "name",
         header: "Name",
-        size: 180,
         Cell: ({ renderedCellValue }) => (
           <span style={{ fontWeight: 500, textTransform: "capitalize" }}>
             {renderedCellValue}
@@ -93,7 +91,6 @@ export function DraftPage() {
         id: "types",
         accessorFn: (row) => row.metadata?.types?.join(", ") ?? "",
         header: "Type",
-        size: 200,
         filterVariant: "multi-select",
         mantineFilterMultiSelectProps: {
           data: ALL_POKEMON_TYPES.map((type) => ({
@@ -129,49 +126,49 @@ export function DraftPage() {
         accessorFn: (row) => row.metadata?.baseStats?.hp ?? null,
         id: "hp",
         header: "HP",
-        size: 120,
+        size: 80,
         filterVariant: "range",
       },
       {
         accessorFn: (row) => row.metadata?.baseStats?.attack ?? null,
         id: "attack",
         header: "ATK",
-        size: 120,
+        size: 80,
         filterVariant: "range",
       },
       {
         accessorFn: (row) => row.metadata?.baseStats?.defense ?? null,
         id: "defense",
         header: "DEF",
-        size: 120,
+        size: 80,
         filterVariant: "range",
       },
       {
         accessorFn: (row) => row.metadata?.baseStats?.specialAttack ?? null,
         id: "specialAttack",
         header: "SPA",
-        size: 120,
+        size: 80,
         filterVariant: "range",
       },
       {
         accessorFn: (row) => row.metadata?.baseStats?.specialDefense ?? null,
         id: "specialDefense",
         header: "SPD",
-        size: 120,
+        size: 80,
         filterVariant: "range",
       },
       {
         accessorFn: (row) => row.metadata?.baseStats?.speed ?? null,
         id: "speed",
         header: "SPE",
-        size: 120,
+        size: 80,
         filterVariant: "range",
       },
       {
         accessorFn: (row) => getStatTotal(row),
         id: "total",
         header: "Total",
-        size: 120,
+        size: 80,
         filterVariant: "range",
         Cell: ({ cell }) => (
           <span style={{ fontWeight: 600 }}>
@@ -190,18 +187,15 @@ export function DraftPage() {
     enableGlobalFilter: true,
     enableStickyHeader: true,
     enableDensityToggle: true,
-    enablePagination: false,
     initialState: {
       density: "xs",
       showColumnFilters: false,
       showGlobalFilter: true,
       sorting: [{ id: "total", desc: true }],
     },
-    mantineTableContainerProps: { style: { maxHeight: "80vh" } },
-    mantineTableProps: {
-      striped: true,
-      highlightOnHover: true,
-      withColumnBorders: true,
+    mantineTableContainerProps: { style: { maxHeight: "70vh" } },
+    mantinePaginationProps: {
+      showRowsPerPage: true,
     },
     state: {
       isLoading,
@@ -209,7 +203,7 @@ export function DraftPage() {
   });
 
   return (
-    <Container fluid px="xl" py="xl" pos="relative">
+    <Container size="xl" py="xl" pos="relative">
       <LoadingOverlay visible={isLoading} />
 
       <Anchor component={Link} href={`/leagues/${id}`} mb="md" display="block">
