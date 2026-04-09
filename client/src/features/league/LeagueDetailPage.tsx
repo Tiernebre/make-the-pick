@@ -116,8 +116,7 @@ export function LeagueDetailPage() {
 
   const NEXT_STATUS: Record<string, string | null> = {
     setup: "drafting",
-    drafting: "trading",
-    trading: "competing",
+    drafting: "competing",
     competing: "complete",
     complete: null,
   };

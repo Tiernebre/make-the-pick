@@ -340,7 +340,7 @@ User
 League
 ├── id, name, created_by (User)
 ├── rules_config (JSON — scoring rules, draft format, roster size, etc.)
-├── status: setup | drafting | trading | competing | complete
+├── status: setup | drafting | competing | complete
 
 LeaguePlayer
 ├── league_id, user_id, draft_position

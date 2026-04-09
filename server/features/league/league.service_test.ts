@@ -546,36 +546,8 @@ Deno.test("leagueService.advanceStatus: advances from setup to drafting", async 
   assertEquals(result.status, "drafting");
 });
 
-Deno.test("leagueService.advanceStatus: advances from drafting to trading", async () => {
+Deno.test("leagueService.advanceStatus: advances from drafting to competing", async () => {
   const fakeLeague = createFakeLeague({ status: "drafting" });
-  let capturedStatus: string | undefined;
-  const repo = createFakeRepo({
-    findById: (_id) => Promise.resolve(fakeLeague),
-    findPlayer: (_leagueId, _userId) =>
-      Promise.resolve({
-        id: crypto.randomUUID(),
-        leagueId: fakeLeague.id,
-        userId: "user-1",
-        role: "commissioner" as const,
-        joinedAt: new Date(),
-      }),
-    updateStatus: (_id, status) => {
-      capturedStatus = status;
-      return Promise.resolve(createFakeLeague({ status: status as "setup" }));
-    },
-  });
-
-  const service = createLeagueService({ leagueRepo: repo });
-  const result = await service.advanceStatus("user-1", {
-    leagueId: fakeLeague.id,
-  });
-
-  assertEquals(capturedStatus, "trading");
-  assertEquals(result.status, "trading");
-});
-
-Deno.test("leagueService.advanceStatus: advances from trading to competing", async () => {
-  const fakeLeague = createFakeLeague({ status: "trading" });
   let capturedStatus: string | undefined;
   const repo = createFakeRepo({
     findById: (_id) => Promise.resolve(fakeLeague),

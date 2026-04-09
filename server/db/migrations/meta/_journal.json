@@ -50,6 +50,13 @@
       "when": 1775760861830,
       "tag": "0006_living_nomad",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1775761569676,
+      "tag": "0007_flawless_multiple_man",
+      "breakpoints": true
     }
   ]
 }

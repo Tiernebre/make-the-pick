@@ -70,7 +70,6 @@ export const verification = pgTable("verification", {
 export const leagueStatusEnum = pgEnum("league_status", [
   "setup",
   "drafting",
-  "trading",
   "competing",
   "complete",
 ]);

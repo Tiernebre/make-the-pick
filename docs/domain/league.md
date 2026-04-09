@@ -55,7 +55,7 @@ once.
 ## State Transitions
 
 ```
-setup → drafting → trading → competing → complete
+setup → drafting → competing → complete
 ```
 
 Only the league commissioner may trigger status transitions. Transitions are
@@ -72,7 +72,6 @@ forward-only — a league cannot move backward in status.
 | --------- | --------------------------------- |
 | setup     | League created, accepting players |
 | drafting  | Draft is in progress              |
-| trading   | Trading period after draft        |
 | competing | Active competition period         |
 | complete  | League has concluded              |
 

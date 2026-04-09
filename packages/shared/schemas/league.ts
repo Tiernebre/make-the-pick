@@ -2,8 +2,8 @@ import type { z } from "zod";
 import { enum as enum_, number, object, string, unknown } from "zod";
 
 export const leagueStatusSchema: z.ZodEnum<
-  ["setup", "drafting", "trading", "competing", "complete"]
-> = enum_(["setup", "drafting", "trading", "competing", "complete"]);
+  ["setup", "drafting", "competing", "complete"]
+> = enum_(["setup", "drafting", "competing", "complete"]);
 
 export type LeagueStatus = z.infer<typeof leagueStatusSchema>;
 
@@ -12,8 +12,7 @@ export const LEAGUE_STATUS_TRANSITIONS: Record<
   LeagueStatus | null
 > = {
   setup: "drafting",
-  drafting: "trading",
-  trading: "competing",
+  drafting: "competing",
   competing: "complete",
   complete: null,
 };
