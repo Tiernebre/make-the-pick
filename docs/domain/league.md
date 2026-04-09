@@ -1,8 +1,9 @@
 # League
 
 A league is the top-level organizing entity. A user creates a league, invites
-others via an invite code, and controls its lifecycle through status
-transitions.
+others via an invite code, and the commissioner controls its lifecycle through
+status transitions. The commissioner is initially the user who created the
+league, but this role can be transferred to another player.
 
 ## Fields
 
@@ -34,14 +35,14 @@ once.
 
 ## Relationships
 
-- **League → User** (created_by): The user who created the league.
+- **League → User** (created_by): The user who originally created the league.
 - **League → LeaguePlayer**: One-to-many. A league has many players.
 - **LeaguePlayer → User**: Many-to-one. Each membership links to a user.
 
 ## Invariants
 
-1. Every league has exactly one player with role `creator` — the user referenced
-   by `created_by`.
+1. Every league has exactly one player with role `commissioner` — the league
+   admin who controls its lifecycle.
 2. A user cannot join a league they are already a member of (enforced by the
    unique constraint on league_id + user_id).
 3. The `invite_code` is globally unique and generated server-side (8
@@ -58,7 +59,7 @@ be added as features are built:
 setup → drafting → trading → competing → complete
 ```
 
-Only the league creator may trigger status transitions. Transitions are
+Only the league commissioner may trigger status transitions. Transitions are
 forward-only — a league cannot move backward in status.
 
 ## Enums
@@ -71,7 +72,7 @@ forward-only — a league cannot move backward in status.
 
 ### league_player_role
 
-| Value   | Meaning                                  |
-| ------- | ---------------------------------------- |
-| creator | Created the league, controls transitions |
-| member  | Regular participant                      |
+| Value        | Meaning                                         |
+| ------------ | ----------------------------------------------- |
+| commissioner | League admin, controls transitions and settings |
+| member       | Regular participant                             |

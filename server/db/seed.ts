@@ -96,12 +96,12 @@ const leagues = [
 ];
 
 const leaguePlayers = [
-  // League 1: Alice (creator) + Bob and Charlie as members
+  // League 1: Alice (commissioner) + Bob and Charlie as members
   {
     id: "b2c3d4e5-0001-4000-8000-000000000001",
     leagueId: leagues[0].id,
     userId: users[0].id,
-    role: "creator" as const,
+    role: "commissioner" as const,
     joinedAt: now,
   },
   {
@@ -118,12 +118,12 @@ const leaguePlayers = [
     role: "member" as const,
     joinedAt: now,
   },
-  // League 2: Bob (creator) + Alice as member
+  // League 2: Bob (commissioner) + Alice as member
   {
     id: "b2c3d4e5-0001-4000-8000-000000000004",
     leagueId: leagues[1].id,
     userId: users[1].id,
-    role: "creator" as const,
+    role: "commissioner" as const,
     joinedAt: now,
   },
   {

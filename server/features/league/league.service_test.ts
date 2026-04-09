@@ -26,7 +26,8 @@ function createFakeRepo(
   overrides: Partial<LeagueRepository> = {},
 ): LeagueRepository {
   return {
-    createWithCreator: (_userId, _data) => Promise.resolve(createFakeLeague()),
+    createWithCommissioner: (_userId, _data) =>
+      Promise.resolve(createFakeLeague()),
     findById: (_id) => Promise.resolve(null as FakeLeague),
     findByInviteCode: (_code) => Promise.resolve(null as FakeLeague),
     findAllByUserId: (_userId) => Promise.resolve([]),
@@ -48,7 +49,7 @@ function createFakeRepo(
 Deno.test("leagueService.create: creates a league with generated invite code", async () => {
   let capturedData: { name: string; inviteCode: string } | undefined;
   const repo = createFakeRepo({
-    createWithCreator: (_userId, data) => {
+    createWithCommissioner: (_userId, data) => {
       capturedData = data as { name: string; inviteCode: string };
       return Promise.resolve(
         createFakeLeague({ name: data.name, inviteCode: data.inviteCode }),
@@ -108,11 +109,19 @@ Deno.test("leagueService.join: throws NOT_FOUND for invalid invite code", async 
   assertEquals(error.code, "NOT_FOUND");
 });
 
-Deno.test("leagueService.delete: deletes a league when user is the creator", async () => {
-  const fakeLeague = createFakeLeague({ createdBy: "user-1" });
+Deno.test("leagueService.delete: deletes a league when user is the commissioner", async () => {
+  const fakeLeague = createFakeLeague();
   let deletedId: string | undefined;
   const repo = createFakeRepo({
     findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve({
+        id: crypto.randomUUID(),
+        leagueId: fakeLeague.id,
+        userId: "user-1",
+        role: "commissioner" as const,
+        joinedAt: new Date(),
+      }),
     deleteById: (id) => {
       deletedId = id;
       return Promise.resolve();
@@ -135,10 +144,18 @@ Deno.test("leagueService.delete: throws NOT_FOUND when league does not exist", a
   assertEquals(error.code, "NOT_FOUND");
 });
 
-Deno.test("leagueService.delete: throws FORBIDDEN when user is not the creator", async () => {
-  const fakeLeague = createFakeLeague({ createdBy: "user-1" });
+Deno.test("leagueService.delete: throws FORBIDDEN when user is not the commissioner", async () => {
+  const fakeLeague = createFakeLeague();
   const repo = createFakeRepo({
     findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve({
+        id: crypto.randomUUID(),
+        leagueId: fakeLeague.id,
+        userId: "user-2",
+        role: "member" as const,
+        joinedAt: new Date(),
+      }),
   });
 
   const service = createLeagueService({ leagueRepo: repo });
@@ -156,9 +173,9 @@ Deno.test("leagueService.listPlayers: returns players for a league", async () =>
     {
       id: crypto.randomUUID(),
       userId: "user-1",
-      name: "Creator",
+      name: "Commissioner",
       image: "https://example.com/avatar1.png",
-      role: "creator" as const,
+      role: "commissioner" as const,
       joinedAt: new Date(),
     },
     {
@@ -178,7 +195,7 @@ Deno.test("leagueService.listPlayers: returns players for a league", async () =>
   const service = createLeagueService({ leagueRepo: repo });
   const result = await service.listPlayers(fakeLeague.id);
   assertEquals(result.length, 2);
-  assertEquals(result[0].name, "Creator");
+  assertEquals(result[0].name, "Commissioner");
   assertEquals(result[1].name, "Member");
 });
 
@@ -202,7 +219,7 @@ Deno.test("leagueService.join: throws BAD_REQUEST if already a member", async ()
         id: crypto.randomUUID(),
         leagueId: fakeLeague.id,
         userId: "user-1",
-        role: "creator" as const,
+        role: "commissioner" as const,
         joinedAt: new Date(),
       }),
   });

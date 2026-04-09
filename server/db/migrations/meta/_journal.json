@@ -29,6 +29,13 @@
       "when": 1775736624006,
       "tag": "0003_far_centennial",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1775737283458,
+      "tag": "0004_fearless_polaris",
+      "breakpoints": true
     }
   ]
 }

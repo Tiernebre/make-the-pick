@@ -69,7 +69,7 @@ export const verification = pgTable("verification", {
 export const leagueStatusEnum = pgEnum("league_status", ["setup"]);
 
 export const leaguePlayerRoleEnum = pgEnum("league_player_role", [
-  "creator",
+  "commissioner",
   "member",
 ]);
 

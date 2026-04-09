@@ -111,17 +111,40 @@ describe("LeagueDetailPage", () => {
     expect(mockUseLeague).toHaveBeenCalledWith("league-1");
   });
 
-  it("shows delete button when user is the creator", () => {
+  it("shows delete button when user is the commissioner", () => {
     mockUseLeague.mockReturnValue({ data: mockLeague, isLoading: false });
+    mockUseLeaguePlayers.mockReturnValue({
+      data: [
+        {
+          id: "p1",
+          userId: "user-1",
+          name: "Alice",
+          image: null,
+          role: "commissioner",
+          joinedAt: "2026-01-01T00:00:00Z",
+        },
+      ],
+      isLoading: false,
+    });
     renderPage();
     expect(
       screen.getByRole("button", { name: /delete league/i }),
     ).toBeInTheDocument();
   });
 
-  it("does not show delete button when user is not the creator", () => {
-    mockUseLeague.mockReturnValue({
-      data: { ...mockLeague, createdBy: "other-user" },
+  it("does not show delete button when user is not the commissioner", () => {
+    mockUseLeague.mockReturnValue({ data: mockLeague, isLoading: false });
+    mockUseLeaguePlayers.mockReturnValue({
+      data: [
+        {
+          id: "p1",
+          userId: "user-1",
+          name: "Alice",
+          image: null,
+          role: "member",
+          joinedAt: "2026-01-01T00:00:00Z",
+        },
+      ],
       isLoading: false,
     });
     renderPage();

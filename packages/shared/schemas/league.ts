@@ -5,10 +5,11 @@ export const leagueStatusSchema: z.ZodEnum<["setup"]> = enum_(["setup"]);
 
 export type LeagueStatus = z.infer<typeof leagueStatusSchema>;
 
-export const leaguePlayerRoleSchema: z.ZodEnum<["creator", "member"]> = enum_([
-  "creator",
-  "member",
-]);
+export const leaguePlayerRoleSchema: z.ZodEnum<["commissioner", "member"]> =
+  enum_([
+    "commissioner",
+    "member",
+  ]);
 
 export type LeaguePlayerRole = z.infer<typeof leaguePlayerRoleSchema>;
 

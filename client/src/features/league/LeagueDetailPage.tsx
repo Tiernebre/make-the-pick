@@ -30,7 +30,9 @@ export function LeagueDetailPage() {
   const [deleteOpened, { open: openDelete, close: closeDelete }] =
     useDisclosure(false);
 
-  const isCreator = league.data?.createdBy === session?.user?.id;
+  const isCommissioner = players.data?.some(
+    (p) => p.userId === session?.user?.id && p.role === "commissioner",
+  );
 
   const handleDelete = () => {
     deleteLeague.mutate(
@@ -125,7 +127,7 @@ export function LeagueDetailPage() {
             </Stack>
           </Card>
 
-          {isCreator && (
+          {isCommissioner && (
             <Button
               color="red"
               variant="light"

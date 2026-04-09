@@ -23,7 +23,7 @@ export function createLeagueService(
     create(userId: string, input: { name: string }) {
       const inviteCode = generateInviteCode();
       log.debug({ userId, name: input.name, inviteCode }, "creating league");
-      return deps.leagueRepo.createWithCreator(userId, {
+      return deps.leagueRepo.createWithCommissioner(userId, {
         ...input,
         inviteCode,
       });
@@ -50,14 +50,15 @@ export function createLeagueService(
       if (!league) {
         throw new TRPCError({ code: "NOT_FOUND", message: "League not found" });
       }
-      if (league.createdBy !== userId) {
+      const player = await deps.leagueRepo.findPlayer(leagueId, userId);
+      if (player?.role !== "commissioner") {
         log.debug(
-          { userId, leagueId, createdBy: league.createdBy },
-          "delete forbidden — user is not creator",
+          { userId, leagueId },
+          "delete forbidden — user is not commissioner",
         );
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "Only the league creator can delete a league",
+          message: "Only the league commissioner can delete a league",
         });
       }
       await deps.leagueRepo.deleteById(leagueId);

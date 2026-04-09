@@ -12,13 +12,13 @@ type LeaguePlayerRow = typeof leaguePlayer.$inferSelect;
 
 export function createLeagueRepository(db: Database) {
   return {
-    createWithCreator(
+    createWithCommissioner(
       userId: string,
       data: { name: string; inviteCode: string },
     ): Promise<LeagueRow> {
       log.debug(
         { userId, name: data.name },
-        "inserting league + creator player",
+        "inserting league + commissioner player",
       );
       return db.transaction(async (tx) => {
         const [newLeague] = await tx.insert(league).values({
@@ -30,11 +30,11 @@ export function createLeagueRepository(db: Database) {
         await tx.insert(leaguePlayer).values({
           leagueId: newLeague.id,
           userId,
-          role: "creator",
+          role: "commissioner",
         });
         log.debug(
           { leagueId: newLeague.id, userId },
-          "creator player row inserted",
+          "commissioner player row inserted",
         );
         return newLeague;
       });

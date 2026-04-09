@@ -32,7 +32,8 @@ async function createTestUser(
 }
 
 Deno.test({
-  name: "leagueRepository.createWithCreator: creates league and creator player",
+  name:
+    "leagueRepository.createWithCommissioner: creates league and commissioner player",
   sanitizeResources: false,
   sanitizeOps: false,
   fn: async () => {
@@ -43,7 +44,7 @@ Deno.test({
     try {
       await createTestUser(db, userId);
 
-      const result = await repo.createWithCreator(userId, {
+      const result = await repo.createWithCommissioner(userId, {
         name: "Test League",
         inviteCode: "TESTCODE",
       });
@@ -58,7 +59,7 @@ Deno.test({
       );
       assertEquals(players.length, 1);
       assertEquals(players[0].userId, userId);
-      assertEquals(players[0].role, "creator");
+      assertEquals(players[0].role, "commissioner");
     } finally {
       await db.delete(leaguePlayer);
       await db.delete(league);
@@ -79,7 +80,7 @@ Deno.test({
 
     try {
       await createTestUser(db, userId);
-      const created = await repo.createWithCreator(userId, {
+      const created = await repo.createWithCommissioner(userId, {
         name: "Find Me",
         inviteCode: "FINDME01",
       });
@@ -124,7 +125,7 @@ Deno.test({
 
     try {
       await createTestUser(db, userId);
-      const created = await repo.createWithCreator(userId, {
+      const created = await repo.createWithCommissioner(userId, {
         name: "Invite League",
         inviteCode: "INVITE01",
       });
@@ -153,7 +154,7 @@ Deno.test({
     try {
       await createTestUser(db, creatorId);
       await createTestUser(db, memberId);
-      const created = await repo.createWithCreator(creatorId, {
+      const created = await repo.createWithCommissioner(creatorId, {
         name: "Join League",
         inviteCode: "JOIN0001",
       });
@@ -183,14 +184,14 @@ Deno.test({
 
     try {
       await createTestUser(db, userId);
-      const created = await repo.createWithCreator(userId, {
+      const created = await repo.createWithCommissioner(userId, {
         name: "Player League",
         inviteCode: "PLAYER01",
       });
 
       const player = await repo.findPlayer(created.id, userId);
       assertEquals(player?.userId, userId);
-      assertEquals(player?.role, "creator");
+      assertEquals(player?.role, "commissioner");
     } finally {
       await db.delete(leaguePlayer);
       await db.delete(league);
@@ -211,7 +212,7 @@ Deno.test({
 
     try {
       await createTestUser(db, userId);
-      const created = await repo.createWithCreator(userId, {
+      const created = await repo.createWithCommissioner(userId, {
         name: "No Member League",
         inviteCode: "NOMEMB01",
       });
@@ -238,7 +239,7 @@ Deno.test({
 
     try {
       await createTestUser(db, userId);
-      const created = await repo.createWithCreator(userId, {
+      const created = await repo.createWithCommissioner(userId, {
         name: "Delete Me",
         inviteCode: "DELETE01",
       });
@@ -283,7 +284,7 @@ Deno.test({
         updatedAt: new Date(),
       });
 
-      const created = await repo.createWithCreator(creatorId, {
+      const created = await repo.createWithCommissioner(creatorId, {
         name: "Players League",
         inviteCode: "PLAYERS1",
       });
@@ -295,7 +296,7 @@ Deno.test({
       const creator = players.find((p) => p.userId === creatorId);
       const member = players.find((p) => p.userId === memberId);
 
-      assertEquals(creator?.role, "creator");
+      assertEquals(creator?.role, "commissioner");
       assertEquals(creator?.name, "Test User");
       assertEquals(creator?.image, null);
       assertEquals(member?.role, "member");
@@ -327,11 +328,11 @@ Deno.test({
 
     try {
       await createTestUser(db, userId);
-      await repo.createWithCreator(userId, {
+      await repo.createWithCommissioner(userId, {
         name: "League A",
         inviteCode: "USRLGA01",
       });
-      await repo.createWithCreator(userId, {
+      await repo.createWithCommissioner(userId, {
         name: "League B",
         inviteCode: "USRLGB01",
       });
