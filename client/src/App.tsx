@@ -1,8 +1,32 @@
-import { MantineProvider } from "@mantine/core";
+import {
+  createTheme,
+  type MantineColorsTuple,
+  MantineProvider,
+} from "@mantine/core";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Route, Switch } from "wouter";
 import "@mantine/core/styles.css";
 import { queryClient, trpc, trpcClient } from "./trpc";
+
+const mintGreen: MantineColorsTuple = [
+  "#e6fff2",
+  "#d0f5e3",
+  "#a3e8c5",
+  "#72dca5",
+  "#4ad18a",
+  "#31ca78",
+  "#21c76e",
+  "#10b05c",
+  "#009d50",
+  "#008842",
+];
+
+const theme = createTheme({
+  primaryColor: "mint-green",
+  colors: {
+    "mint-green": mintGreen,
+  },
+});
 import { AuthGuard } from "./components/AuthGuard";
 import { AppLayout } from "./components/AppLayout";
 import { LoginPage } from "./pages/LoginPage";
@@ -16,7 +40,7 @@ export function App() {
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
-        <MantineProvider defaultColorScheme="auto">
+        <MantineProvider theme={theme} defaultColorScheme="auto">
           <Switch>
             <Route path="/login" component={LoginPage} />
             <Route path="/join/:inviteCode">
