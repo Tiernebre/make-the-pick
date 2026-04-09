@@ -78,7 +78,7 @@ if (import.meta.main) {
         console.log(`  ${green("▸")} ${bold("App:")}        ${cyan(appUrl)}`);
         console.log(`  ${green("▸")} ${bold("API:")}        ${cyan(apiUrl)}`);
         console.log(
-          `  ${green("▸")} ${bold("tRPC Panel:")} ${magenta(trpcUrl)}`,
+          `  ${green("▸")} ${bold("tRPC UI:")}    ${magenta(trpcUrl)}`,
         );
         console.log();
         console.log(divider);
