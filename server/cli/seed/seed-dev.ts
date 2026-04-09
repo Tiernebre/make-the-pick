@@ -187,6 +187,36 @@ async function createDraftForLeague(
   return insertedDraft;
 }
 
+async function createWatchlistForCommissioner(
+  db: Db,
+  leagueId: string,
+  userId: string,
+  poolId: string,
+) {
+  const [player] = await db.select().from(schema.leaguePlayer).where(
+    eq(schema.leaguePlayer.leagueId, leagueId),
+  ).then((rows) => rows.filter((r) => r.userId === userId));
+
+  if (!player) return;
+
+  const poolItems = await db.select().from(schema.draftPoolItem).where(
+    eq(schema.draftPoolItem.draftPoolId, poolId),
+  ).limit(5);
+
+  for (let i = 0; i < poolItems.length; i++) {
+    await db.insert(schema.watchlistItem).values({
+      leaguePlayerId: player.id,
+      draftPoolItemId: poolItems[i].id,
+      position: i,
+    }).onConflictDoNothing();
+  }
+
+  log.info(
+    { leagueId, count: poolItems.length },
+    "watchlist items created for dev user",
+  );
+}
+
 async function seedLeague(
   db: Db,
   spec: DevLeagueSpec,
@@ -249,6 +279,9 @@ async function seedLeague(
       allPlayerIds,
       draftStatus,
     );
+
+    // Add watchlist items for the dev user
+    await createWatchlistForCommissioner(db, league.id, commissioner.id, pool.id);
   }
 
   log.info(
