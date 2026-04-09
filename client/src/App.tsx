@@ -6,7 +6,11 @@ import { queryClient, trpc, trpcClient } from "./trpc";
 import { AuthGuard } from "./components/AuthGuard";
 import { AppLayout } from "./components/AppLayout";
 import { LoginPage } from "./pages/LoginPage";
-import { LeagueDetailPage, LeagueListPage } from "./features/league/mod";
+import {
+  JoinLeaguePage,
+  LeagueDetailPage,
+  LeagueListPage,
+} from "./features/league/mod";
 
 export function App() {
   return (
@@ -15,6 +19,11 @@ export function App() {
         <MantineProvider defaultColorScheme="auto">
           <Switch>
             <Route path="/login" component={LoginPage} />
+            <Route path="/join/:inviteCode">
+              <AuthGuard>
+                <JoinLeaguePage />
+              </AuthGuard>
+            </Route>
             <Route path="/leagues/:id">
               <AuthGuard>
                 <AppLayout>
