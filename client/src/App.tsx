@@ -4,6 +4,7 @@ import { Route, Switch } from "wouter";
 import "@mantine/core/styles.css";
 import { queryClient, trpc, trpcClient } from "./trpc";
 import { AuthGuard } from "./components/AuthGuard";
+import { AppLayout } from "./components/AppLayout";
 import { LoginPage } from "./pages/LoginPage";
 import { LeagueDetailPage, LeagueListPage } from "./features/league/mod";
 
@@ -16,12 +17,16 @@ export function App() {
             <Route path="/login" component={LoginPage} />
             <Route path="/leagues/:id">
               <AuthGuard>
-                <LeagueDetailPage />
+                <AppLayout>
+                  <LeagueDetailPage />
+                </AppLayout>
               </AuthGuard>
             </Route>
             <Route>
               <AuthGuard>
-                <LeagueListPage />
+                <AppLayout>
+                  <LeagueListPage />
+                </AppLayout>
               </AuthGuard>
             </Route>
           </Switch>
