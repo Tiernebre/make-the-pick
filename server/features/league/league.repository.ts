@@ -129,6 +129,19 @@ export function createLeagueRepository(db: Database) {
       return updated;
     },
 
+    async updateStatus(
+      id: string,
+      status: string,
+    ): Promise<LeagueRow> {
+      log.debug({ leagueId: id, status }, "updating league status");
+      const [updated] = await db.update(league).set({
+        status: status as "setup",
+        updatedAt: new Date(),
+      }).where(eq(league.id, id)).returning();
+      log.debug({ leagueId: id }, "league status updated");
+      return updated;
+    },
+
     async countPlayers(leagueId: string): Promise<number> {
       log.debug({ leagueId }, "counting players in league");
       const [result] = await db.select({ count: count() }).from(leaguePlayer)
