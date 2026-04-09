@@ -122,6 +122,25 @@ export interface FakeUser {
   updatedAt: Date;
 }
 
+export const CLI_USER_ID = "dev-cli-user";
+export const CLI_USER_EMAIL = "cli@dev.local";
+
+export function generateCliUser(): FakeUser {
+  const firstName = randomItem(FIRST_NAMES);
+  const lastName = randomItem(LAST_NAMES);
+  const now = new Date();
+
+  return {
+    id: CLI_USER_ID,
+    name: `${firstName} ${lastName}`,
+    email: CLI_USER_EMAIL,
+    emailVerified: true,
+    image: null,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
 export function generateFakeUser(): FakeUser {
   const id = randomId();
   const firstName = randomItem(FIRST_NAMES);

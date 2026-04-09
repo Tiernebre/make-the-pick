@@ -94,7 +94,7 @@ deno task cli seed --help
 - tRPC output is JSON — pipe to `jq` for filtering:
   `deno task trpc league list | jq '.[].name'`
 - The tRPC CLI requires the CLI seed user (`cli@dev.local`). Run
-  `deno task db:seed` first if it doesn't exist.
+  `deno task cli seed data` first if it doesn't exist.
 - The CLI uses the same router, services, and repositories as the running server
   — it's a real call, not a mock
 - New routers added to `appRouter` are automatically available as tRPC CLI

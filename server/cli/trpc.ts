@@ -2,8 +2,7 @@ import { createCli } from "trpc-cli";
 import { eq } from "drizzle-orm";
 import { db, user } from "../db/mod.ts";
 import { appRouter } from "../trpc/router.ts";
-
-const CLI_USER_EMAIL = "cli@dev.local";
+import { CLI_USER_EMAIL } from "./seed/mod.ts";
 
 export async function runTrpcCommand() {
   const [dbUser] = await db
@@ -12,7 +11,7 @@ export async function runTrpcCommand() {
     .where(eq(user.email, CLI_USER_EMAIL));
   if (!dbUser) {
     console.error(
-      `CLI user not found (${CLI_USER_EMAIL}). Run \`deno task db:seed\` first.`,
+      `CLI user not found (${CLI_USER_EMAIL}). Run \`deno task cli seed data\` first.`,
     );
     Deno.exit(1);
   }

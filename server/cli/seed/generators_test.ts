@@ -1,5 +1,8 @@
 import { assertEquals, assertNotEquals } from "@std/assert";
 import {
+  CLI_USER_EMAIL,
+  CLI_USER_ID,
+  generateCliUser,
   generateFakeLeague,
   generateFakeUser,
   generateFakeUsers,
@@ -52,6 +55,33 @@ Deno.test("generateFakeUsers", async (t) => {
     const emails = new Set(users.map((u) => u.email));
     assertEquals(ids.size, 10);
     assertEquals(emails.size, 10);
+  });
+});
+
+Deno.test("generateCliUser", async (t) => {
+  await t.step("returns a user with the stable CLI user id and email", () => {
+    const user = generateCliUser();
+    assertEquals(user.id, CLI_USER_ID);
+    assertEquals(user.email, CLI_USER_EMAIL);
+    assertEquals(user.emailVerified, true);
+    assertEquals(user.image, null);
+  });
+
+  await t.step("generates a randomized Pokemon-themed name", () => {
+    const user = generateCliUser();
+    const parts = user.name.split(" ");
+    assertEquals(
+      parts.length >= 2,
+      true,
+      `Expected two-part name, got: ${user.name}`,
+    );
+  });
+
+  await t.step("always uses the same stable id and email", () => {
+    const a = generateCliUser();
+    const b = generateCliUser();
+    assertEquals(a.id, b.id);
+    assertEquals(a.email, b.email);
   });
 });
 

@@ -3,7 +3,12 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "../../db/schema.ts";
 import { logger } from "../../logger.ts";
-import { generateFakeLeague, generateFakeUsers } from "./generators.ts";
+import {
+  CLI_USER_EMAIL,
+  generateCliUser,
+  generateFakeLeague,
+  generateFakeUsers,
+} from "./generators.ts";
 
 const log = logger.child({ module: "cli.seed" });
 
@@ -69,41 +74,58 @@ function createDb() {
   return { db, client };
 }
 
+type Db = ReturnType<typeof createDb>["db"];
+
+async function seedAccountAndSession(db: Db, userId: string) {
+  await db.insert(schema.account).values({
+    id: `${userId}-account`,
+    accountId: `${userId}-google`,
+    providerId: "google",
+    userId,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  }).onConflictDoNothing();
+
+  await db.insert(schema.session).values({
+    id: `${userId}-session`,
+    token: `${userId}-session-token`,
+    expiresAt: new Date("2099-01-01"),
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    ipAddress: "127.0.0.1",
+    userAgent: "FakeSeed",
+    userId,
+  }).onConflictDoNothing();
+}
+
 async function seedData(options: SeedOptions) {
   const { db, client } = createDb();
 
   try {
+    // Always ensure the CLI user exists (used by tRPC CLI)
+    const cliUser = generateCliUser();
+    await db.insert(schema.user).values(cliUser).onConflictDoNothing();
+    await seedAccountAndSession(db, cliUser.id);
+    log.info(
+      { name: cliUser.name, email: CLI_USER_EMAIL },
+      "CLI user seeded",
+    );
+
     const fakeUsers = generateFakeUsers(options.users);
 
     const insertedUsers = await db.insert(schema.user).values(fakeUsers)
       .returning();
     log.info({ count: insertedUsers.length }, "fake users created");
 
-    for (const u of insertedUsers) {
-      await db.insert(schema.account).values({
-        id: `${u.id}-account`,
-        accountId: `${u.id}-google`,
-        providerId: "google",
-        userId: u.id,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }).onConflictDoNothing();
+    const allUsers = [cliUser, ...insertedUsers];
 
-      await db.insert(schema.session).values({
-        id: `${u.id}-session`,
-        token: `${u.id}-session-token`,
-        expiresAt: new Date("2099-01-01"),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        ipAddress: "127.0.0.1",
-        userAgent: "FakeSeed",
-        userId: u.id,
-      }).onConflictDoNothing();
+    for (const u of insertedUsers) {
+      await seedAccountAndSession(db, u.id);
     }
     log.info({ count: insertedUsers.length }, "accounts and sessions created");
 
     for (let i = 0; i < options.leagues; i++) {
-      const creator = insertedUsers[i % insertedUsers.length];
+      const creator = allUsers[i % allUsers.length];
       const fakeLeague = generateFakeLeague(creator.id);
 
       const [insertedLeague] = await db.insert(schema.league).values(fakeLeague)
@@ -119,7 +141,7 @@ async function seedData(options: SeedOptions) {
         role: "commissioner",
       }).onConflictDoNothing();
 
-      const otherUsers = insertedUsers.filter((u) => u.id !== creator.id);
+      const otherUsers = allUsers.filter((u) => u.id !== creator.id);
       const membersToAdd = otherUsers.slice(
         0,
         Math.min(otherUsers.length, (fakeLeague.maxPlayers ?? 8) - 1),
@@ -170,25 +192,7 @@ async function seedLeague(options: SeedLeagueOptions) {
     log.info({ count: insertedUsers.length }, "fake users created");
 
     for (const u of insertedUsers) {
-      await db.insert(schema.account).values({
-        id: `${u.id}-account`,
-        accountId: `${u.id}-google`,
-        providerId: "google",
-        userId: u.id,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }).onConflictDoNothing();
-
-      await db.insert(schema.session).values({
-        id: `${u.id}-session`,
-        token: `${u.id}-session-token`,
-        expiresAt: new Date("2099-01-01"),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        ipAddress: "127.0.0.1",
-        userAgent: "FakeSeed",
-        userId: u.id,
-      }).onConflictDoNothing();
+      await seedAccountAndSession(db, u.id);
     }
 
     for (const u of insertedUsers) {
@@ -231,11 +235,14 @@ function printHelp() {
 Usage: deno task cli seed <subcommand> [options]
 
 Subcommands:
-  data      Seed fake users and leagues (default)
+  data      Seed the CLI user, fake users, and leagues (default)
   league    Seed fake players into an existing league
 
+The 'data' subcommand always creates the CLI user (cli@dev.local) used by
+the tRPC CLI, plus additional fake users with randomized Pokemon-themed names.
+
 Options for 'data':
-  --users <n>       Number of fake users to create (default: 5)
+  --users <n>       Number of additional fake users to create (default: 5)
   --leagues <n>     Number of fake leagues to create (default: 2)
 
 Options for 'league':
