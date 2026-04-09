@@ -99,6 +99,7 @@ function createFakeLeagueRepo(
     findPlayer: (_leagueId, _userId) => Promise.resolve(null as FakePlayer),
     findPlayersByLeagueId: (_leagueId) => Promise.resolve([]),
     deleteById: (_id) => Promise.resolve(),
+    deletePlayer: (_leagueId, _userId) => Promise.resolve(),
     updateSettings: (_id, _data) => Promise.resolve(createFakeLeague()),
     updateStatus: (_id, _status) => Promise.resolve(createFakeLeague()),
     countPlayers: (_leagueId) => Promise.resolve(0),

@@ -1,6 +1,6 @@
 {
-  "id": "1c1916c5-ee0a-4471-a33d-4d95d8982472",
-  "prevId": "843d7fba-71f4-4f76-9c92-1251a5bb7b04",
+  "id": "185d65d7-f003-4241-9646-dc703c09c8cc",
+  "prevId": "1c1916c5-ee0a-4471-a33d-4d95d8982472",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -105,6 +105,134 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.draft_pool": {
+      "name": "draft_pool",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "league_id": {
+          "name": "league_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "draft_pool_league_id_league_id_fk": {
+          "name": "draft_pool_league_id_league_id_fk",
+          "tableFrom": "draft_pool",
+          "tableTo": "league",
+          "columnsFrom": [
+            "league_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "draft_pool_league_id_unique": {
+          "name": "draft_pool_league_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "league_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.draft_pool_item": {
+      "name": "draft_pool_item",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "draft_pool_id": {
+          "name": "draft_pool_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "thumbnail_url": {
+          "name": "thumbnail_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "draft_pool_item_draft_pool_id_draft_pool_id_fk": {
+          "name": "draft_pool_item_draft_pool_id_draft_pool_id_fk",
+          "tableFrom": "draft_pool_item",
+          "tableTo": "draft_pool",
+          "columnsFrom": [
+            "draft_pool_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "draft_pool_item_unique": {
+          "name": "draft_pool_item_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "draft_pool_id",
+            "name"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
