@@ -1,0 +1,27 @@
+import { trpc } from "../../trpc";
+
+export function useLeagues() {
+  return trpc.league.list.useQuery();
+}
+
+export function useLeague(id: string) {
+  return trpc.league.getById.useQuery({ id });
+}
+
+export function useCreateLeague() {
+  const utils = trpc.useUtils();
+  return trpc.league.create.useMutation({
+    onSuccess: () => {
+      utils.league.list.invalidate();
+    },
+  });
+}
+
+export function useJoinLeague() {
+  const utils = trpc.useUtils();
+  return trpc.league.join.useMutation({
+    onSuccess: () => {
+      utils.league.list.invalidate();
+    },
+  });
+}
