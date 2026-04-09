@@ -14,7 +14,9 @@ league, but this role can be transferred to another player.
 | id           | text (UUID)        | PK                        |
 | name         | text               | NOT NULL                  |
 | status       | league_status enum | NOT NULL, default `setup` |
+| sport_type   | sport_type enum    | nullable                  |
 | rules_config | jsonb              | nullable                  |
+| max_players  | integer            | nullable                  |
 | invite_code  | text               | NOT NULL, UNIQUE          |
 | created_by   | text               | NOT NULL, FK → user.id    |
 | created_at   | timestamptz        | NOT NULL, default now()   |
@@ -70,9 +72,31 @@ forward-only — a league cannot move backward in status.
 | ----- | --------------------------------- |
 | setup | League created, accepting players |
 
+### sport_type
+
+| Value   | Meaning              |
+| ------- | -------------------- |
+| pokemon | Pokémon draft league |
+
 ### league_player_role
 
 | Value        | Meaning                                         |
 | ------------ | ----------------------------------------------- |
 | commissioner | League admin, controls transitions and settings |
 | member       | Regular participant                             |
+
+## Rules Config (JSONB)
+
+The `rules_config` field stores draft-related settings as a JSON object:
+
+| Field                | Type                    | Description                       |
+| -------------------- | ----------------------- | --------------------------------- |
+| draftFormat          | `"snake"` \| `"linear"` | Draft pick order format           |
+| numberOfRounds       | integer (≥ 1)           | Number of draft rounds            |
+| pickTimeLimitSeconds | integer (≥ 1) \| null   | Seconds per pick, null = no limit |
+
+## Max Players Enforcement
+
+When `max_players` is set, the server rejects join attempts (via invite code)
+when the league is at capacity. Leagues with `max_players = null` accept
+unlimited members.
