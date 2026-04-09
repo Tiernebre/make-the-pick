@@ -221,6 +221,59 @@ export function createLeagueService(
       log.debug({ userId, leagueId: league.id }, "user joined league");
       return league;
     },
+
+    async removePlayer(
+      userId: string,
+      input: { leagueId: string; playerUserId: string },
+    ) {
+      log.debug(
+        { userId, leagueId: input.leagueId, playerUserId: input.playerUserId },
+        "attempting to remove player from league",
+      );
+      const league = await deps.leagueRepo.findById(input.leagueId);
+      if (!league) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "League not found" });
+      }
+
+      const caller = await deps.leagueRepo.findPlayer(
+        input.leagueId,
+        userId,
+      );
+      if (caller?.role !== "commissioner") {
+        log.debug(
+          { userId, leagueId: input.leagueId },
+          "removePlayer forbidden — user is not commissioner",
+        );
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only the league commissioner can remove players",
+        });
+      }
+
+      const target = await deps.leagueRepo.findPlayer(
+        input.leagueId,
+        input.playerUserId,
+      );
+      if (!target) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Player not found in league",
+        });
+      }
+
+      if (target.role === "commissioner") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Cannot remove the commissioner from the league",
+        });
+      }
+
+      await deps.leagueRepo.deletePlayer(input.leagueId, input.playerUserId);
+      log.debug(
+        { leagueId: input.leagueId, playerUserId: input.playerUserId },
+        "player removed from league",
+      );
+    },
   };
 }
 

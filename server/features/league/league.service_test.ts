@@ -47,6 +47,7 @@ function createFakeRepo(
     updateSettings: (_id, _data) => Promise.resolve(createFakeLeague()),
     updateStatus: (_id, _status) => Promise.resolve(createFakeLeague()),
     countPlayers: (_leagueId) => Promise.resolve(0),
+    deletePlayer: (_leagueId, _userId) => Promise.resolve(),
     ...overrides,
   };
 }
@@ -600,4 +601,166 @@ Deno.test("leagueService.advanceStatus: advances from competing to complete", as
 
   assertEquals(capturedStatus, "complete");
   assertEquals(result.status, "complete");
+});
+
+// --- removePlayer ---
+
+Deno.test("leagueService.removePlayer: removes a player when user is commissioner", async () => {
+  const fakeLeague = createFakeLeague();
+  let deletedLeagueId: string | undefined;
+  let deletedUserId: string | undefined;
+  const repo = createFakeRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (leagueId, userId) => {
+      if (userId === "commissioner-1") {
+        return Promise.resolve({
+          id: crypto.randomUUID(),
+          leagueId,
+          userId: "commissioner-1",
+          role: "commissioner" as const,
+          joinedAt: new Date(),
+        });
+      }
+      return Promise.resolve({
+        id: crypto.randomUUID(),
+        leagueId,
+        userId: "member-1",
+        role: "member" as const,
+        joinedAt: new Date(),
+      });
+    },
+    deletePlayer: (leagueId, userId) => {
+      deletedLeagueId = leagueId;
+      deletedUserId = userId;
+      return Promise.resolve();
+    },
+  });
+
+  const service = createLeagueService({ leagueRepo: repo });
+  await service.removePlayer("commissioner-1", {
+    leagueId: fakeLeague.id,
+    playerUserId: "member-1",
+  });
+
+  assertEquals(deletedLeagueId, fakeLeague.id);
+  assertEquals(deletedUserId, "member-1");
+});
+
+Deno.test("leagueService.removePlayer: throws NOT_FOUND when league does not exist", async () => {
+  const repo = createFakeRepo();
+  const service = createLeagueService({ leagueRepo: repo });
+
+  const error = await assertRejects(
+    () =>
+      service.removePlayer("user-1", {
+        leagueId: "nonexistent",
+        playerUserId: "user-2",
+      }),
+    TRPCError,
+  );
+  assertEquals(error.code, "NOT_FOUND");
+});
+
+Deno.test("leagueService.removePlayer: throws FORBIDDEN when user is not commissioner", async () => {
+  const fakeLeague = createFakeLeague();
+  const repo = createFakeRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve({
+        id: crypto.randomUUID(),
+        leagueId: fakeLeague.id,
+        userId: "member-1",
+        role: "member" as const,
+        joinedAt: new Date(),
+      }),
+  });
+
+  const service = createLeagueService({ leagueRepo: repo });
+
+  const error = await assertRejects(
+    () =>
+      service.removePlayer("member-1", {
+        leagueId: fakeLeague.id,
+        playerUserId: "member-2",
+      }),
+    TRPCError,
+  );
+  assertEquals(error.code, "FORBIDDEN");
+});
+
+Deno.test("leagueService.removePlayer: throws FORBIDDEN when user is not a member", async () => {
+  const fakeLeague = createFakeLeague();
+  const repo = createFakeRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+  });
+
+  const service = createLeagueService({ leagueRepo: repo });
+
+  const error = await assertRejects(
+    () =>
+      service.removePlayer("outsider", {
+        leagueId: fakeLeague.id,
+        playerUserId: "member-1",
+      }),
+    TRPCError,
+  );
+  assertEquals(error.code, "FORBIDDEN");
+});
+
+Deno.test("leagueService.removePlayer: throws BAD_REQUEST when trying to remove the commissioner", async () => {
+  const fakeLeague = createFakeLeague();
+  const repo = createFakeRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (leagueId, userId) =>
+      Promise.resolve({
+        id: crypto.randomUUID(),
+        leagueId,
+        userId,
+        role: userId === "commissioner-1" ? "commissioner" as const : "member" as const,
+        joinedAt: new Date(),
+      }),
+  });
+
+  const service = createLeagueService({ leagueRepo: repo });
+
+  const error = await assertRejects(
+    () =>
+      service.removePlayer("commissioner-1", {
+        leagueId: fakeLeague.id,
+        playerUserId: "commissioner-1",
+      }),
+    TRPCError,
+  );
+  assertEquals(error.code, "BAD_REQUEST");
+});
+
+Deno.test("leagueService.removePlayer: throws NOT_FOUND when target player is not in league", async () => {
+  const fakeLeague = createFakeLeague();
+  const repo = createFakeRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, userId) => {
+      if (userId === "commissioner-1") {
+        return Promise.resolve({
+          id: crypto.randomUUID(),
+          leagueId: fakeLeague.id,
+          userId: "commissioner-1",
+          role: "commissioner" as const,
+          joinedAt: new Date(),
+        });
+      }
+      return Promise.resolve(null);
+    },
+  });
+
+  const service = createLeagueService({ leagueRepo: repo });
+
+  const error = await assertRejects(
+    () =>
+      service.removePlayer("commissioner-1", {
+        leagueId: fakeLeague.id,
+        playerUserId: "nonexistent-user",
+      }),
+    TRPCError,
+  );
+  assertEquals(error.code, "NOT_FOUND");
 });
