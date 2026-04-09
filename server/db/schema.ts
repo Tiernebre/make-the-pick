@@ -7,6 +7,7 @@ import {
   text,
   timestamp,
   unique,
+  uuid,
 } from "drizzle-orm/pg-core";
 
 export const healthChecks = pgTable("health_checks", {
@@ -73,7 +74,7 @@ export const leaguePlayerRoleEnum = pgEnum("league_player_role", [
 ]);
 
 export const league = pgTable("league", {
-  id: text("id").primaryKey(),
+  id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
   status: leagueStatusEnum("status").notNull().default("setup"),
   rulesConfig: jsonb("rules_config"),
@@ -86,8 +87,8 @@ export const league = pgTable("league", {
 });
 
 export const leaguePlayer = pgTable("league_player", {
-  id: text("id").primaryKey(),
-  leagueId: text("league_id").notNull().references(() => league.id, {
+  id: uuid("id").primaryKey().defaultRandom(),
+  leagueId: uuid("league_id").notNull().references(() => league.id, {
     onDelete: "cascade",
   }),
   userId: text("user_id").notNull().references(() => user.id, {

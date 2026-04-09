@@ -74,7 +74,7 @@ const sessions = users.map((user) => ({
 
 const leagues = [
   {
-    id: "dev-league-1",
+    id: "a1b2c3d4-0001-4000-8000-000000000001",
     name: "Pokemon Draft League Alpha",
     status: "setup" as const,
     rulesConfig: null,
@@ -84,7 +84,7 @@ const leagues = [
     updatedAt: now,
   },
   {
-    id: "dev-league-2",
+    id: "a1b2c3d4-0001-4000-8000-000000000002",
     name: "Competitive Picks Beta",
     status: "setup" as const,
     rulesConfig: null,
@@ -98,21 +98,21 @@ const leagues = [
 const leaguePlayers = [
   // League 1: Alice (creator) + Bob and Charlie as members
   {
-    id: "dev-lp-1",
+    id: "b2c3d4e5-0001-4000-8000-000000000001",
     leagueId: leagues[0].id,
     userId: users[0].id,
     role: "creator" as const,
     joinedAt: now,
   },
   {
-    id: "dev-lp-2",
+    id: "b2c3d4e5-0001-4000-8000-000000000002",
     leagueId: leagues[0].id,
     userId: users[1].id,
     role: "member" as const,
     joinedAt: now,
   },
   {
-    id: "dev-lp-3",
+    id: "b2c3d4e5-0001-4000-8000-000000000003",
     leagueId: leagues[0].id,
     userId: users[2].id,
     role: "member" as const,
@@ -120,14 +120,14 @@ const leaguePlayers = [
   },
   // League 2: Bob (creator) + Alice as member
   {
-    id: "dev-lp-4",
+    id: "b2c3d4e5-0001-4000-8000-000000000004",
     leagueId: leagues[1].id,
     userId: users[1].id,
     role: "creator" as const,
     joinedAt: now,
   },
   {
-    id: "dev-lp-5",
+    id: "b2c3d4e5-0001-4000-8000-000000000005",
     leagueId: leagues[1].id,
     userId: users[0].id,
     role: "member" as const,

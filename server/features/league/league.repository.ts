@@ -22,14 +22,12 @@ export function createLeagueRepository(db: Database) {
       );
       return db.transaction(async (tx) => {
         const [newLeague] = await tx.insert(league).values({
-          id: crypto.randomUUID(),
           name: data.name,
           inviteCode: data.inviteCode,
           createdBy: userId,
         }).returning();
         log.debug({ leagueId: newLeague.id }, "league row inserted");
         await tx.insert(leaguePlayer).values({
-          id: crypto.randomUUID(),
           leagueId: newLeague.id,
           userId,
           role: "creator",
@@ -77,7 +75,6 @@ export function createLeagueRepository(db: Database) {
     ): Promise<LeaguePlayerRow> {
       log.debug({ leagueId, userId }, "inserting league player");
       const [player] = await db.insert(leaguePlayer).values({
-        id: crypto.randomUUID(),
         leagueId,
         userId,
         role: "member",
