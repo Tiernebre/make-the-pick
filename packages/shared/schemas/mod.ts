@@ -33,3 +33,7 @@ export {
   updateLeagueSettingsSchema,
 } from "./league.ts";
 export { type Pokemon, pokemonSchema } from "./pokemon.ts";
+export {
+  type PokemonVersion,
+  pokemonVersionSchema,
+} from "./pokemon-version.ts";
