@@ -3,9 +3,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MantineProvider } from "@mantine/core";
 import { LeagueDetailPage } from "./LeagueDetailPage";
 
-const { mockUseLeague, mockUseDeleteLeague, mockDeleteMutate } = vi.hoisted(
+const {
+  mockUseLeague,
+  mockUseLeaguePlayers,
+  mockUseDeleteLeague,
+  mockDeleteMutate,
+} = vi.hoisted(
   () => ({
     mockUseLeague: vi.fn(),
+    mockUseLeaguePlayers: vi.fn(),
     mockUseDeleteLeague: vi.fn(),
     mockDeleteMutate: vi.fn(),
   }),
@@ -13,6 +19,7 @@ const { mockUseLeague, mockUseDeleteLeague, mockDeleteMutate } = vi.hoisted(
 
 vi.mock("./use-leagues", () => ({
   useLeague: mockUseLeague,
+  useLeaguePlayers: mockUseLeaguePlayers,
   useDeleteLeague: mockUseDeleteLeague,
 }));
 
@@ -50,6 +57,7 @@ function renderPage() {
 
 describe("LeagueDetailPage", () => {
   beforeEach(() => {
+    mockUseLeaguePlayers.mockReturnValue({ data: [], isLoading: false });
     mockUseDeleteLeague.mockReturnValue({
       mutate: mockDeleteMutate,
       isPending: false,
