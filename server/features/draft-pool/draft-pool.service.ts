@@ -1,4 +1,4 @@
-import type { Pokemon } from "@make-the-pick/shared";
+import type { Pokemon, PokemonVersion } from "@make-the-pick/shared";
 import { TRPCError } from "@trpc/server";
 import { logger } from "../../logger.ts";
 import type { LeagueRepository } from "../league/league.repository.ts";
@@ -11,6 +11,7 @@ const DEFAULT_POOL_SIZE_MULTIPLIER = 2;
 interface RulesConfig {
   numberOfRounds: number;
   poolSizeMultiplier?: number;
+  gameVersion?: string;
 }
 
 function fisherYatesShuffle<T>(
@@ -29,6 +30,8 @@ export function createDraftPoolService(deps: {
   draftPoolRepo: DraftPoolRepository;
   leagueRepo: LeagueRepository;
   pokemonData: Pokemon[];
+  pokemonVersions?: PokemonVersion[];
+  regionalPokedexes?: Record<string, number[]>;
 }) {
   return {
     async generate(userId: string, input: { leagueId: string }) {
@@ -77,12 +80,49 @@ export function createDraftPoolService(deps: {
       }
 
       const rulesConfig = league.rulesConfig as RulesConfig;
+
+      // Filter Pokemon by regional dex if a game version is specified
+      let eligiblePokemon = deps.pokemonData;
+      if (rulesConfig.gameVersion) {
+        const version = deps.pokemonVersions?.find(
+          (v) => v.id === rulesConfig.gameVersion,
+        );
+        if (!version) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `Unknown game version: ${rulesConfig.gameVersion}`,
+          });
+        }
+
+        const regionalDexIds = deps.regionalPokedexes?.[version.versionGroup];
+        if (!regionalDexIds) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message:
+              `No regional Pokedex data for version group: ${version.versionGroup}`,
+          });
+        }
+
+        const dexIdSet = new Set(regionalDexIds);
+        eligiblePokemon = deps.pokemonData.filter((p) => dexIdSet.has(p.id));
+
+        log.debug(
+          {
+            gameVersion: rulesConfig.gameVersion,
+            versionGroup: version.versionGroup,
+            regionalDexSize: regionalDexIds.length,
+            eligibleCount: eligiblePokemon.length,
+          },
+          "filtered Pokemon by regional dex",
+        );
+      }
+
       const multiplier = rulesConfig.poolSizeMultiplier ??
         DEFAULT_POOL_SIZE_MULTIPLIER;
       const rawPoolSize = Math.floor(
         rulesConfig.numberOfRounds * playerCount * multiplier,
       );
-      const poolSize = Math.min(rawPoolSize, deps.pokemonData.length);
+      const poolSize = Math.min(rawPoolSize, eligiblePokemon.length);
 
       log.debug(
         {
@@ -99,7 +139,7 @@ export function createDraftPoolService(deps: {
       await deps.draftPoolRepo.deleteByLeagueId(input.leagueId);
 
       // Shuffle and select
-      const shuffled = fisherYatesShuffle(deps.pokemonData);
+      const shuffled = fisherYatesShuffle(eligiblePokemon);
       const selected = shuffled.slice(0, poolSize);
 
       // Create pool

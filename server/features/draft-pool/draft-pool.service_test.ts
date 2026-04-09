@@ -1,6 +1,6 @@
 import { assertEquals, assertRejects } from "@std/assert";
 import { TRPCError } from "@trpc/server";
-import type { Pokemon } from "@make-the-pick/shared";
+import type { Pokemon, PokemonVersion } from "@make-the-pick/shared";
 import type { LeagueRepository } from "../league/league.repository.ts";
 import type { DraftPoolRepository } from "./draft-pool.repository.ts";
 import { createDraftPoolService } from "./draft-pool.service.ts";
@@ -621,4 +621,206 @@ Deno.test("draftPoolService.getByLeagueId: throws NOT_FOUND when no pool generat
     TRPCError,
   );
   assertEquals(error.code, "NOT_FOUND");
+});
+
+// --- generate with gameVersion (regional dex filtering) ---
+
+const fakePokemonVersions: PokemonVersion[] = [
+  {
+    id: "leafgreen",
+    name: "Pokemon LeafGreen",
+    versionGroup: "firered-leafgreen",
+    region: "Kanto",
+    generation: 3,
+  },
+  {
+    id: "firered",
+    name: "Pokemon FireRed",
+    versionGroup: "firered-leafgreen",
+    region: "Kanto",
+    generation: 3,
+  },
+  {
+    id: "emerald",
+    name: "Pokemon Emerald",
+    versionGroup: "emerald",
+    region: "Hoenn",
+    generation: 3,
+  },
+];
+
+const fakeRegionalPokedexes: Record<string, number[]> = {
+  "firered-leafgreen": [1, 2, 3, 4, 5],
+  "emerald": [1, 3, 6, 7, 8],
+};
+
+Deno.test("draftPoolService.generate: filters Pokemon by regional dex when gameVersion is set", async () => {
+  const fakeLeague = createFakeLeague({
+    rulesConfig: {
+      draftFormat: "snake",
+      numberOfRounds: 1,
+      pickTimeLimitSeconds: null,
+      poolSizeMultiplier: 2,
+      gameVersion: "leafgreen",
+    },
+  });
+  // Pokemon 1-10, but only 1-5 are in the firered-leafgreen regional dex
+  const pokemonData = createFakePokemonData(10);
+  let capturedItems: unknown[] = [];
+
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve(createCommissionerPlayer(fakeLeague.id)),
+    countPlayers: (_leagueId) => Promise.resolve(2),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    createItems: (items) => {
+      capturedItems = items;
+      return Promise.resolve(
+        items.map((item) => ({
+          id: crypto.randomUUID(),
+          draftPoolId: item.draftPoolId as string,
+          name: item.name as string,
+          thumbnailUrl: (item.thumbnailUrl as string) ?? null,
+          metadata: item.metadata ?? null,
+        })),
+      );
+    },
+  });
+
+  const service = createDraftPoolService({
+    draftPoolRepo,
+    leagueRepo,
+    pokemonData,
+    pokemonVersions: fakePokemonVersions,
+    regionalPokedexes: fakeRegionalPokedexes,
+  });
+
+  const result = await service.generate("user-1", {
+    leagueId: fakeLeague.id,
+  });
+
+  // 1 round * 2 players * 2 multiplier = 4, but only 5 eligible Pokemon
+  assertEquals(result.items.length, 4);
+
+  // All items should be from the regional dex (IDs 1-5)
+  const itemNames = capturedItems.map((i: unknown) =>
+    (i as { name: string }).name
+  );
+  for (const name of itemNames) {
+    const pokemonId = parseInt(name.replace("pokemon-", ""));
+    assertEquals(
+      [1, 2, 3, 4, 5].includes(pokemonId),
+      true,
+      `Pokemon ${name} (id ${pokemonId}) should be in regional dex`,
+    );
+  }
+});
+
+Deno.test("draftPoolService.generate: clamps pool size to regional dex size when gameVersion is set", async () => {
+  const fakeLeague = createFakeLeague({
+    rulesConfig: {
+      draftFormat: "snake",
+      numberOfRounds: 100,
+      pickTimeLimitSeconds: null,
+      poolSizeMultiplier: 3,
+      gameVersion: "leafgreen",
+    },
+  });
+  const pokemonData = createFakePokemonData(100);
+
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve(createCommissionerPlayer(fakeLeague.id)),
+    countPlayers: (_leagueId) => Promise.resolve(10),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo();
+
+  const service = createDraftPoolService({
+    draftPoolRepo,
+    leagueRepo,
+    pokemonData,
+    pokemonVersions: fakePokemonVersions,
+    regionalPokedexes: fakeRegionalPokedexes,
+  });
+
+  const result = await service.generate("user-1", {
+    leagueId: fakeLeague.id,
+  });
+
+  // 100 * 10 * 3 = 3000, clamped to 5 (regional dex size for firered-leafgreen)
+  assertEquals(result.items.length, 5);
+});
+
+Deno.test("draftPoolService.generate: uses all Pokemon when gameVersion is not set", async () => {
+  const fakeLeague = createFakeLeague({
+    rulesConfig: {
+      draftFormat: "snake",
+      numberOfRounds: 1,
+      pickTimeLimitSeconds: null,
+      poolSizeMultiplier: 2,
+      // no gameVersion
+    },
+  });
+  const pokemonData = createFakePokemonData(10);
+
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve(createCommissionerPlayer(fakeLeague.id)),
+    countPlayers: (_leagueId) => Promise.resolve(2),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo();
+
+  const service = createDraftPoolService({
+    draftPoolRepo,
+    leagueRepo,
+    pokemonData,
+    pokemonVersions: fakePokemonVersions,
+    regionalPokedexes: fakeRegionalPokedexes,
+  });
+
+  const result = await service.generate("user-1", {
+    leagueId: fakeLeague.id,
+  });
+
+  // 1 round * 2 players * 2 = 4, all 10 Pokemon eligible
+  assertEquals(result.items.length, 4);
+});
+
+Deno.test("draftPoolService.generate: throws BAD_REQUEST for invalid gameVersion", async () => {
+  const fakeLeague = createFakeLeague({
+    rulesConfig: {
+      draftFormat: "snake",
+      numberOfRounds: 5,
+      pickTimeLimitSeconds: null,
+      poolSizeMultiplier: 2,
+      gameVersion: "nonexistent-version",
+    },
+  });
+  const pokemonData = createFakePokemonData(100);
+
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve(createCommissionerPlayer(fakeLeague.id)),
+    countPlayers: (_leagueId) => Promise.resolve(3),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo();
+
+  const service = createDraftPoolService({
+    draftPoolRepo,
+    leagueRepo,
+    pokemonData,
+    pokemonVersions: fakePokemonVersions,
+    regionalPokedexes: fakeRegionalPokedexes,
+  });
+
+  const error = await assertRejects(
+    () => service.generate("user-1", { leagueId: fakeLeague.id }),
+    TRPCError,
+  );
+  assertEquals(error.code, "BAD_REQUEST");
 });
