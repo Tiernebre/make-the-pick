@@ -1,5 +1,6 @@
 import { assertEquals, assertRejects } from "@std/assert";
 import { TRPCError } from "@trpc/server";
+import type { DraftEvent } from "@make-the-pick/shared";
 import type { DraftPoolRepository } from "../draft-pool/draft-pool.repository.ts";
 import type { LeagueRepository } from "../league/league.repository.ts";
 import {
@@ -7,7 +8,27 @@ import {
   DraftPickConflictError,
   type DraftRepository,
 } from "./draft.repository.ts";
+import type { DraftEventPublisher } from "./draft.events.ts";
 import { createDraftService } from "./draft.service.ts";
+
+interface PublishedEvent {
+  leagueId: string;
+  event: DraftEvent;
+}
+
+function createRecordingPublisher(): DraftEventPublisher & {
+  published: PublishedEvent[];
+} {
+  const published: PublishedEvent[] = [];
+  return {
+    published,
+    subscribe: () => () => {},
+    publish: (leagueId, event) => {
+      published.push({ leagueId, event });
+    },
+    subscriberCount: () => 0,
+  };
+}
 
 type FakeLeague = Awaited<ReturnType<LeagueRepository["findById"]>>;
 type FakePlayer = Awaited<ReturnType<LeagueRepository["findPlayer"]>>;
@@ -802,6 +823,214 @@ Deno.test("draftService.validatePick: returns valid=true for legal pick", async 
   });
   assertEquals(result.valid, true);
 });
+
+// --- event publishing ----------------------------------------------------
+
+Deno.test("draftService.startDraft: publishes draft:started then draft:turn_change", async () => {
+  const league = createFakeLeague({ status: "drafting" });
+  const pool = createFakePool(league.id);
+  const playerA = createLeaguePlayerRow(league.id, "user-1", "commissioner");
+  const playerB = createLeaguePlayerRow(league.id, "user-2", "member");
+
+  let createdDraft: ReturnType<typeof createFakeDraft> | null = null;
+  const draftRepo = createFakeDraftRepo({
+    findByLeagueId: (_id) => Promise.resolve(null as FakeDraft),
+    create: (input) => {
+      createdDraft = createFakeDraft({
+        leagueId: input.leagueId,
+        poolId: input.poolId,
+        pickOrder: input.pickOrder,
+        format: input.format,
+      });
+      return Promise.resolve(createdDraft);
+    },
+    updateStatus: (id, status, timestamps) =>
+      Promise.resolve({
+        ...createdDraft!,
+        id,
+        status: status as "in_progress",
+        startedAt: timestamps.startedAt ?? null,
+        completedAt: timestamps.completedAt ?? null,
+      }),
+    listPicks: (_id) => Promise.resolve([]),
+  });
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(league),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve({ ...playerA, leagueId: league.id }),
+    findPlayersByLeagueId: (_id) => Promise.resolve([playerA, playerB]),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    findByLeagueId: (_id) => Promise.resolve(pool),
+    findItemsByPoolId: (poolId) =>
+      Promise.resolve([
+        createFakePoolItem(poolId),
+        createFakePoolItem(poolId),
+      ]),
+  });
+  const publisher = createRecordingPublisher();
+
+  const service = createDraftService({
+    draftRepo,
+    leagueRepo,
+    draftPoolRepo,
+    draftEventPublisher: publisher,
+  });
+  await service.startDraft({ userId: "user-1", leagueId: league.id });
+
+  assertEquals(publisher.published.length, 2);
+  assertEquals(publisher.published[0].leagueId, league.id);
+  assertEquals(publisher.published[0].event.type, "draft:started");
+  assertEquals(publisher.published[1].leagueId, league.id);
+  assertEquals(publisher.published[1].event.type, "draft:turn_change");
+  if (publisher.published[1].event.type === "draft:turn_change") {
+    assertEquals(publisher.published[1].event.data.pickNumber, 0);
+    assertEquals(publisher.published[1].event.data.round, 0);
+  }
+});
+
+Deno.test("draftService.makePick: non-final pick publishes pick_made then turn_change", async () => {
+  const fx = setupMakePickFakes({ currentPick: 0 });
+  const draftRepo = createFakeDraftRepo({
+    findByLeagueId: (_id) => Promise.resolve(fx.draft),
+    listPicks: (_id) => Promise.resolve([]),
+    createPick: (input) =>
+      Promise.resolve({
+        id: crypto.randomUUID(),
+        draftId: input.draftId,
+        leaguePlayerId: input.leaguePlayerId,
+        poolItemId: input.poolItemId,
+        pickNumber: input.pickNumber,
+        pickedAt: new Date(),
+      }),
+    incrementCurrentPick: (_id) => Promise.resolve(1),
+    findPickByPoolItem: (_d, _p) =>
+      Promise.resolve(null as FakeDraftPick | null),
+  });
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(fx.league),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve({ ...fx.playerA, leagueId: fx.league.id }),
+    findPlayersByLeagueId: (_id) => Promise.resolve([fx.playerA, fx.playerB]),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    findByLeagueId: (_id) => Promise.resolve(fx.pool),
+    findItemsByPoolId: (_id) => Promise.resolve(fx.poolItems),
+  });
+  const publisher = createRecordingPublisher();
+
+  const service = createDraftService({
+    draftRepo,
+    leagueRepo,
+    draftPoolRepo,
+    draftEventPublisher: publisher,
+  });
+  await service.makePick({
+    userId: "user-1",
+    leagueId: fx.league.id,
+    poolItemId: fx.poolItems[0].id,
+  });
+
+  assertEquals(publisher.published.length, 2);
+  assertEquals(publisher.published[0].event.type, "draft:pick_made");
+  if (publisher.published[0].event.type === "draft:pick_made") {
+    assertEquals(
+      publisher.published[0].event.data.poolItemId,
+      fx.poolItems[0].id,
+    );
+    assertEquals(publisher.published[0].event.data.itemName, "pikachu");
+    assertEquals(publisher.published[0].event.data.playerName, fx.playerA.name);
+    assertEquals(publisher.published[0].event.data.pickNumber, 0);
+    assertEquals(publisher.published[0].event.data.round, 0);
+  }
+  assertEquals(publisher.published[1].event.type, "draft:turn_change");
+  if (publisher.published[1].event.type === "draft:turn_change") {
+    assertEquals(publisher.published[1].event.data.pickNumber, 1);
+    assertEquals(
+      publisher.published[1].event.data.currentLeaguePlayerId,
+      fx.playerB.id,
+    );
+  }
+});
+
+Deno.test("draftService.makePick: final pick publishes pick_made then draft:completed", async () => {
+  const fx = setupMakePickFakes({ currentPick: 3, numberOfRounds: 2 });
+  const existingPicks: FakeDraftPick[] = [
+    {
+      id: crypto.randomUUID(),
+      draftId: fx.draft.id,
+      leaguePlayerId: fx.playerA.id,
+      poolItemId: fx.poolItems[0].id,
+      pickNumber: 0,
+      pickedAt: new Date(),
+    },
+    {
+      id: crypto.randomUUID(),
+      draftId: fx.draft.id,
+      leaguePlayerId: fx.playerB.id,
+      poolItemId: fx.poolItems[1].id,
+      pickNumber: 1,
+      pickedAt: new Date(),
+    },
+    {
+      id: crypto.randomUUID(),
+      draftId: fx.draft.id,
+      leaguePlayerId: fx.playerB.id,
+      poolItemId: fx.poolItems[2].id,
+      pickNumber: 2,
+      pickedAt: new Date(),
+    },
+  ];
+
+  const completedAt = new Date();
+  const draftRepo = createFakeDraftRepo({
+    findByLeagueId: (_id) => Promise.resolve(fx.draft),
+    listPicks: (_id) => Promise.resolve(existingPicks),
+    findPickByPoolItem: (_d, poolItemId) =>
+      Promise.resolve(
+        existingPicks.find((p) => p.poolItemId === poolItemId) ??
+          (null as FakeDraftPick | null),
+      ),
+    incrementCurrentPick: (_id) => Promise.resolve(4),
+    updateStatus: (id, status, _ts) =>
+      Promise.resolve({
+        ...fx.draft,
+        id,
+        status: status as "complete",
+        completedAt,
+        currentPick: 4,
+      }),
+  });
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(fx.league),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve({ ...fx.playerA, leagueId: fx.league.id }),
+    findPlayersByLeagueId: (_id) => Promise.resolve([fx.playerA, fx.playerB]),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    findByLeagueId: (_id) => Promise.resolve(fx.pool),
+    findItemsByPoolId: (_id) => Promise.resolve(fx.poolItems),
+  });
+  const publisher = createRecordingPublisher();
+
+  const service = createDraftService({
+    draftRepo,
+    leagueRepo,
+    draftPoolRepo,
+    draftEventPublisher: publisher,
+  });
+  await service.makePick({
+    userId: "user-1",
+    leagueId: fx.league.id,
+    poolItemId: fx.poolItems[3].id,
+  });
+
+  assertEquals(publisher.published.length, 2);
+  assertEquals(publisher.published[0].event.type, "draft:pick_made");
+  assertEquals(publisher.published[1].event.type, "draft:completed");
+});
+
+// --- validatePick ---------------------------------------------------------
 
 Deno.test("draftService.validatePick: returns valid=false when not caller's turn", async () => {
   const fx = setupMakePickFakes({ currentPick: 0 });
