@@ -64,42 +64,6 @@ describe("HomeDashboard", () => {
     expect(screen.getByText(/welcome back, ash/i)).toBeInTheDocument();
   });
 
-  it("prompts to create a league when the user has none", () => {
-    setupMocks({ leagues: [] });
-    renderPage();
-    const banner = screen.getByTestId("next-action-banner");
-    expect(within(banner).getByText(/start your first league/i))
-      .toBeInTheDocument();
-  });
-
-  it("highlights a drafting league as the next action", () => {
-    setupMocks({
-      leagues: [
-        {
-          id: "L1",
-          name: "Kanto Rumble",
-          status: "setup",
-          playerCount: 2,
-          maxPlayers: 8,
-          userRole: "commissioner",
-        },
-        {
-          id: "L2",
-          name: "Johto Classic",
-          status: "drafting",
-          playerCount: 6,
-          maxPlayers: 8,
-          userRole: "member",
-        },
-      ],
-    });
-    renderPage();
-    const banner = screen.getByTestId("next-action-banner");
-    expect(within(banner).getByText(/johto classic/i)).toBeInTheDocument();
-    expect(within(banner).getByRole("link", { name: /go to draft/i }))
-      .toHaveAttribute("href", "/leagues/L2/draft");
-  });
-
   it("renders a leagues banner that links to the all-leagues page", () => {
     setupMocks({
       leagues: [

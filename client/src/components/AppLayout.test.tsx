@@ -19,13 +19,24 @@ vi.mock("../auth", () => ({
   signOut: mockSignOut,
 }));
 
-const { mockUseLeagues, mockDeleteAccountMutate } = vi.hoisted(() => ({
+const {
+  mockUseLeagues,
+  mockUseLeague,
+  mockUseLeaguePlayers,
+  mockDeleteAccountMutate,
+  locationRef,
+} = vi.hoisted(() => ({
   mockUseLeagues: vi.fn(),
+  mockUseLeague: vi.fn(),
+  mockUseLeaguePlayers: vi.fn(),
   mockDeleteAccountMutate: vi.fn(),
+  locationRef: { current: "/" },
 }));
 
 vi.mock("../features/league/use-leagues", () => ({
   useLeagues: mockUseLeagues,
+  useLeague: mockUseLeague,
+  useLeaguePlayers: mockUseLeaguePlayers,
 }));
 
 vi.mock("../trpc", () => ({
@@ -43,7 +54,7 @@ vi.mock("../trpc", () => ({
 
 vi.mock("wouter", async () => {
   const actual = await vi.importActual<typeof import("wouter")>("wouter");
-  return { ...actual, useLocation: () => ["/", vi.fn()] };
+  return { ...actual, useLocation: () => [locationRef.current, vi.fn()] };
 });
 
 function renderLayout(children: React.ReactNode = <div>content</div>) {
@@ -57,8 +68,12 @@ function renderLayout(children: React.ReactNode = <div>content</div>) {
 function setupMocks(
   overrides: {
     leagues?: Array<{ id: string; name: string; status: string }>;
+    location?: string;
+    currentLeague?: { id: string; name: string; status: string } | null;
+    players?: Array<{ userId: string; role: "commissioner" | "player" }>;
   } = {},
 ) {
+  locationRef.current = overrides.location ?? "/";
   mockUseSession.mockReturnValue({
     data: {
       user: { id: "u1", name: "Ash Ketchum", image: null },
@@ -67,6 +82,14 @@ function setupMocks(
   });
   mockUseLeagues.mockReturnValue({
     data: overrides.leagues ?? [],
+    isLoading: false,
+  });
+  mockUseLeague.mockReturnValue({
+    data: overrides.currentLeague ?? null,
+    isLoading: false,
+  });
+  mockUseLeaguePlayers.mockReturnValue({
+    data: overrides.players ?? [],
     isLoading: false,
   });
 }
@@ -172,5 +195,54 @@ describe("AppLayout shell", () => {
     renderLayout();
     const nav = screen.getByRole("navigation");
     expect(within(nav).getByText(/make the pick/i)).toBeInTheDocument();
+  });
+});
+
+describe("AppLayout league mode", () => {
+  afterEach(() => {
+    cleanup();
+    vi.clearAllMocks();
+  });
+
+  it("renders the contextual league sidebar on a league route", () => {
+    setupMocks({
+      location: "/leagues/L1",
+      currentLeague: { id: "L1", name: "Johto Classic", status: "drafting" },
+      players: [{ userId: "u1", role: "commissioner" }],
+    });
+    renderLayout();
+    const nav = screen.getByRole("navigation");
+    expect(within(nav).getByText("Johto Classic")).toBeInTheDocument();
+    expect(within(nav).getByRole("link", { name: /overview/i }))
+      .toHaveAttribute("href", "/leagues/L1");
+    expect(within(nav).getByRole("link", { name: /draft room/i }))
+      .toHaveAttribute("href", "/leagues/L1/draft");
+  });
+
+  it("keeps Home reachable from league mode", () => {
+    setupMocks({
+      location: "/leagues/L1",
+      currentLeague: { id: "L1", name: "Johto", status: "drafting" },
+      players: [{ userId: "u1", role: "player" }],
+    });
+    renderLayout();
+    const nav = screen.getByRole("navigation");
+    const home = within(nav).getByRole("link", { name: /home/i });
+    expect(home).toHaveAttribute("href", "/");
+  });
+
+  it("does not enter league mode on /leagues list route", () => {
+    setupMocks({ location: "/leagues" });
+    renderLayout();
+    const nav = screen.getByRole("navigation");
+    expect(within(nav).queryByRole("link", { name: /all leagues/i }))
+      .toBeNull();
+  });
+
+  it("does not enter league mode on /leagues/new", () => {
+    setupMocks({ location: "/leagues/new" });
+    renderLayout();
+    const nav = screen.getByRole("navigation");
+    expect(within(nav).queryByRole("link", { name: /overview/i })).toBeNull();
   });
 });
