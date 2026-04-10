@@ -1,5 +1,10 @@
 import type { z } from "zod";
 import { array, enum as enum_, nullable, number, object, string } from "zod";
+import {
+  poolItemEffortSchema,
+  poolItemEncounterSchema,
+} from "./pokemon-encounters.ts";
+import { pokemonEvolutionSchema } from "./pokemon-evolutions.ts";
 
 export const poolItemAvailabilitySchema: z.ZodEnum<["early", "mid", "late"]> =
   enum_(["early", "mid", "late"]);
@@ -41,6 +46,9 @@ export const draftPoolItemSchema: z.ZodObject<{
   thumbnailUrl: z.ZodNullable<z.ZodString>;
   metadata: z.ZodNullable<typeof draftPoolItemMetadataSchema>;
   availability: z.ZodNullable<typeof poolItemAvailabilitySchema>;
+  encounter: z.ZodNullable<typeof poolItemEncounterSchema>;
+  effort: z.ZodNullable<typeof poolItemEffortSchema>;
+  evolution: z.ZodNullable<typeof pokemonEvolutionSchema>;
 }> = object({
   id: string().uuid(),
   draftPoolId: string().uuid(),
@@ -48,6 +56,9 @@ export const draftPoolItemSchema: z.ZodObject<{
   thumbnailUrl: nullable(string()),
   metadata: draftPoolItemMetadataSchema.nullable(),
   availability: poolItemAvailabilitySchema.nullable(),
+  encounter: poolItemEncounterSchema.nullable(),
+  effort: poolItemEffortSchema.nullable(),
+  evolution: pokemonEvolutionSchema.nullable(),
 });
 
 export type DraftPoolItem = z.infer<typeof draftPoolItemSchema>;

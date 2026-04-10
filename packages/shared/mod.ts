@@ -72,6 +72,26 @@ export {
   regionalPokedexEntrySchema,
 } from "./schemas/mod.ts";
 export {
+  type EvolutionTrigger,
+  evolutionTriggerSchema,
+  type PokemonEncounterPrimary,
+  pokemonEncounterPrimarySchema,
+  type PokemonEncountersData,
+  pokemonEncountersDataSchema,
+  type PokemonEncountersEntry,
+  pokemonEncountersEntrySchema,
+  type PokemonEncounterSummary,
+  pokemonEncounterSummarySchema,
+  type PokemonEvolution,
+  pokemonEvolutionSchema,
+  type PokemonEvolutionsData,
+  pokemonEvolutionsDataSchema,
+  type PoolItemEffort,
+  poolItemEffortSchema,
+  type PoolItemEncounter,
+  poolItemEncounterSchema,
+} from "./schemas/mod.ts";
+export {
   type PokemonMovesEntry,
   pokemonMovesEntrySchema,
 } from "./schemas/mod.ts";

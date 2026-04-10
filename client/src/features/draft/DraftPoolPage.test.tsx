@@ -63,6 +63,38 @@ const mockPool = {
       name: "Pikachu",
       thumbnailUrl: "https://example.com/pikachu.png",
       availability: "early",
+      encounter: {
+        primary: { location: "Viridian Forest", method: "Walk" },
+        all: [
+          {
+            location: "Viridian Forest",
+            method: "Walk",
+            minLevel: 3,
+            maxLevel: 5,
+            chance: 10,
+          },
+        ],
+      },
+      effort: { score: 2, reasons: ["Rare encounter (10% best chance)"] },
+      evolution: {
+        pokemonId: 25,
+        chainId: 10,
+        evolvesFromId: 172,
+        triggers: [
+          {
+            trigger: "level-up",
+            minLevel: null,
+            item: null,
+            heldItem: null,
+            knownMove: null,
+            minHappiness: 220,
+            timeOfDay: null,
+            needsOverworldRain: false,
+            location: null,
+            tradeSpecies: null,
+          },
+        ],
+      },
       metadata: {
         pokemonId: 25,
         types: ["electric"],
@@ -83,6 +115,27 @@ const mockPool = {
       name: "Charizard",
       thumbnailUrl: "https://example.com/charizard.png",
       availability: "late",
+      encounter: null,
+      effort: { score: 4, reasons: ["No wild encounters in this version"] },
+      evolution: {
+        pokemonId: 6,
+        chainId: 2,
+        evolvesFromId: 5,
+        triggers: [
+          {
+            trigger: "level-up",
+            minLevel: 36,
+            item: null,
+            heldItem: null,
+            knownMove: null,
+            minHappiness: null,
+            timeOfDay: null,
+            needsOverworldRain: false,
+            location: null,
+            tradeSpecies: null,
+          },
+        ],
+      },
       metadata: {
         pokemonId: 6,
         types: ["fire", "flying"],
@@ -152,6 +205,9 @@ describe("DraftPoolPage", () => {
     expect(headerTexts).toContain("Name");
     expect(headerTexts).toContain("Type");
     expect(headerTexts).toContain("Availability");
+    expect(headerTexts).toContain("Found At");
+    expect(headerTexts).toContain("Effort");
+    expect(headerTexts).toContain("Evo");
     expect(headerTexts).toContain("HP");
     expect(headerTexts).toContain("Attack");
     expect(headerTexts).toContain("Defense");
@@ -199,6 +255,39 @@ describe("DraftPoolPage", () => {
     expect(charizardRow).toBeDefined();
     expect(within(pikachuRow!).getByText("Early")).toBeInTheDocument();
     expect(within(charizardRow!).getByText("Late")).toBeInTheDocument();
+  });
+
+  it("shows primary encounter location for species with data", () => {
+    renderPage();
+    const table = screen.getByRole("table");
+    const pikachuRow = within(table).getAllByRole("row").find((row) =>
+      within(row).queryByText("Pikachu")
+    );
+    expect(pikachuRow).toBeDefined();
+    expect(within(pikachuRow!).getByText("Viridian Forest"))
+      .toBeInTheDocument();
+  });
+
+  it("shows em dash for species with no encounter data", () => {
+    renderPage();
+    const table = screen.getByRole("table");
+    const charizardRow = within(table).getAllByRole("row").find((row) =>
+      within(row).queryByText("Charizard")
+    );
+    expect(charizardRow).toBeDefined();
+    // Charizard has encounter: null; location cell renders an em dash
+    expect(within(charizardRow!).getAllByText("—").length).toBeGreaterThan(0);
+  });
+
+  it("shows effort meters with aria-labels", () => {
+    renderPage();
+    const table = screen.getByRole("table");
+    expect(
+      within(table).getByLabelText("Effort 2 of 5"),
+    ).toBeInTheDocument();
+    expect(
+      within(table).getByLabelText("Effort 4 of 5"),
+    ).toBeInTheDocument();
   });
 
   it("displays thumbnail images for each pokemon", () => {
