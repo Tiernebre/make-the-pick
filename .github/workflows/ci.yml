@@ -30,8 +30,9 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
     # TODO: remove once the react-remove-scroll / Linux client test failure is bisected and fixed.
-    # Tracked via bisect PRs — allowing failures here keeps main deploys unblocked.
-    continue-on-error: true
+    # Tolerate failures on main pushes so deploys aren't blocked, but keep PRs strict
+    # so bisect PRs still surface the real pass/fail signal.
+    continue-on-error: ${{ github.event_name != 'pull_request' }}
     services:
       postgres:
         image: postgres:17
