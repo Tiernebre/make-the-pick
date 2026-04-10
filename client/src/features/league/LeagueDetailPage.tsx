@@ -20,11 +20,7 @@ import {
   Tooltip,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import {
-  IconAlertTriangle,
-  IconSettings,
-  IconSparkles,
-} from "@tabler/icons-react";
+import { IconSettings, IconSparkles } from "@tabler/icons-react";
 import { Link, useLocation, useParams } from "wouter";
 import { useSession } from "../../auth";
 import { LifecycleStepper } from "./LifecycleStepper";
@@ -109,17 +105,7 @@ export function LeagueDetailPage() {
 
       {league.data && (
         <>
-          {/* Hero strip */}
-          <Paper
-            withBorder
-            radius="md"
-            p="lg"
-            mb="lg"
-            style={{
-              background:
-                "linear-gradient(135deg, var(--mantine-color-mint-green-0), var(--mantine-color-body))",
-            }}
-          >
+          <Paper withBorder radius="md" p="lg" mb="lg">
             <Group justify="space-between" align="flex-start" wrap="wrap">
               <Stack gap="xs" style={{ flex: 1, minWidth: 260 }}>
                 <Title order={1}>{league.data.name}</Title>
@@ -354,32 +340,17 @@ export function LeagueDetailPage() {
             </Grid.Col>
           </Grid>
 
-          {/* Danger zone — commissioner only, visually isolated from normal actions */}
           {isCommissioner && (
-            <Paper
-              withBorder
-              radius="md"
-              p="md"
-              mt="xl"
-              style={{ borderColor: "var(--mantine-color-red-3)" }}
-            >
-              <Group justify="space-between" wrap="wrap">
-                <Group gap="xs">
-                  <IconAlertTriangle
-                    size={18}
-                    color="var(--mantine-color-red-6)"
-                  />
-                  <Text fw={600} c="red">Danger zone</Text>
-                </Group>
-                <Button
-                  color="red"
-                  variant="light"
-                  onClick={openDelete}
-                >
-                  Delete League
-                </Button>
-              </Group>
-            </Paper>
+            <Group justify="flex-end" mt="xl">
+              <Button
+                color="red"
+                variant="subtle"
+                size="xs"
+                onClick={openDelete}
+              >
+                Delete league
+              </Button>
+            </Group>
           )}
 
           <Modal
