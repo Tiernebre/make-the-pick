@@ -52,6 +52,26 @@ vi.mock("./PausedOverlay", () => ({
       : null,
 }));
 
+vi.mock("./AvailablePoolTable", () => ({
+  AvailablePoolTable: () => (
+    <div data-testid="available-pool-table">Available Pool</div>
+  ),
+}));
+
+vi.mock("./WatchlistPanel", () => ({
+  WatchlistPanel: () => (
+    <div data-testid="watchlist-panel">watchlist-panel</div>
+  ),
+}));
+
+vi.mock("./DraftBoard", () => ({
+  DraftBoard: () => <div data-testid="draft-board">draft-board</div>,
+}));
+
+vi.mock("./AllRostersPanel", () => ({
+  AllRostersPanel: () => <div data-testid="all-rosters-panel">rosters</div>,
+}));
+
 vi.mock("../../auth", () => ({
   useSession: () => ({ data: { user: { id: "user-p1" } } }),
 }));
@@ -173,10 +193,19 @@ describe("DraftPage", () => {
     expect(backLink).toHaveAttribute("href", "/leagues/league-1");
   });
 
-  it("renders the draft board, pick panel, and header when draft is in progress", () => {
+  it("renders the pool table, watchlist, and header when draft is in progress", () => {
     renderPage();
     expect(screen.getByText(/round 1 of 3/i)).toBeInTheDocument();
-    expect(screen.getByText(/available pool/i)).toBeInTheDocument();
+    expect(screen.getByTestId("available-pool-table")).toBeInTheDocument();
+    expect(screen.getByTestId("watchlist-panel")).toBeInTheDocument();
+  });
+
+  it("renders a Draft Results tab containing the draft board and rosters", () => {
+    renderPage();
+    const tab = screen.getByRole("tab", { name: /draft results/i });
+    expect(tab).toBeInTheDocument();
+    expect(screen.getByTestId("draft-board")).toBeInTheDocument();
+    expect(screen.getByTestId("all-rosters-panel")).toBeInTheDocument();
   });
 
   it("shows the pick timer in the header when the draft state has a deadline", () => {
