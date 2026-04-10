@@ -6,5 +6,10 @@ export default defineConfig({
   test: {
     environment: "happy-dom",
     setupFiles: ["./src/test-setup.ts"],
+    server: {
+      deps: {
+        inline: ["react-remove-scroll", "react-remove-scroll-bar"],
+      },
+    },
   },
 });
