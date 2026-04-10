@@ -22,8 +22,11 @@ import {
 import { useDisclosure } from "@mantine/hooks";
 import { IconSettings, IconSparkles } from "@tabler/icons-react";
 import { parseNpcStrategy } from "@make-the-pick/shared";
+import { useMemo } from "react";
 import { Link, useLocation, useParams } from "wouter";
 import { useSession } from "../../auth";
+import { AllRostersPanel } from "../draft/AllRostersPanel";
+import { useDraft } from "../draft/use-draft";
 import { LifecycleStepper } from "./LifecycleStepper";
 import { TrainerCard } from "./TrainerCard";
 import {
@@ -49,6 +52,9 @@ export function LeagueDetailPage() {
   const { id } = useParams<{ id: string }>();
   const league = useLeague(id!);
   const players = useLeaguePlayers(id!);
+  const draft = useDraft(id!, {
+    enabled: league.data?.status === "competing",
+  });
   const { data: session } = useSession();
   const deleteLeague = useDeleteLeague();
   const advanceStatus = useAdvanceLeagueStatus();
@@ -97,6 +103,17 @@ export function LeagueDetailPage() {
   const currentUserPlayer = players.data?.find(
     (p) => p.userId === session?.user?.id,
   );
+
+  const poolItemsById = useMemo(() => {
+    const map: Record<
+      string,
+      NonNullable<typeof draft.data>["poolItems"][number]
+    > = {};
+    for (const item of draft.data?.poolItems ?? []) {
+      map[item.id] = item;
+    }
+    return map;
+  }, [draft.data]);
 
   return (
     <Container size="lg" py="xl" pos="relative">
@@ -310,6 +327,40 @@ export function LeagueDetailPage() {
                         </CopyButton>
                       </Group>
                     </Group>
+                    <Stack gap={4}>
+                      <Text size="sm" fw={500}>Share link</Text>
+                      <Group gap={4} wrap="nowrap">
+                        <Text
+                          ff="monospace"
+                          size="xs"
+                          c="dimmed"
+                          style={{
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {`${globalThis.location.origin}/join/${league.data.inviteCode}`}
+                        </Text>
+                        <CopyButton
+                          value={`${globalThis.location.origin}/join/${league.data.inviteCode}`}
+                        >
+                          {({ copied, copy }) => (
+                            <Tooltip label={copied ? "Copied" : "Copy"}>
+                              <ActionIcon
+                                variant="subtle"
+                                size="sm"
+                                color={copied ? "teal" : "gray"}
+                                onClick={copy}
+                                aria-label="Copy invite link"
+                              >
+                                {copied ? "✓" : "⎘"}
+                              </ActionIcon>
+                            </Tooltip>
+                          )}
+                        </CopyButton>
+                      </Group>
+                    </Stack>
                     <Group justify="space-between">
                       <Text size="sm" fw={500}>Created</Text>
                       <Text size="sm" c="dimmed">
@@ -421,6 +472,15 @@ export function LeagueDetailPage() {
               </Stack>
             </Grid.Col>
           </Grid>
+
+          {league.data.status === "competing" && draft.data && (
+            <Card shadow="sm" padding="lg" radius="md" withBorder mt="lg">
+              <AllRostersPanel
+                draftState={draft.data}
+                poolItemsById={poolItemsById}
+              />
+            </Card>
+          )}
 
           {isCommissioner && (
             <Group justify="flex-end" mt="xl">
