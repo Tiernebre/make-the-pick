@@ -347,6 +347,18 @@ export async function seedDev() {
 
   try {
     const devUser = await ensureDevUser(db);
+
+    const existingDevLeagues = await db.select().from(schema.league).where(
+      eq(schema.league.createdBy, devUser.id),
+    );
+    if (existingDevLeagues.length > 0) {
+      log.info(
+        { count: existingDevLeagues.length },
+        "dev leagues already seeded, skipping",
+      );
+      return;
+    }
+
     const fakePlayers = await ensureFakePlayers(db, PLAYERS_PER_LEAGUE - 1);
 
     for (const spec of LEAGUE_SPECS) {
