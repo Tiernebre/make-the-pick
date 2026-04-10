@@ -101,6 +101,7 @@ export const draftFormatEnum = pgEnum("draft_format", ["snake"]);
 export const draftStatusEnum = pgEnum("draft_status", [
   "pending",
   "in_progress",
+  "paused",
   "complete",
 ]);
 
@@ -119,6 +120,7 @@ export const draft = pgTable("draft", {
   currentTurnDeadline: timestamp("current_turn_deadline", {
     withTimezone: true,
   }),
+  pausedAt: timestamp("paused_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow()
     .notNull(),
 });

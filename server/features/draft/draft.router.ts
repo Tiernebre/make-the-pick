@@ -1,7 +1,10 @@
 import {
   getDraftStateInputSchema,
   makePickInputSchema,
+  pauseDraftInputSchema,
+  resumeDraftInputSchema,
   startDraftInputSchema,
+  undoLastPickInputSchema,
 } from "@make-the-pick/shared";
 import { protectedProcedure, router } from "../../trpc/trpc.ts";
 import type { DraftService } from "./draft.service.ts";
@@ -41,6 +44,33 @@ export function createDraftRouter(draftService: DraftService) {
       .input(getDraftStateInputSchema)
       .query(({ ctx, input }) => {
         return draftService.getState({
+          userId: ctx.user.id,
+          leagueId: input.leagueId,
+        });
+      }),
+
+    pause: protectedProcedure
+      .input(pauseDraftInputSchema)
+      .mutation(({ ctx, input }) => {
+        return draftService.pauseDraft({
+          userId: ctx.user.id,
+          leagueId: input.leagueId,
+        });
+      }),
+
+    resume: protectedProcedure
+      .input(resumeDraftInputSchema)
+      .mutation(({ ctx, input }) => {
+        return draftService.resumeDraft({
+          userId: ctx.user.id,
+          leagueId: input.leagueId,
+        });
+      }),
+
+    undoLastPick: protectedProcedure
+      .input(undoLastPickInputSchema)
+      .mutation(({ ctx, input }) => {
+        return draftService.undoLastPick({
           userId: ctx.user.id,
           leagueId: input.leagueId,
         });

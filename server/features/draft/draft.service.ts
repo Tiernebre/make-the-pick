@@ -616,6 +616,241 @@ export function createDraftService(deps: {
       }
     },
 
+    async pauseDraft(
+      { userId, leagueId }: { userId: string; leagueId: string },
+    ) {
+      log.debug({ userId, leagueId }, "pausing draft");
+      const league = await deps.leagueRepo.findById(leagueId);
+      if (!league) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "League not found" });
+      }
+      const caller = await deps.leagueRepo.findPlayer(leagueId, userId);
+      if (caller?.role !== "commissioner") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only the league commissioner can pause the draft",
+        });
+      }
+      const draftRow = await deps.draftRepo.findByLeagueId(leagueId);
+      if (!draftRow) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "No draft has been created for this league yet",
+        });
+      }
+      if (draftRow.status !== "in_progress") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Can only pause an in-progress draft",
+        });
+      }
+
+      const pausedAt = clock.now();
+      const updated = await deps.draftRepo.pauseDraft(draftRow.id, pausedAt);
+      scheduler?.cancel(draftRow.id);
+
+      const [players, pool] = await Promise.all([
+        deps.leagueRepo.findPlayersByLeagueId(leagueId),
+        deps.draftPoolRepo.findByLeagueId(leagueId),
+      ]);
+      const poolItems = pool
+        ? await deps.draftPoolRepo.findItemsByPoolId(pool.id)
+        : [];
+      const picks = await deps.draftRepo.listPicks(updated.id);
+      const state = toStateShape({ draft: updated, picks, players, poolItems });
+
+      publisher.publish(leagueId, {
+        type: "draft:paused",
+        data: { pausedAt: pausedAt.toISOString() },
+      });
+
+      return state;
+    },
+
+    async resumeDraft(
+      { userId, leagueId }: { userId: string; leagueId: string },
+    ) {
+      log.debug({ userId, leagueId }, "resuming draft");
+      const league = await deps.leagueRepo.findById(leagueId);
+      if (!league) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "League not found" });
+      }
+      const caller = await deps.leagueRepo.findPlayer(leagueId, userId);
+      if (caller?.role !== "commissioner") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only the league commissioner can resume the draft",
+        });
+      }
+      const draftRow = await deps.draftRepo.findByLeagueId(leagueId);
+      if (!draftRow) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "No draft has been created for this league yet",
+        });
+      }
+      if (draftRow.status !== "paused") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Can only resume a paused draft",
+        });
+      }
+
+      const now = clock.now();
+      const pickTimeLimitSeconds = getPickTimeLimitSeconds(league);
+      const deadline = computeTurnDeadline(now, pickTimeLimitSeconds);
+
+      const updated = await deps.draftRepo.resumeDraft(draftRow.id, deadline);
+      scheduler?.schedule(updated.id, leagueId, deadline);
+
+      const [players, pool] = await Promise.all([
+        deps.leagueRepo.findPlayersByLeagueId(leagueId),
+        deps.draftPoolRepo.findByLeagueId(leagueId),
+      ]);
+      const poolItems = pool
+        ? await deps.draftPoolRepo.findItemsByPoolId(pool.id)
+        : [];
+      const picks = await deps.draftRepo.listPicks(updated.id);
+      const state = toStateShape({ draft: updated, picks, players, poolItems });
+
+      publisher.publish(leagueId, {
+        type: "draft:resumed",
+        data: { turnDeadline: deadline ? deadline.toISOString() : null },
+      });
+      publishTurnChange(
+        leagueId,
+        updated.pickOrder as string[],
+        updated.currentPick,
+        deadline,
+      );
+
+      return state;
+    },
+
+    /**
+     * Commissioner-only undo of the most recent pick. Supported from
+     * in_progress, paused, and complete — undoing the final pick flips the
+     * draft back to in_progress with a fresh deadline so play can resume.
+     *
+     * Design decision: from paused we intentionally do NOT emit turn_change
+     * (the draft is still paused — resume will emit a fresh deadline). From
+     * complete we re-schedule the timer on the same deadline we just wrote.
+     */
+    async undoLastPick(
+      { userId, leagueId }: { userId: string; leagueId: string },
+    ) {
+      log.debug({ userId, leagueId }, "undoing last pick");
+      const league = await deps.leagueRepo.findById(leagueId);
+      if (!league) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "League not found" });
+      }
+      const caller = await deps.leagueRepo.findPlayer(leagueId, userId);
+      if (caller?.role !== "commissioner") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only the league commissioner can undo a pick",
+        });
+      }
+      const draftRow = await deps.draftRepo.findByLeagueId(leagueId);
+      if (!draftRow) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "No draft has been created for this league yet",
+        });
+      }
+      if (
+        draftRow.status !== "in_progress" &&
+        draftRow.status !== "paused" &&
+        draftRow.status !== "complete"
+      ) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Cannot undo a pick on a draft that has not started",
+        });
+      }
+      const lastPick = await deps.draftRepo.findLastPick(draftRow.id);
+      if (!lastPick) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Nothing to undo",
+        });
+      }
+
+      const { pick: removedPick, currentPick: newCurrentPick } = await deps
+        .draftRepo.undoLastPick(draftRow.id);
+
+      const pickOrder = draftRow.pickOrder as string[];
+      const removedRound =
+        resolveSnakeTurn(pickOrder, removedPick.pickNumber).round;
+
+      // Re-load draft row so we have the updated currentPick from the repo's
+      // transaction. Also handles the complete → in_progress branch below.
+      let updatedDraft = {
+        ...draftRow,
+        currentPick: newCurrentPick,
+      };
+      let newDeadline: Date | null = null;
+
+      if (draftRow.status === "complete") {
+        newDeadline = computeTurnDeadline(
+          clock.now(),
+          getPickTimeLimitSeconds(league),
+        );
+        updatedDraft = await deps.draftRepo.reopenCompletedDraft(
+          draftRow.id,
+          newDeadline,
+        );
+        scheduler?.schedule(updatedDraft.id, leagueId, newDeadline);
+      } else if (draftRow.status === "in_progress") {
+        newDeadline = computeTurnDeadline(
+          clock.now(),
+          getPickTimeLimitSeconds(league),
+        );
+        await deps.draftRepo.updateTurnDeadline(draftRow.id, newDeadline);
+        updatedDraft = { ...updatedDraft, currentTurnDeadline: newDeadline };
+        scheduler?.schedule(updatedDraft.id, leagueId, newDeadline);
+      } else {
+        // paused — keep deadline null, keep timer cancelled
+        scheduler?.cancel(draftRow.id);
+      }
+
+      const [players, pool] = await Promise.all([
+        deps.leagueRepo.findPlayersByLeagueId(leagueId),
+        deps.draftPoolRepo.findByLeagueId(leagueId),
+      ]);
+      const poolItems = pool
+        ? await deps.draftPoolRepo.findItemsByPoolId(pool.id)
+        : [];
+      const picks = await deps.draftRepo.listPicks(updatedDraft.id);
+      const state = toStateShape({
+        draft: updatedDraft,
+        picks,
+        players,
+        poolItems,
+      });
+
+      publisher.publish(leagueId, {
+        type: "draft:pick_undone",
+        data: {
+          pickNumber: removedPick.pickNumber,
+          leaguePlayerId: removedPick.leaguePlayerId,
+          poolItemId: removedPick.poolItemId,
+          round: removedRound,
+        },
+      });
+
+      if (updatedDraft.status === "in_progress") {
+        publishTurnChange(
+          leagueId,
+          pickOrder,
+          updatedDraft.currentPick,
+          newDeadline,
+        );
+      }
+
+      return state;
+    },
+
     async validatePick(
       { userId, leagueId, poolItemId }: {
         userId: string;
