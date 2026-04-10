@@ -62,6 +62,7 @@ const mockPool = {
       draftPoolId: "pool-1",
       name: "Pikachu",
       thumbnailUrl: "https://example.com/pikachu.png",
+      availability: "early",
       metadata: {
         pokemonId: 25,
         types: ["electric"],
@@ -81,6 +82,7 @@ const mockPool = {
       draftPoolId: "pool-1",
       name: "Charizard",
       thumbnailUrl: "https://example.com/charizard.png",
+      availability: "late",
       metadata: {
         pokemonId: 6,
         types: ["fire", "flying"],
@@ -149,6 +151,7 @@ describe("DraftPoolPage", () => {
     const headerTexts = headers.map((h) => h.textContent);
     expect(headerTexts).toContain("Name");
     expect(headerTexts).toContain("Type");
+    expect(headerTexts).toContain("Availability");
     expect(headerTexts).toContain("HP");
     expect(headerTexts).toContain("Attack");
     expect(headerTexts).toContain("Defense");
@@ -182,6 +185,20 @@ describe("DraftPoolPage", () => {
     expect(screen.getByText("electric")).toBeInTheDocument();
     expect(screen.getByText("fire")).toBeInTheDocument();
     expect(screen.getByText("flying")).toBeInTheDocument();
+  });
+
+  it("shows availability pills for each pokemon", () => {
+    renderPage();
+    const table = screen.getByRole("table");
+    const rows = within(table).getAllByRole("row");
+    const pikachuRow = rows.find((row) => within(row).queryByText("Pikachu"));
+    const charizardRow = rows.find((row) =>
+      within(row).queryByText("Charizard")
+    );
+    expect(pikachuRow).toBeDefined();
+    expect(charizardRow).toBeDefined();
+    expect(within(pikachuRow!).getByText("Early")).toBeInTheDocument();
+    expect(within(charizardRow!).getByText("Late")).toBeInTheDocument();
   });
 
   it("displays thumbnail images for each pokemon", () => {

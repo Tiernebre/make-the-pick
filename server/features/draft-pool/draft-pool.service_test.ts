@@ -1129,6 +1129,208 @@ Deno.test("draftPoolService.generate: throws BAD_REQUEST for invalid gameVersion
   assertEquals(error.code, "BAD_REQUEST");
 });
 
+// --- getByLeagueId availability derivation ---
+
+const nineEntryRegionalPokedexes: Record<string, RegionalPokedexEntry[]> = {
+  "firered-leafgreen": Array.from({ length: 9 }, (_, i) => ({
+    pokemonId: i + 1,
+    dexNumber: i + 1,
+  })),
+};
+
+function createFakeStoredPoolItem(
+  poolId: string,
+  pokemonId: number,
+): FakePoolItem {
+  return {
+    id: crypto.randomUUID(),
+    draftPoolId: poolId,
+    name: `pokemon-${pokemonId}`,
+    thumbnailUrl: null,
+    metadata: {
+      pokemonId,
+      types: ["normal"],
+      baseStats: {
+        hp: 50,
+        attack: 50,
+        defense: 50,
+        specialAttack: 50,
+        specialDefense: 50,
+        speed: 50,
+      },
+      generation: "generation-i",
+    },
+  };
+}
+
+Deno.test("draftPoolService.getByLeagueId: derives availability from regional dex thirds", async () => {
+  const fakeLeague = createFakeLeague({
+    rulesConfig: {
+      draftFormat: "snake",
+      numberOfRounds: 5,
+      pickTimeLimitSeconds: null,
+      poolSizeMultiplier: 2,
+      gameVersion: "leafgreen",
+    },
+  });
+  const fakePool = {
+    id: crypto.randomUUID(),
+    leagueId: fakeLeague.id,
+    name: "Pool",
+    createdAt: new Date(),
+  };
+  // Dex size 9 → early [1-3], mid [4-6], late [7-9]
+  const storedItems = [
+    createFakeStoredPoolItem(fakePool.id, 1),
+    createFakeStoredPoolItem(fakePool.id, 3),
+    createFakeStoredPoolItem(fakePool.id, 4),
+    createFakeStoredPoolItem(fakePool.id, 6),
+    createFakeStoredPoolItem(fakePool.id, 7),
+    createFakeStoredPoolItem(fakePool.id, 9),
+  ];
+
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve(createMemberPlayer(fakeLeague.id)),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    findByLeagueId: (_leagueId) => Promise.resolve(fakePool),
+    findItemsByPoolId: (_poolId) => Promise.resolve(storedItems),
+  });
+
+  const service = createDraftPoolService({
+    draftPoolRepo,
+    leagueRepo,
+    pokemonData: [],
+    pokemonVersions: fakePokemonVersions,
+    regionalPokedexes: nineEntryRegionalPokedexes,
+  });
+
+  const result = await service.getByLeagueId("user-2", fakeLeague.id);
+  const byPokemonId = new Map(
+    result.items.map((item) => [item.metadata?.pokemonId, item.availability]),
+  );
+  assertEquals(byPokemonId.get(1), "early");
+  assertEquals(byPokemonId.get(3), "early");
+  assertEquals(byPokemonId.get(4), "mid");
+  assertEquals(byPokemonId.get(6), "mid");
+  assertEquals(byPokemonId.get(7), "late");
+  assertEquals(byPokemonId.get(9), "late");
+});
+
+Deno.test("draftPoolService.getByLeagueId: returns null availability when league has no gameVersion", async () => {
+  const fakeLeague = createFakeLeague();
+  const fakePool = {
+    id: crypto.randomUUID(),
+    leagueId: fakeLeague.id,
+    name: "Pool",
+    createdAt: new Date(),
+  };
+  const storedItems = [createFakeStoredPoolItem(fakePool.id, 1)];
+
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve(createMemberPlayer(fakeLeague.id)),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    findByLeagueId: (_leagueId) => Promise.resolve(fakePool),
+    findItemsByPoolId: (_poolId) => Promise.resolve(storedItems),
+  });
+
+  const service = createDraftPoolService({
+    draftPoolRepo,
+    leagueRepo,
+    pokemonData: [],
+    pokemonVersions: fakePokemonVersions,
+    regionalPokedexes: fakeRegionalPokedexes,
+  });
+
+  const result = await service.getByLeagueId("user-2", fakeLeague.id);
+  assertEquals(result.items[0].availability, null);
+});
+
+Deno.test("draftPoolService.getByLeagueId: returns null availability for pool items not in the regional dex", async () => {
+  const fakeLeague = createFakeLeague({
+    rulesConfig: {
+      draftFormat: "snake",
+      numberOfRounds: 5,
+      pickTimeLimitSeconds: null,
+      poolSizeMultiplier: 2,
+      gameVersion: "leafgreen",
+    },
+  });
+  const fakePool = {
+    id: crypto.randomUUID(),
+    leagueId: fakeLeague.id,
+    name: "Pool",
+    createdAt: new Date(),
+  };
+  // pokemonId 999 is not in any regional dex
+  const storedItems = [createFakeStoredPoolItem(fakePool.id, 999)];
+
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve(createMemberPlayer(fakeLeague.id)),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    findByLeagueId: (_leagueId) => Promise.resolve(fakePool),
+    findItemsByPoolId: (_poolId) => Promise.resolve(storedItems),
+  });
+
+  const service = createDraftPoolService({
+    draftPoolRepo,
+    leagueRepo,
+    pokemonData: [],
+    pokemonVersions: fakePokemonVersions,
+    regionalPokedexes: nineEntryRegionalPokedexes,
+  });
+
+  const result = await service.getByLeagueId("user-2", fakeLeague.id);
+  assertEquals(result.items[0].availability, null);
+});
+
+Deno.test("draftPoolService.generate: populates availability on returned items", async () => {
+  const fakeLeague = createFakeLeague({
+    rulesConfig: {
+      draftFormat: "snake",
+      numberOfRounds: 1,
+      pickTimeLimitSeconds: null,
+      poolSizeMultiplier: 2,
+      gameVersion: "leafgreen",
+    },
+  });
+  const pokemonData = createFakePokemonData(9);
+
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve(createCommissionerPlayer(fakeLeague.id)),
+    countPlayers: (_leagueId) => Promise.resolve(2),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo();
+
+  const service = createDraftPoolService({
+    draftPoolRepo,
+    leagueRepo,
+    pokemonData,
+    pokemonVersions: fakePokemonVersions,
+    regionalPokedexes: nineEntryRegionalPokedexes,
+  });
+
+  const result = await service.generate("user-1", { leagueId: fakeLeague.id });
+  for (const item of result.items) {
+    const bucket = item.availability;
+    assertEquals(
+      bucket === "early" || bucket === "mid" || bucket === "late",
+      true,
+      `item ${item.name} should have an availability bucket, got ${bucket}`,
+    );
+  }
+});
+
 Deno.test("draftPoolService.generate: throws when all Pokemon are excluded by filters", async () => {
   const fakeLeague = createFakeLeague({
     rulesConfig: {

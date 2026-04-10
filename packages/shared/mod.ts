@@ -38,6 +38,8 @@ export {
   draftPoolSchema,
   type GenerateDraftPoolInput,
   generateDraftPoolSchema,
+  type PoolItemAvailability,
+  poolItemAvailabilitySchema,
 } from "./schemas/mod.ts";
 export { type HealthResponse, healthResponseSchema } from "./schemas/mod.ts";
 export {
