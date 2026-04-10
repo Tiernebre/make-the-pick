@@ -2,13 +2,39 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MantineProvider } from "@mantine/core";
 import { DraftPage } from "./DraftPage";
+import { makeDraftState, makePlayer } from "./fixtures";
 
-const { mockUseLeague } = vi.hoisted(() => ({
+const {
+  mockUseLeague,
+  mockUseLeaguePlayers,
+  mockUseDraft,
+  mockUseMakePick,
+  mockUseStartDraft,
+  mockStartDraftMutate,
+  mockMakePickMutate,
+} = vi.hoisted(() => ({
   mockUseLeague: vi.fn(),
+  mockUseLeaguePlayers: vi.fn(),
+  mockUseDraft: vi.fn(),
+  mockUseMakePick: vi.fn(),
+  mockUseStartDraft: vi.fn(),
+  mockStartDraftMutate: vi.fn(),
+  mockMakePickMutate: vi.fn(),
 }));
 
 vi.mock("../league/use-leagues", () => ({
   useLeague: mockUseLeague,
+  useLeaguePlayers: mockUseLeaguePlayers,
+}));
+
+vi.mock("./use-draft", () => ({
+  useDraft: mockUseDraft,
+  useMakePick: mockUseMakePick,
+  useStartDraft: mockUseStartDraft,
+}));
+
+vi.mock("../../auth", () => ({
+  useSession: () => ({ data: { user: { id: "user-p1" } } }),
 }));
 
 vi.mock("wouter", async () => {
@@ -27,10 +53,28 @@ const mockLeague = {
   sportType: "pokemon",
   rulesConfig: {
     draftFormat: "snake",
-    numberOfRounds: 10,
+    numberOfRounds: 3,
     pickTimeLimitSeconds: null,
   },
   createdAt: "2026-01-01T00:00:00Z",
+};
+
+const commissionerPlayer = {
+  id: "p1",
+  userId: "user-p1",
+  name: "Alice",
+  image: null,
+  role: "commissioner" as const,
+  joinedAt: "2026-01-01T00:00:00Z",
+};
+
+const memberPlayer = {
+  id: "p2",
+  userId: "user-p2",
+  name: "Bob",
+  image: null,
+  role: "member" as const,
+  joinedAt: "2026-01-01T00:00:00Z",
 };
 
 function renderPage() {
@@ -44,11 +88,58 @@ function renderPage() {
 describe("DraftPage", () => {
   beforeEach(() => {
     mockUseLeague.mockReturnValue({ data: mockLeague, isLoading: false });
+    mockUseLeaguePlayers.mockReturnValue({
+      data: [commissionerPlayer, memberPlayer],
+      isLoading: false,
+    });
+    mockUseDraft.mockReturnValue({
+      data: makeDraftState({
+        players: [
+          makePlayer("p1", "Alice", {
+            userId: "user-p1",
+            role: "commissioner",
+          }),
+          makePlayer("p2", "Bob", { userId: "user-p2" }),
+        ],
+        currentPick: 0,
+      }),
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+    mockUseMakePick.mockReturnValue({
+      mutate: mockMakePickMutate,
+      mutateAsync: vi.fn(),
+      isPending: false,
+      error: null,
+    });
+    mockUseStartDraft.mockReturnValue({
+      mutate: mockStartDraftMutate,
+      mutateAsync: vi.fn(),
+      isPending: false,
+      error: null,
+    });
   });
 
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+  });
+
+  it("shows loading overlay when league is loading", () => {
+    mockUseLeague.mockReturnValue({ data: undefined, isLoading: true });
+    mockUseDraft.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      error: null,
+      refetch: vi.fn(),
+    });
+    renderPage();
+    expect(
+      document.querySelector(
+        "[data-mantine-loading-overlay],.mantine-LoadingOverlay-root",
+      ),
+    ).toBeInTheDocument();
   });
 
   it("shows the league name in the title", () => {
@@ -59,17 +150,68 @@ describe("DraftPage", () => {
   it("has a back link to the league detail page", () => {
     renderPage();
     const backLink = screen.getByRole("link", { name: /back to league/i });
-    expect(backLink).toBeInTheDocument();
     expect(backLink).toHaveAttribute("href", "/leagues/league-1");
   });
 
-  it("shows loading overlay when league is loading", () => {
-    mockUseLeague.mockReturnValue({ data: undefined, isLoading: true });
+  it("renders the draft board, pick panel, and header when draft is in progress", () => {
+    renderPage();
+    expect(screen.getByText(/round 1 of 3/i)).toBeInTheDocument();
+    expect(screen.getByText(/available pool/i)).toBeInTheDocument();
+  });
+
+  it("shows waiting message when draft status is pending", () => {
+    mockUseDraft.mockReturnValue({
+      data: makeDraftState({
+        status: "pending",
+        players: [
+          makePlayer("p1", "Alice", {
+            userId: "user-p1",
+            role: "commissioner",
+          }),
+          makePlayer("p2", "Bob", { userId: "user-p2" }),
+        ],
+      }),
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+    renderPage();
+    expect(screen.getByText(/draft has not started/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/waiting for the commissioner/i),
+    ).toBeInTheDocument();
+  });
+
+  it("shows Start Draft button when pending and user is commissioner", () => {
+    mockUseDraft.mockReturnValue({
+      data: makeDraftState({ status: "pending" }),
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
     renderPage();
     expect(
-      document.querySelector(
-        "[data-mantine-loading-overlay],.mantine-LoadingOverlay-root",
-      ),
+      screen.getByRole("button", { name: /start draft/i }),
     ).toBeInTheDocument();
+  });
+
+  it("does not show Start Draft button when pending and user is not commissioner", () => {
+    mockUseLeaguePlayers.mockReturnValue({
+      data: [
+        { ...commissionerPlayer, userId: "user-someone-else" },
+        { ...memberPlayer, userId: "user-p1" },
+      ],
+      isLoading: false,
+    });
+    mockUseDraft.mockReturnValue({
+      data: makeDraftState({ status: "pending" }),
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+    renderPage();
+    expect(
+      screen.queryByRole("button", { name: /start draft/i }),
+    ).not.toBeInTheDocument();
   });
 });
