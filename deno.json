@@ -7,14 +7,14 @@
     "singleQuote": false
   },
   "tasks": {
-    "setup": "test -f .env || cp .env.example .env && deno install",
-    "dev": "deno task setup && deno task db:start && deno task db:migrate:dev && deno task seed:dev && deno run -A npm:concurrently -n server,client -c blue,green \"deno task dev:server\" \"deno task dev:client\"",
+    "setup": "./bin/setup",
+    "dev": "./bin/dev",
     "db:migrate:dev": "cd server && deno run --allow-net --allow-env --allow-read --allow-sys --env=../.env db/migrate.ts",
     "seed:dev": "cd server && deno run --allow-net --allow-env --allow-read --allow-sys --env=../.env cli.ts seed dev",
     "dev:server": "cd server && deno run --watch --allow-net --allow-env --allow-read --allow-sys --env main.ts | deno run -A npm:pino-pretty",
     "dev:client": "cd client && deno run -A npm:vite",
-    "test": "deno task test:server && deno task test:client",
-    "test:e2e": "deno run --allow-net --allow-env --allow-read --allow-run --allow-sys e2e/setup.ts && cd e2e && npx playwright test",
+    "test": "./bin/test",
+    "test:e2e": "./bin/test-e2e",
     "test:server": "deno test server/ --allow-env --allow-net --allow-read --allow-sys --env=.env.example",
     "test:client": "cd client && deno run -A npm:vitest run",
     "build": "cd client && deno task build",
