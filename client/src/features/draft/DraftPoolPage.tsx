@@ -12,7 +12,10 @@ import {
 import { WatchlistPanel } from "./WatchlistPanel";
 import { PoolItemNoteIcon } from "./PoolItemNoteIcon";
 import { IconStar, IconStarFilled } from "@tabler/icons-react";
-import type { DraftPoolItem } from "@make-the-pick/shared";
+import type {
+  DraftPoolItem,
+  PoolItemAvailability,
+} from "@make-the-pick/shared";
 import { Link, useParams } from "wouter";
 import { useLeague } from "../league/use-leagues";
 import { useDraftPool } from "./use-draft";
@@ -64,6 +67,22 @@ function getStatTotal(item: DraftPoolItem): number | null {
 }
 
 const ALL_POKEMON_TYPES = Object.keys(POKEMON_TYPE_COLORS);
+
+const AVAILABILITY_META: Record<
+  PoolItemAvailability,
+  { label: string; color: string; order: number }
+> = {
+  early: { label: "Early", color: "teal", order: 0 },
+  mid: { label: "Mid", color: "yellow", order: 1 },
+  late: { label: "Late", color: "red", order: 2 },
+};
+
+const AVAILABILITY_FILTER_OPTIONS = (
+  ["early", "mid", "late"] as PoolItemAvailability[]
+).map((value) => ({
+  value,
+  label: AVAILABILITY_META[value].label,
+}));
 
 export function DraftPoolPage() {
   const { id } = useParams<{ id: string }>();
@@ -202,6 +221,42 @@ export function DraftPoolPage() {
               </Group>
             )
             : null,
+      },
+      {
+        id: "availability",
+        accessorFn: (row) => row.availability,
+        header: "Availability",
+        grow: false,
+        filterVariant: "multi-select",
+        mantineFilterMultiSelectProps: {
+          data: AVAILABILITY_FILTER_OPTIONS,
+        },
+        sortingFn: (rowA, rowB) => {
+          const a = rowA.original.availability;
+          const b = rowB.original.availability;
+          const aOrder = a
+            ? AVAILABILITY_META[a].order
+            : Number.MAX_SAFE_INTEGER;
+          const bOrder = b
+            ? AVAILABILITY_META[b].order
+            : Number.MAX_SAFE_INTEGER;
+          return aOrder - bOrder;
+        },
+        filterFn: (row, _columnId, filterValues: string[]) => {
+          if (!filterValues || filterValues.length === 0) return true;
+          const value = row.original.availability;
+          return value !== null && filterValues.includes(value);
+        },
+        Cell: ({ row }) => {
+          const value = row.original.availability;
+          if (!value) return <span style={{ color: "#999" }}>—</span>;
+          const meta = AVAILABILITY_META[value];
+          return (
+            <Badge size="md" variant="light" color={meta.color}>
+              {meta.label}
+            </Badge>
+          );
+        },
       },
       {
         accessorFn: (row) => row.metadata?.baseStats?.hp ?? null,

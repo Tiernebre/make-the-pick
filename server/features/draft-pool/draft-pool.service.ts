@@ -1,6 +1,8 @@
 import type {
+  DraftPoolItemMetadata,
   Pokemon,
   PokemonVersion,
+  PoolItemAvailability,
   RegionalPokedexEntry,
 } from "@make-the-pick/shared";
 import { TRPCError } from "@trpc/server";
@@ -19,6 +21,79 @@ interface RulesConfig {
   excludeLegendaries?: boolean;
   excludeStarters?: boolean;
   excludeTradeEvolutions?: boolean;
+}
+
+interface StoredPoolItem {
+  id: string;
+  draftPoolId: string;
+  name: string;
+  thumbnailUrl: string | null;
+  metadata: unknown;
+}
+
+interface AugmentedPoolItem {
+  id: string;
+  draftPoolId: string;
+  name: string;
+  thumbnailUrl: string | null;
+  metadata: DraftPoolItemMetadata | null;
+  availability: PoolItemAvailability | null;
+}
+
+export function computeAvailabilityBucket(
+  dexNumber: number,
+  dexSize: number,
+): PoolItemAvailability {
+  const earlyCutoff = Math.ceil(dexSize / 3);
+  const midCutoff = Math.ceil((dexSize * 2) / 3);
+  if (dexNumber <= earlyCutoff) return "early";
+  if (dexNumber <= midCutoff) return "mid";
+  return "late";
+}
+
+function augmentItemsWithAvailability(
+  items: StoredPoolItem[],
+  regionalDex: RegionalPokedexEntry[] | undefined,
+): AugmentedPoolItem[] {
+  const dexByPokemonId = new Map<number, number>();
+  const dexSize = regionalDex?.length ?? 0;
+  if (regionalDex) {
+    for (const entry of regionalDex) {
+      dexByPokemonId.set(entry.pokemonId, entry.dexNumber);
+    }
+  }
+
+  return items.map((item) => {
+    const metadata = item.metadata as DraftPoolItemMetadata | null;
+    let availability: PoolItemAvailability | null = null;
+    if (metadata && dexSize > 0) {
+      const dexNumber = dexByPokemonId.get(metadata.pokemonId);
+      if (dexNumber !== undefined) {
+        availability = computeAvailabilityBucket(dexNumber, dexSize);
+      }
+    }
+    return {
+      id: item.id,
+      draftPoolId: item.draftPoolId,
+      name: item.name,
+      thumbnailUrl: item.thumbnailUrl,
+      metadata,
+      availability,
+    };
+  });
+}
+
+function resolveRegionalDexForLeague(
+  rulesConfig: RulesConfig | null,
+  pokemonVersions: PokemonVersion[] | undefined,
+  regionalPokedexes: Record<string, RegionalPokedexEntry[]> | undefined,
+): RegionalPokedexEntry[] | undefined {
+  if (!rulesConfig?.gameVersion) return undefined;
+  const version = pokemonVersions?.find((v) =>
+    v.id === rulesConfig.gameVersion
+  );
+  if (!version) return undefined;
+  return regionalPokedexes?.[version.versionGroup];
 }
 
 function fisherYatesShuffle<T>(
@@ -208,7 +283,14 @@ export function createDraftPoolService(deps: {
         "draft pool generated",
       );
 
-      return { ...pool, items };
+      const regionalDex = resolveRegionalDexForLeague(
+        rulesConfig,
+        deps.pokemonVersions,
+        deps.regionalPokedexes,
+      );
+      const augmentedItems = augmentItemsWithAvailability(items, regionalDex);
+
+      return { ...pool, items: augmentedItems };
     },
 
     async getByLeagueId(userId: string, leagueId: string) {
@@ -237,7 +319,14 @@ export function createDraftPoolService(deps: {
 
       const items = await deps.draftPoolRepo.findItemsByPoolId(pool.id);
 
-      return { ...pool, items };
+      const regionalDex = resolveRegionalDexForLeague(
+        league.rulesConfig as RulesConfig | null,
+        deps.pokemonVersions,
+        deps.regionalPokedexes,
+      );
+      const augmentedItems = augmentItemsWithAvailability(items, regionalDex);
+
+      return { ...pool, items: augmentedItems };
     },
   };
 }
