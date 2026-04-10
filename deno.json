@@ -19,7 +19,7 @@
     "test:client": "cd client && deno run -A npm:vitest run",
     "build": "cd client && deno task build",
     "start": "cd server && deno run --allow-net --allow-env --allow-read --allow-sys --env main.ts",
-    "db:start": "docker compose up -d",
+    "db:start": "docker compose up -d --wait",
     "db:stop": "docker compose down",
     "db:generate": "cd server && deno run -A npm:drizzle-kit generate",
     "db:migrate": "cd server && deno run --allow-net --allow-env --allow-read --allow-sys --env=../.env.example db/migrate.ts",

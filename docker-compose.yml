@@ -7,5 +7,10 @@ services:
       POSTGRES_USER: make_the_pick
       POSTGRES_PASSWORD: make_the_pick
       POSTGRES_DB: make_the_pick
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U make_the_pick"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
     volumes:
       - ./scripts/init-e2e-db.sql:/docker-entrypoint-initdb.d/init-e2e-db.sql
