@@ -1,8 +1,5 @@
-import type {
-  DraftPoolItem,
-  DraftState,
-  LeaguePlayer,
-} from "@make-the-pick/shared";
+import type { DraftPoolItem, LeaguePlayer } from "@make-the-pick/shared";
+import type { DraftPick, DraftState } from "./draft-types.ts";
 
 export function makePlayer(
   id: string,
@@ -46,15 +43,40 @@ export function makePoolItem(
   };
 }
 
+export interface MakePickOverrides {
+  id?: string;
+  draftId?: string;
+  pickedAt?: string;
+  autoPicked?: boolean;
+}
+
+export function makePick(
+  poolItemId: string,
+  leaguePlayerId: string,
+  pickNumber: number,
+  overrides: MakePickOverrides = {},
+): DraftPick {
+  return {
+    id: overrides.id ?? `pk-${pickNumber}`,
+    draftId: overrides.draftId ?? "draft-1",
+    leaguePlayerId,
+    poolItemId,
+    pickNumber,
+    pickedAt: overrides.pickedAt ?? "2026-01-01T00:00:00Z",
+    autoPicked: overrides.autoPicked ?? false,
+  };
+}
+
 export interface DraftStateOverrides {
   status?: string;
   currentPick?: number;
   pickOrder?: string[];
   players?: LeaguePlayer[];
   poolItems?: DraftPoolItem[];
-  picks?: DraftState["picks"];
+  picks?: DraftPick[];
   availableItemIds?: string[];
   leagueId?: string;
+  currentTurnDeadline?: string | null;
 }
 
 export function makeDraftState(
@@ -85,6 +107,7 @@ export function makeDraftState(
       currentPick: overrides.currentPick ?? 0,
       startedAt: "2026-01-01T00:00:00Z",
       completedAt: null,
+      currentTurnDeadline: overrides.currentTurnDeadline ?? null,
     },
     picks,
     players,
