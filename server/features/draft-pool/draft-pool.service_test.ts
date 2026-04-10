@@ -79,6 +79,7 @@ function createFakePokemonData(count: number): Pokemon[] {
       speed: 50,
     },
     generation: "generation-i",
+    captureRate: 45,
     spriteUrl: `https://example.com/sprite-${i + 1}.png`,
   }));
 }
@@ -423,6 +424,7 @@ Deno.test("draftPoolService.generate: maps Pokemon metadata correctly", async ()
       speed: 90,
     },
     generation: "generation-i",
+    captureRate: 190,
     spriteUrl: "https://example.com/pikachu.png",
   }, {
     id: 6,
@@ -437,6 +439,7 @@ Deno.test("draftPoolService.generate: maps Pokemon metadata correctly", async ()
       speed: 100,
     },
     generation: "generation-i",
+    captureRate: 45,
     spriteUrl: "https://example.com/charizard.png",
   }];
 

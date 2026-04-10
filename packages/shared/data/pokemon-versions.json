@@ -24,21 +24,21 @@
     "id": "gold",
     "name": "Gold",
     "versionGroup": "gold-silver",
-    "region": "Johto",
+    "region": "Kanto",
     "generation": 2
   },
   {
     "id": "silver",
     "name": "Silver",
     "versionGroup": "gold-silver",
-    "region": "Johto",
+    "region": "Kanto",
     "generation": 2
   },
   {
     "id": "crystal",
     "name": "Crystal",
     "versionGroup": "crystal",
-    "region": "Johto",
+    "region": "Kanto",
     "generation": 2
   },
   {
@@ -101,14 +101,14 @@
     "id": "heartgold",
     "name": "HeartGold",
     "versionGroup": "heartgold-soulsilver",
-    "region": "Johto",
+    "region": "Kanto",
     "generation": 4
   },
   {
     "id": "soulsilver",
     "name": "SoulSilver",
     "versionGroup": "heartgold-soulsilver",
-    "region": "Johto",
+    "region": "Kanto",
     "generation": 4
   },
   {
@@ -124,6 +124,20 @@
     "versionGroup": "black-white",
     "region": "Unova",
     "generation": 5
+  },
+  {
+    "id": "colosseum",
+    "name": "Colosseum",
+    "versionGroup": "colosseum",
+    "region": "Unknown",
+    "generation": 3
+  },
+  {
+    "id": "xd",
+    "name": "XD",
+    "versionGroup": "xd",
+    "region": "Unknown",
+    "generation": 3
   },
   {
     "id": "black-2",
@@ -197,14 +211,14 @@
   },
   {
     "id": "lets-go-pikachu",
-    "name": "Let\u2019s Go, Pikachu!",
+    "name": "Let’s Go, Pikachu!",
     "versionGroup": "lets-go-pikachu-lets-go-eevee",
     "region": "Kanto",
     "generation": 7
   },
   {
     "id": "lets-go-eevee",
-    "name": "Let\u2019s Go, Eevee!",
+    "name": "Let’s Go, Eevee!",
     "versionGroup": "lets-go-pikachu-lets-go-eevee",
     "region": "Kanto",
     "generation": 7
@@ -220,6 +234,20 @@
     "id": "shield",
     "name": "Shield",
     "versionGroup": "sword-shield",
+    "region": "Galar",
+    "generation": 8
+  },
+  {
+    "id": "the-isle-of-armor",
+    "name": "The Isle of Armor",
+    "versionGroup": "the-isle-of-armor",
+    "region": "Galar",
+    "generation": 8
+  },
+  {
+    "id": "the-crown-tundra",
+    "name": "The Crown Tundra",
+    "versionGroup": "the-crown-tundra",
     "region": "Galar",
     "generation": 8
   },
@@ -259,10 +287,52 @@
     "generation": 9
   },
   {
+    "id": "the-teal-mask",
+    "name": "The Teal Mask",
+    "versionGroup": "the-teal-mask",
+    "region": "Paldea",
+    "generation": 9
+  },
+  {
+    "id": "the-indigo-disk",
+    "name": "The Indigo Disk",
+    "versionGroup": "the-indigo-disk",
+    "region": "Paldea",
+    "generation": 9
+  },
+  {
+    "id": "red-japan",
+    "name": "Red",
+    "versionGroup": "red-green-japan",
+    "region": "Kanto",
+    "generation": 1
+  },
+  {
+    "id": "green-japan",
+    "name": "Green",
+    "versionGroup": "red-green-japan",
+    "region": "Kanto",
+    "generation": 1
+  },
+  {
+    "id": "blue-japan",
+    "name": "Blue",
+    "versionGroup": "blue-japan",
+    "region": "Kanto",
+    "generation": 1
+  },
+  {
     "id": "legends-za",
     "name": "Legends: Z-A",
     "versionGroup": "legends-za",
-    "region": "Kalos",
+    "region": "Unknown",
+    "generation": 9
+  },
+  {
+    "id": "mega-dimension",
+    "name": "Mega Dimension",
+    "versionGroup": "mega-dimension",
+    "region": "Unknown",
     "generation": 9
   }
 ]
