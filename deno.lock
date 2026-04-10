@@ -44,6 +44,8 @@
     "npm:react@19": "19.2.4",
     "npm:trpc-cli@0": "0.14.0_@trpc+server@11.16.0__typescript@6.0.2_zod@3.25.76",
     "npm:trpc-ui@1": "1.0.15_@trpc+server@11.16.0__typescript@6.0.2_zod@3.25.76_@emotion+react@11.14.0__react@19.2.4_@emotion+styled@11.14.1__@emotion+react@11.14.0___react@19.2.4__react@19.2.4_@mui+material@5.18.0__@emotion+react@11.14.0___react@19.2.4__@emotion+styled@11.14.1___@emotion+react@11.14.0____react@19.2.4___react@19.2.4__@types+react@19.2.14__react@19.2.4__react-dom@19.2.4___react@19.2.4_@types+react@19.2.14_monaco-editor@0.55.1_react@19.2.4_react-dom@19.2.4__react@19.2.4_typescript@6.0.2",
+    "npm:tsc@*": "2.0.4",
+    "npm:typescript@*": "6.0.2",
     "npm:vite@*": "6.4.2",
     "npm:vite@6": "6.4.2",
     "npm:vitest@*": "3.2.4_happy-dom@18.0.1",
@@ -3208,6 +3210,10 @@
         "zod@3.25.76",
         "zod-to-json-schema"
       ]
+    },
+    "tsc@2.0.4": {
+      "integrity": "sha512-fzoSieZI5KKJVBYGvwbVZs/J5za84f2lSTLPYf6AGiIf43tZ3GNrI1QzTLcjtyDDP4aLxd46RTZq1nQxe7+k5Q==",
+      "bin": true
     },
     "tslib@2.8.1": {
       "integrity": "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w=="
