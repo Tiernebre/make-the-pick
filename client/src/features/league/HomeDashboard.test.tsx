@@ -64,7 +64,7 @@ describe("HomeDashboard", () => {
     expect(screen.getByText(/welcome back, ash/i)).toBeInTheDocument();
   });
 
-  it("renders a leagues table with one row per league", () => {
+  it("renders a leagues banner that links to the all-leagues page", () => {
     setupMocks({
       leagues: [
         {
@@ -75,28 +75,14 @@ describe("HomeDashboard", () => {
           maxPlayers: 8,
           userRole: "commissioner",
         },
-        {
-          id: "L2",
-          name: "Johto Classic",
-          status: "drafting",
-          playerCount: 6,
-          maxPlayers: 8,
-          userRole: "member",
-        },
       ],
     });
     renderPage();
-    const table = screen.getByRole("table", { name: /your leagues/i });
-    expect(within(table).getByRole("link", { name: /kanto rumble/i }))
-      .toHaveAttribute("href", "/leagues/L1");
-    expect(within(table).getByRole("link", { name: /johto classic/i }))
-      .toHaveAttribute("href", "/leagues/L2");
-  });
-
-  it("does not render a recent activity section", () => {
-    setupMocks();
-    renderPage();
-    expect(screen.queryByText(/recent activity/i)).not.toBeInTheDocument();
+    const banner = screen.getByTestId("leagues-banner");
+    expect(banner).toHaveAttribute("href", "/leagues");
+    expect(within(banner).queryByText("Kanto Rumble")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("active-leagues-strip")).not
+      .toBeInTheDocument();
   });
 
   it("has quick actions for Create League and Join by invite", () => {
@@ -106,12 +92,5 @@ describe("HomeDashboard", () => {
       .toHaveAttribute("href", "/leagues/new");
     expect(screen.getByRole("button", { name: /join by invite code/i }))
       .toBeInTheDocument();
-  });
-
-  it("has a link to browse all leagues", () => {
-    setupMocks();
-    renderPage();
-    expect(screen.getByRole("link", { name: /browse all leagues/i }))
-      .toHaveAttribute("href", "/leagues");
   });
 });
