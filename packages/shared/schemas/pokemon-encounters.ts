@@ -1,5 +1,17 @@
 import type { z } from "zod";
-import { array, number, object, record, string } from "zod";
+import { array, number, object, optional, record, string } from "zod";
+
+export const poolItemEncounterSourceSchema: z.ZodObject<{
+  pokemonId: z.ZodNumber;
+  name: z.ZodString;
+}> = object({
+  pokemonId: number(),
+  name: string(),
+});
+
+export type PoolItemEncounterSource = z.infer<
+  typeof poolItemEncounterSourceSchema
+>;
 
 export const pokemonEncounterSummarySchema: z.ZodObject<{
   location: z.ZodString;
@@ -55,9 +67,11 @@ export type PokemonEncountersData = z.infer<
 export const poolItemEncounterSchema: z.ZodObject<{
   primary: z.ZodNullable<typeof pokemonEncounterPrimarySchema>;
   all: z.ZodArray<typeof pokemonEncounterSummarySchema>;
+  source: z.ZodOptional<typeof poolItemEncounterSourceSchema>;
 }> = object({
   primary: pokemonEncounterPrimarySchema.nullable(),
   all: array(pokemonEncounterSummarySchema),
+  source: optional(poolItemEncounterSourceSchema),
 });
 
 export type PoolItemEncounter = z.infer<typeof poolItemEncounterSchema>;

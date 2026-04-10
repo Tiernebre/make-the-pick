@@ -91,6 +91,8 @@ export {
   poolItemEffortSchema,
   type PoolItemEncounter,
   poolItemEncounterSchema,
+  type PoolItemEncounterSource,
+  poolItemEncounterSourceSchema,
 } from "./pokemon-encounters.ts";
 export {
   type EvolutionTrigger,

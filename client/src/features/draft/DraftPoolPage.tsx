@@ -139,6 +139,7 @@ function LocationCell(
       | {
         primary: { location: string; method: string } | null;
         all: PokemonEncounterSummary[];
+        source?: { pokemonId: number; name: string };
       }
       | null;
   },
@@ -147,6 +148,7 @@ function LocationCell(
     return <span style={{ color: "#999" }}>—</span>;
   }
   const primary = encounter.primary;
+  const source = encounter.source;
   return (
     <Popover width={340} position="right" withArrow shadow="md">
       <Popover.Target>
@@ -163,13 +165,15 @@ function LocationCell(
           </Text>
           <br />
           <Text span size="xs" c="dimmed">
-            {primary.method}
+            {source ? `${primary.method} (as ${source.name})` : primary.method}
           </Text>
         </UnstyledButton>
       </Popover.Target>
       <Popover.Dropdown>
         <Text size="sm" fw={600} mb="xs">
-          All encounters
+          {source
+            ? `Encounters for pre-evolution ${source.name}`
+            : "All encounters"}
         </Text>
         <Table fz="xs" verticalSpacing={4} highlightOnHover>
           <Table.Thead>

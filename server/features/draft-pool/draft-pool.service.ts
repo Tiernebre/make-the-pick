@@ -175,17 +175,44 @@ function augmentItems(
       }
     }
 
-    let encounter: PoolItemEncounter | null = null;
-    if (metadata && ctx.encountersForVersion) {
-      const entry = ctx.encountersForVersion[String(metadata.pokemonId)];
-      if (entry) {
-        encounter = { primary: entry.primary, all: entry.encounters };
-      }
-    }
-
     let evolution: PokemonEvolution | null = null;
     if (metadata && ctx.evolutions) {
       evolution = ctx.evolutions[String(metadata.pokemonId)] ?? null;
+    }
+
+    let encounter: PoolItemEncounter | null = null;
+    if (metadata && ctx.encountersForVersion) {
+      const directEntry = ctx.encountersForVersion[String(metadata.pokemonId)];
+      if (directEntry && directEntry.encounters.length > 0) {
+        encounter = {
+          primary: directEntry.primary,
+          all: directEntry.encounters,
+        };
+      } else if (ctx.evolutions) {
+        // Evolved Pokemon are rarely catchable in the wild. Walk the
+        // pre-evolution chain until we find a stage that has encounters.
+        const seen = new Set<number>([metadata.pokemonId]);
+        let cursor =
+          ctx.evolutions[String(metadata.pokemonId)]?.evolvesFromId ??
+            null;
+        while (cursor !== null && !seen.has(cursor)) {
+          seen.add(cursor);
+          const entry = ctx.encountersForVersion[String(cursor)];
+          if (entry && entry.encounters.length > 0) {
+            const sourcePokemon = pokemonById.get(cursor);
+            encounter = {
+              primary: entry.primary,
+              all: entry.encounters,
+              source: {
+                pokemonId: cursor,
+                name: sourcePokemon?.name ?? String(cursor),
+              },
+            };
+            break;
+          }
+          cursor = ctx.evolutions[String(cursor)]?.evolvesFromId ?? null;
+        }
+      }
     }
 
     let effort: PoolItemEffort | null = null;
