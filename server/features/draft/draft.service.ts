@@ -10,6 +10,7 @@ import {
 import { computeTurnDeadline, resolveSnakeTurn } from "./draft-utils.ts";
 import type { DraftEventPublisher } from "./draft.events.ts";
 import type { Clock, DraftTimerScheduler } from "./draft.timers.ts";
+import { type NpcScheduler, randomNpcPickDelayMs } from "./npc-scheduler.ts";
 
 const noopPublisher: DraftEventPublisher = {
   subscribe: () => () => {},
@@ -80,6 +81,19 @@ interface PoolItemWithMetadata {
  * the strongest-on-paper option so auto-picks never hand out obviously bad
  * Pokémon to absent drafters.
  */
+/**
+ * Random pool-item selector used by NPC auto-picks. Dev-only: real auto-picks
+ * on deadline expiry use the deterministic `selectAutoPickItem` above.
+ */
+export function selectRandomPoolItem<T>(
+  availableItems: T[],
+  randomFn: () => number = Math.random,
+): T | null {
+  if (availableItems.length === 0) return null;
+  const index = Math.floor(randomFn() * availableItems.length);
+  return availableItems[index];
+}
+
 export function selectAutoPickItem<T extends PoolItemWithMetadata>(
   availableItems: T[],
 ): T | null {
@@ -167,6 +181,7 @@ function toStateShape(args: {
       userId: player.userId,
       name: player.name,
       image: player.image,
+      isNpc: (player as { isNpc?: boolean }).isNpc ?? false,
       role: player.role,
       joinedAt: player.joinedAt instanceof Date
         ? player.joinedAt.toISOString()
@@ -190,10 +205,14 @@ export function createDraftService(deps: {
   draftEventPublisher?: DraftEventPublisher;
   clock?: Clock;
   timerScheduler?: DraftTimerScheduler;
+  npcScheduler?: NpcScheduler;
+  randomFn?: () => number;
 }) {
   const publisher = deps.draftEventPublisher ?? noopPublisher;
   const clock: Clock = deps.clock ?? { now: () => new Date() };
   const scheduler = deps.timerScheduler;
+  const npcScheduler = deps.npcScheduler;
+  const randomFn = deps.randomFn ?? Math.random;
 
   function publishTurnChange(
     leagueId: string,
@@ -212,6 +231,33 @@ export function createDraftService(deps: {
       },
     };
     publisher.publish(leagueId, event);
+  }
+
+  /**
+   * If the player whose turn it currently is happens to be an NPC, schedule
+   * an auto-pick after a short random "thinking" delay. No-op when no NPC
+   * scheduler is wired (production) or the current player is human.
+   */
+  function maybeScheduleNpcPick(args: {
+    draftId: string;
+    leagueId: string;
+    pickOrder: string[];
+    currentPick: number;
+    players: LeaguePlayerRow[];
+  }) {
+    if (!npcScheduler) return;
+    const turn = resolveSnakeTurn(args.pickOrder, args.currentPick);
+    const player = args.players.find((p) => p.id === turn.leaguePlayerId);
+    const isNpc = (player as { isNpc?: boolean } | undefined)?.isNpc ?? false;
+    if (!isNpc) {
+      npcScheduler.cancel(args.draftId);
+      return;
+    }
+    npcScheduler.schedule(
+      args.draftId,
+      args.leagueId,
+      randomNpcPickDelayMs(randomFn),
+    );
   }
 
   async function loadDraftContext(leagueId: string) {
@@ -322,6 +368,13 @@ export function createDraftService(deps: {
       );
 
       scheduler?.schedule(updated.id, leagueId, deadline);
+      maybeScheduleNpcPick({
+        draftId: updated.id,
+        leagueId,
+        pickOrder: state.draft.pickOrder,
+        currentPick: state.draft.currentPick,
+        players,
+      });
 
       return state;
     },
@@ -501,9 +554,17 @@ export function createDraftService(deps: {
           },
         });
         scheduler?.cancel(draftRow.id);
+        npcScheduler?.cancel(draftRow.id);
       } else {
         publishTurnChange(leagueId, pickOrder, nextPick, nextDeadline);
         scheduler?.schedule(draftRow.id, leagueId, nextDeadline);
+        maybeScheduleNpcPick({
+          draftId: draftRow.id,
+          leagueId,
+          pickOrder,
+          currentPick: nextPick,
+          players,
+        });
       }
 
       return state;
@@ -610,9 +671,122 @@ export function createDraftService(deps: {
           data: { completedAt: now.toISOString() },
         });
         scheduler?.cancel(draftRow.id);
+        npcScheduler?.cancel(draftRow.id);
       } else {
         publishTurnChange(leagueId, pickOrder, nextPick, nextDeadline);
         scheduler?.schedule(draftRow.id, leagueId, nextDeadline);
+        maybeScheduleNpcPick({
+          draftId: draftRow.id,
+          leagueId,
+          pickOrder,
+          currentPick: nextPick,
+          players,
+        });
+      }
+    },
+
+    /**
+     * Dev-only: auto-pick driven by the NPC scheduler when an NPC player is
+     * on the clock. Unlike `runAutoPick`, this does NOT check the turn
+     * deadline — it fires after a short "thinking" delay regardless of the
+     * configured pick time limit. Picks a random pool item so a single
+     * developer can exercise full draft flows without recruiting humans.
+     */
+    async runNpcPick(
+      { leagueId }: { leagueId: string },
+    ) {
+      log.debug({ leagueId }, "running NPC auto-pick");
+      if (!npcScheduler) return;
+      const { league, players, poolItems } = await loadDraftContext(leagueId);
+
+      const draftRow = await deps.draftRepo.findByLeagueId(leagueId);
+      if (!draftRow) return;
+      if (draftRow.status !== "in_progress") return;
+
+      const pickOrder = draftRow.pickOrder as string[];
+      const turn = resolveSnakeTurn(pickOrder, draftRow.currentPick);
+      const currentPlayer = players.find((p) => p.id === turn.leaguePlayerId);
+      if (!currentPlayer) return;
+      const isNpc = (currentPlayer as { isNpc?: boolean }).isNpc ?? false;
+      if (!isNpc) return;
+
+      const picks = await deps.draftRepo.listPicks(draftRow.id);
+      const pickedItemIds = new Set(picks.map((p) => p.poolItemId));
+      const available = poolItems.filter((item) => !pickedItemIds.has(item.id));
+      const chosen = selectRandomPoolItem(available, randomFn);
+      if (!chosen) return;
+
+      let createdPickRow: Awaited<
+        ReturnType<DraftRepository["createPick"]>
+      >;
+      try {
+        createdPickRow = await deps.draftRepo.createPick({
+          draftId: draftRow.id,
+          leaguePlayerId: currentPlayer.id,
+          poolItemId: chosen.id,
+          pickNumber: draftRow.currentPick,
+          autoPicked: true,
+        });
+      } catch (err) {
+        if (err instanceof DraftPickConflictError) return;
+        throw err;
+      }
+
+      const nextPick = await deps.draftRepo.incrementCurrentPick(draftRow.id);
+      const numberOfRounds = getNumberOfRounds(league);
+      const totalPicks = numberOfRounds * pickOrder.length;
+      const isFinalPick = nextPick >= totalPicks;
+
+      const now = clock.now();
+      let nextDeadline: Date | null = null;
+      if (isFinalPick) {
+        await deps.draftRepo.updateStatus(draftRow.id, "complete", {
+          completedAt: now,
+        });
+        await deps.draftRepo.updateTurnDeadline(draftRow.id, null);
+      } else {
+        const pickTimeLimitSeconds = getPickTimeLimitSeconds(league);
+        nextDeadline = computeTurnDeadline(now, pickTimeLimitSeconds);
+        await deps.draftRepo.updateTurnDeadline(draftRow.id, nextDeadline);
+      }
+
+      const pickRound =
+        resolveSnakeTurn(pickOrder, createdPickRow.pickNumber).round;
+      publisher.publish(leagueId, {
+        type: "draft:pick_made",
+        data: {
+          id: createdPickRow.id,
+          draftId: createdPickRow.draftId,
+          leaguePlayerId: createdPickRow.leaguePlayerId,
+          poolItemId: createdPickRow.poolItemId,
+          pickNumber: createdPickRow.pickNumber,
+          pickedAt: createdPickRow.pickedAt instanceof Date
+            ? createdPickRow.pickedAt.toISOString()
+            : String(createdPickRow.pickedAt),
+          autoPicked: true,
+          playerName: currentPlayer.name,
+          itemName: chosen.name,
+          round: pickRound,
+        },
+      });
+
+      if (isFinalPick) {
+        publisher.publish(leagueId, {
+          type: "draft:completed",
+          data: { completedAt: now.toISOString() },
+        });
+        scheduler?.cancel(draftRow.id);
+        npcScheduler.cancel(draftRow.id);
+      } else {
+        publishTurnChange(leagueId, pickOrder, nextPick, nextDeadline);
+        scheduler?.schedule(draftRow.id, leagueId, nextDeadline);
+        maybeScheduleNpcPick({
+          draftId: draftRow.id,
+          leagueId,
+          pickOrder,
+          currentPick: nextPick,
+          players,
+        });
       }
     },
 
@@ -648,6 +822,7 @@ export function createDraftService(deps: {
       const pausedAt = clock.now();
       const updated = await deps.draftRepo.pauseDraft(draftRow.id, pausedAt);
       scheduler?.cancel(draftRow.id);
+      npcScheduler?.cancel(draftRow.id);
 
       const [players, pool] = await Promise.all([
         deps.leagueRepo.findPlayersByLeagueId(leagueId),
@@ -723,6 +898,13 @@ export function createDraftService(deps: {
         updated.currentPick,
         deadline,
       );
+      maybeScheduleNpcPick({
+        draftId: updated.id,
+        leagueId,
+        pickOrder: updated.pickOrder as string[],
+        currentPick: updated.currentPick,
+        players,
+      });
 
       return state;
     },
@@ -846,6 +1028,15 @@ export function createDraftService(deps: {
           updatedDraft.currentPick,
           newDeadline,
         );
+        maybeScheduleNpcPick({
+          draftId: updatedDraft.id,
+          leagueId,
+          pickOrder,
+          currentPick: updatedDraft.currentPick,
+          players,
+        });
+      } else {
+        npcScheduler?.cancel(draftRow.id);
       }
 
       return state;

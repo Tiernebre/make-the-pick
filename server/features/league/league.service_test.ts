@@ -71,6 +71,7 @@ function createFakeRepo(
     updateStatus: (_id, _status) => Promise.resolve(createFakeLeague()),
     countPlayers: (_leagueId) => Promise.resolve(0),
     deletePlayer: (_leagueId, _userId) => Promise.resolve(),
+    findAvailableNpcUsers: (_leagueId) => Promise.resolve([]),
     ...overrides,
   };
 }
@@ -336,7 +337,8 @@ Deno.test("leagueService.listPlayers: returns players for a league", async () =>
       id: crypto.randomUUID(),
       userId: "user-1",
       name: "Commissioner",
-      image: "https://example.com/avatar1.png",
+      image: "https://example.com/avatar1.png" as string | null,
+      isNpc: false,
       role: "commissioner" as const,
       joinedAt: new Date(),
     },
@@ -344,7 +346,8 @@ Deno.test("leagueService.listPlayers: returns players for a league", async () =>
       id: crypto.randomUUID(),
       userId: "user-2",
       name: "Member",
-      image: null,
+      image: null as string | null,
+      isNpc: false,
       role: "member" as const,
       joinedAt: new Date(),
     },

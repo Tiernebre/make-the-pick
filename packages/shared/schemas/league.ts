@@ -129,6 +129,7 @@ export const leaguePlayerSchema: z.ZodObject<{
   userId: z.ZodString;
   name: z.ZodString;
   image: z.ZodNullable<z.ZodString>;
+  isNpc: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
   role: typeof leaguePlayerRoleSchema;
   joinedAt: z.ZodString;
 }> = object({
@@ -136,6 +137,7 @@ export const leaguePlayerSchema: z.ZodObject<{
   userId: string(),
   name: string(),
   image: string().nullable(),
+  isNpc: boolean().optional().default(false),
   role: leaguePlayerRoleSchema,
   joinedAt: string(),
 });

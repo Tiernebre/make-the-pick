@@ -10,6 +10,8 @@ const {
   mockDeleteMutate,
   mockUseAdvanceLeagueStatus,
   mockAdvanceMutate,
+  mockUseAddNpcPlayer,
+  mockAddNpcMutate,
 } = vi.hoisted(
   () => ({
     mockUseLeague: vi.fn(),
@@ -18,6 +20,8 @@ const {
     mockDeleteMutate: vi.fn(),
     mockUseAdvanceLeagueStatus: vi.fn(),
     mockAdvanceMutate: vi.fn(),
+    mockUseAddNpcPlayer: vi.fn(),
+    mockAddNpcMutate: vi.fn(),
   }),
 );
 
@@ -26,6 +30,7 @@ vi.mock("./use-leagues", () => ({
   useLeaguePlayers: mockUseLeaguePlayers,
   useDeleteLeague: mockUseDeleteLeague,
   useAdvanceLeagueStatus: mockUseAdvanceLeagueStatus,
+  useAddNpcPlayer: mockUseAddNpcPlayer,
 }));
 
 vi.mock("../../auth", () => ({
@@ -69,6 +74,10 @@ describe("LeagueDetailPage", () => {
     });
     mockUseAdvanceLeagueStatus.mockReturnValue({
       mutate: mockAdvanceMutate,
+      isPending: false,
+    });
+    mockUseAddNpcPlayer.mockReturnValue({
+      mutate: mockAddNpcMutate,
       isPending: false,
     });
   });

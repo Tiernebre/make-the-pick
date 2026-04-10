@@ -49,6 +49,15 @@ export function useAdvanceLeagueStatus() {
   });
 }
 
+export function useAddNpcPlayer() {
+  const utils = trpc.useUtils();
+  return trpc.league.addNpcPlayer.useMutation({
+    onSuccess: (_data, variables) => {
+      utils.league.listPlayers.invalidate({ leagueId: variables.leagueId });
+    },
+  });
+}
+
 export function useDeleteLeague() {
   const utils = trpc.useUtils();
   return trpc.league.delete.useMutation({

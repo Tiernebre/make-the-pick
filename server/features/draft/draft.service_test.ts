@@ -5,6 +5,7 @@ import type { DraftPoolRepository } from "../draft-pool/draft-pool.repository.ts
 import type { LeagueRepository } from "../league/league.repository.ts";
 import {
   type CreateDraftInput,
+  type CreatePickInput,
   DraftPickConflictError,
   type DraftRepository,
 } from "./draft.repository.ts";
@@ -117,12 +118,14 @@ function createLeaguePlayerRow(
   _leagueId: string,
   userId: string,
   role: "commissioner" | "member" = "member",
+  isNpc = false,
 ) {
   return {
     id: crypto.randomUUID(),
     userId,
     name: userId,
     image: null,
+    isNpc,
     role,
     joinedAt: new Date(),
   };
@@ -152,6 +155,7 @@ function createFakeLeagueRepo(
     updateStatus: (_id, _status) => Promise.resolve(createFakeLeague()),
     countPlayers: (_leagueId) => Promise.resolve(0),
     deletePlayer: (_leagueId, _userId) => Promise.resolve(),
+    findAvailableNpcUsers: (_leagueId) => Promise.resolve([]),
     ...overrides,
   };
 }
@@ -2322,4 +2326,226 @@ Deno.test("draftService.undoLastPick: pending draft → BAD_REQUEST", async () =
     TRPCError,
   );
   assertEquals(error.code, "BAD_REQUEST");
+});
+
+// --- NPC auto-pick --------------------------------------------------------
+
+interface RecordingNpcScheduler {
+  scheduled: Array<{ draftId: string; leagueId: string; delayMs: number }>;
+  cancelled: string[];
+  schedule(draftId: string, leagueId: string, delayMs: number): void;
+  cancel(draftId: string): void;
+  triggerNowForTest(draftId: string): Promise<void>;
+  setHandler(): void;
+  activeTimerCount(): number;
+}
+
+function createRecordingNpcScheduler(): RecordingNpcScheduler {
+  return {
+    scheduled: [],
+    cancelled: [],
+    schedule(draftId, leagueId, delayMs) {
+      this.scheduled.push({ draftId, leagueId, delayMs });
+    },
+    cancel(draftId) {
+      this.cancelled.push(draftId);
+    },
+    triggerNowForTest: () => Promise.resolve(),
+    setHandler: () => {},
+    activeTimerCount: () => 0,
+  };
+}
+
+Deno.test("draftService.makePick: schedules NPC pick when next player is an NPC", async () => {
+  // Human picks first, NPC is next on the clock after this human pick lands.
+  const league = createFakeLeague({
+    status: "drafting",
+    rulesConfig: {
+      draftFormat: "snake",
+      numberOfRounds: 2,
+      pickTimeLimitSeconds: null,
+      poolSizeMultiplier: 2,
+    },
+  });
+  const pool = createFakePool(league.id);
+  const human = createLeaguePlayerRow(league.id, "user-1", "commissioner");
+  const npc = createLeaguePlayerRow(league.id, "npc-oak", "member", true);
+  const poolItems = [
+    createFakePoolItem(pool.id, { name: "pikachu" }),
+    createFakePoolItem(pool.id, { name: "charmander" }),
+    createFakePoolItem(pool.id, { name: "bulbasaur" }),
+    createFakePoolItem(pool.id, { name: "squirtle" }),
+  ];
+  const draft = createFakeDraft({
+    leagueId: league.id,
+    poolId: pool.id,
+    status: "in_progress",
+    pickOrder: [human.id, npc.id],
+    currentPick: 0,
+    startedAt: new Date(),
+  });
+  const draftRepo = createFakeDraftRepo({
+    findByLeagueId: () => Promise.resolve(draft),
+    listPicks: () => Promise.resolve([]),
+    incrementCurrentPick: () => Promise.resolve(1),
+  });
+  const leagueRepo = createFakeLeagueRepo({
+    findById: () => Promise.resolve(league),
+    findPlayer: () => Promise.resolve({ ...human, leagueId: league.id }),
+    findPlayersByLeagueId: () => Promise.resolve([human, npc]),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    findByLeagueId: () => Promise.resolve(pool),
+    findItemsByPoolId: () => Promise.resolve(poolItems),
+  });
+  const npcScheduler = createRecordingNpcScheduler();
+
+  const service = createDraftService({
+    draftRepo,
+    leagueRepo,
+    draftPoolRepo,
+    npcScheduler,
+    randomFn: () => 0.5,
+  });
+
+  await service.makePick({
+    userId: "user-1",
+    leagueId: league.id,
+    poolItemId: poolItems[0].id,
+  });
+
+  assertEquals(npcScheduler.scheduled.length, 1);
+  assertEquals(npcScheduler.scheduled[0].draftId, draft.id);
+  assertEquals(npcScheduler.scheduled[0].leagueId, league.id);
+  const delay = npcScheduler.scheduled[0].delayMs;
+  assertEquals(delay >= 300 && delay <= 1500, true);
+});
+
+Deno.test("draftService.runNpcPick: creates random autoPicked pick and emits pick_made", async () => {
+  const league = createFakeLeague({
+    status: "drafting",
+    rulesConfig: {
+      draftFormat: "snake",
+      numberOfRounds: 2,
+      pickTimeLimitSeconds: null,
+      poolSizeMultiplier: 2,
+    },
+  });
+  const pool = createFakePool(league.id);
+  const human = createLeaguePlayerRow(league.id, "user-1", "commissioner");
+  const npc = createLeaguePlayerRow(league.id, "npc-oak", "member", true);
+  const poolItems = [
+    createFakePoolItem(pool.id, { name: "pikachu" }),
+    createFakePoolItem(pool.id, { name: "charmander" }),
+    createFakePoolItem(pool.id, { name: "bulbasaur" }),
+    createFakePoolItem(pool.id, { name: "squirtle" }),
+  ];
+  // NPC is on the clock (currentPick=1).
+  const draft = createFakeDraft({
+    leagueId: league.id,
+    poolId: pool.id,
+    status: "in_progress",
+    pickOrder: [human.id, npc.id],
+    currentPick: 1,
+    startedAt: new Date(),
+  });
+  let createdPick: CreatePickInput | null = null;
+  const draftRepo = createFakeDraftRepo({
+    findByLeagueId: () => Promise.resolve(draft),
+    listPicks: () => Promise.resolve([]),
+    incrementCurrentPick: () => Promise.resolve(2),
+    createPick: (input) => {
+      createdPick = input;
+      return Promise.resolve({
+        id: crypto.randomUUID(),
+        draftId: input.draftId,
+        leaguePlayerId: input.leaguePlayerId,
+        poolItemId: input.poolItemId,
+        pickNumber: input.pickNumber,
+        pickedAt: new Date(),
+        autoPicked: input.autoPicked ?? false,
+      });
+    },
+  });
+  const leagueRepo = createFakeLeagueRepo({
+    findById: () => Promise.resolve(league),
+    findPlayersByLeagueId: () => Promise.resolve([human, npc]),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    findByLeagueId: () => Promise.resolve(pool),
+    findItemsByPoolId: () => Promise.resolve(poolItems),
+  });
+  const publisher = createRecordingPublisher();
+  const npcScheduler = createRecordingNpcScheduler();
+
+  const service = createDraftService({
+    draftRepo,
+    leagueRepo,
+    draftPoolRepo,
+    draftEventPublisher: publisher,
+    npcScheduler,
+    // Deterministic randomFn: picks index 0 of the 4-item available pool.
+    randomFn: () => 0,
+  });
+
+  await service.runNpcPick({ leagueId: league.id });
+
+  assertEquals(createdPick !== null, true);
+  assertEquals(createdPick!.leaguePlayerId, npc.id);
+  assertEquals(createdPick!.autoPicked, true);
+  assertEquals(createdPick!.poolItemId, poolItems[0].id);
+  const pickEvent = publisher.published.find((p) =>
+    p.event.type === "draft:pick_made"
+  );
+  assertEquals(pickEvent !== undefined, true);
+});
+
+Deno.test("draftService.runNpcPick: no-op when current player is not an NPC", async () => {
+  const league = createFakeLeague({ status: "drafting" });
+  const pool = createFakePool(league.id);
+  const human = createLeaguePlayerRow(league.id, "user-1", "commissioner");
+  const poolItems = [createFakePoolItem(pool.id)];
+  const draft = createFakeDraft({
+    leagueId: league.id,
+    poolId: pool.id,
+    status: "in_progress",
+    pickOrder: [human.id],
+    currentPick: 0,
+    startedAt: new Date(),
+  });
+  let createPickCalled = false;
+  const draftRepo = createFakeDraftRepo({
+    findByLeagueId: () => Promise.resolve(draft),
+    listPicks: () => Promise.resolve([]),
+    createPick: (input) => {
+      createPickCalled = true;
+      return Promise.resolve({
+        id: crypto.randomUUID(),
+        draftId: input.draftId,
+        leaguePlayerId: input.leaguePlayerId,
+        poolItemId: input.poolItemId,
+        pickNumber: input.pickNumber,
+        pickedAt: new Date(),
+        autoPicked: false,
+      });
+    },
+  });
+  const leagueRepo = createFakeLeagueRepo({
+    findById: () => Promise.resolve(league),
+    findPlayersByLeagueId: () => Promise.resolve([human]),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    findByLeagueId: () => Promise.resolve(pool),
+    findItemsByPoolId: () => Promise.resolve(poolItems),
+  });
+  const service = createDraftService({
+    draftRepo,
+    leagueRepo,
+    draftPoolRepo,
+    npcScheduler: createRecordingNpcScheduler(),
+  });
+
+  await service.runNpcPick({ leagueId: league.id });
+
+  assertEquals(createPickCalled, false);
 });
