@@ -39,6 +39,19 @@ vi.mock("./use-draft-events", () => ({
   useDraftEvents: mockUseDraftEvents,
 }));
 
+vi.mock("./CommissionerControls", () => ({
+  CommissionerControls: () => (
+    <div data-testid="commissioner-controls">commissioner-controls</div>
+  ),
+}));
+
+vi.mock("./PausedOverlay", () => ({
+  PausedOverlay: ({ status }: { status: string }) =>
+    status === "paused"
+      ? <div data-testid="paused-overlay">paused-overlay</div>
+      : null,
+}));
+
 vi.mock("../../auth", () => ({
   useSession: () => ({ data: { user: { id: "user-p1" } } }),
 }));
@@ -243,6 +256,43 @@ describe("DraftPage", () => {
       mockUseDraftEvents.mock.calls[mockUseDraftEvents.mock.calls.length - 1];
     expect(lastCall[0]).toBe("league-1");
     expect(lastCall[1]).toMatchObject({ enabled: false });
+  });
+
+  it("shows commissioner controls when user is commissioner and draft is started", () => {
+    renderPage();
+    expect(screen.getByTestId("commissioner-controls")).toBeInTheDocument();
+  });
+
+  it("does not show commissioner controls for non-commissioners", () => {
+    mockUseLeaguePlayers.mockReturnValue({
+      data: [
+        { ...commissionerPlayer, userId: "user-someone-else" },
+        { ...memberPlayer, userId: "user-p1" },
+      ],
+      isLoading: false,
+    });
+    renderPage();
+    expect(screen.queryByTestId("commissioner-controls")).toBeNull();
+  });
+
+  it("shows the paused overlay when the draft status is paused", () => {
+    mockUseDraft.mockReturnValue({
+      data: makeDraftState({
+        status: "paused",
+        players: [
+          makePlayer("p1", "Alice", {
+            userId: "user-p1",
+            role: "commissioner",
+          }),
+          makePlayer("p2", "Bob", { userId: "user-p2" }),
+        ],
+      }),
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+    renderPage();
+    expect(screen.getByTestId("paused-overlay")).toBeInTheDocument();
   });
 
   it("does not show Start Draft button when pending and user is not commissioner", () => {
