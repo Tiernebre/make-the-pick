@@ -34,6 +34,9 @@ export const draftPickSchema: z.ZodObject<{
 export type DraftPick = z.infer<typeof draftPickSchema>;
 
 // Draft state snapshot (sent on connect + used by tRPC query)
+// Note: `status` is left loose (z.string()) to avoid coupling the wire format
+// to the DB enum — valid values today are "pending" | "in_progress" | "paused"
+// | "complete".
 export const draftStateSchema: z.ZodObject<{
   draft: z.ZodObject<{
     id: z.ZodString;
@@ -96,6 +99,30 @@ export const getDraftStateInputSchema: z.ZodObject<{
 });
 
 export type GetDraftStateInput = z.infer<typeof getDraftStateInputSchema>;
+
+export const pauseDraftInputSchema: z.ZodObject<{
+  leagueId: z.ZodString;
+}> = object({
+  leagueId: string().uuid(),
+});
+
+export type PauseDraftInput = z.infer<typeof pauseDraftInputSchema>;
+
+export const resumeDraftInputSchema: z.ZodObject<{
+  leagueId: z.ZodString;
+}> = object({
+  leagueId: string().uuid(),
+});
+
+export type ResumeDraftInput = z.infer<typeof resumeDraftInputSchema>;
+
+export const undoLastPickInputSchema: z.ZodObject<{
+  leagueId: z.ZodString;
+}> = object({
+  leagueId: string().uuid(),
+});
+
+export type UndoLastPickInput = z.infer<typeof undoLastPickInputSchema>;
 
 // SSE event schemas
 export const draftStartedEventSchema: z.ZodObject<{
@@ -167,18 +194,72 @@ export const draftStateEventSchema: z.ZodObject<{
   data: draftStateSchema,
 });
 
+export const draftPausedEventSchema: z.ZodObject<{
+  type: z.ZodLiteral<"draft:paused">;
+  data: z.ZodObject<{
+    pausedAt: z.ZodString;
+  }>;
+}> = object({
+  type: literal("draft:paused"),
+  data: object({
+    pausedAt: string(),
+  }),
+});
+
+export type DraftPausedEvent = z.infer<typeof draftPausedEventSchema>;
+
+export const draftResumedEventSchema: z.ZodObject<{
+  type: z.ZodLiteral<"draft:resumed">;
+  data: z.ZodObject<{
+    turnDeadline: z.ZodNullable<z.ZodString>;
+  }>;
+}> = object({
+  type: literal("draft:resumed"),
+  data: object({
+    turnDeadline: nullable(string()),
+  }),
+});
+
+export type DraftResumedEvent = z.infer<typeof draftResumedEventSchema>;
+
+export const draftPickUndoneEventSchema: z.ZodObject<{
+  type: z.ZodLiteral<"draft:pick_undone">;
+  data: z.ZodObject<{
+    pickNumber: z.ZodNumber;
+    leaguePlayerId: z.ZodString;
+    poolItemId: z.ZodString;
+    round: z.ZodNumber;
+  }>;
+}> = object({
+  type: literal("draft:pick_undone"),
+  data: object({
+    pickNumber: number().int().min(0),
+    leaguePlayerId: string().uuid(),
+    poolItemId: string().uuid(),
+    round: number().int().min(0),
+  }),
+});
+
+export type DraftPickUndoneEvent = z.infer<typeof draftPickUndoneEventSchema>;
+
 export const draftEventSchema: z.ZodUnion<[
   typeof draftStartedEventSchema,
   typeof draftPickMadeEventSchema,
   typeof draftTurnChangeEventSchema,
   typeof draftCompletedEventSchema,
   typeof draftStateEventSchema,
+  typeof draftPausedEventSchema,
+  typeof draftResumedEventSchema,
+  typeof draftPickUndoneEventSchema,
 ]> = union([
   draftStartedEventSchema,
   draftPickMadeEventSchema,
   draftTurnChangeEventSchema,
   draftCompletedEventSchema,
   draftStateEventSchema,
+  draftPausedEventSchema,
+  draftResumedEventSchema,
+  draftPickUndoneEventSchema,
 ]);
 
 export type DraftEvent = z.infer<typeof draftEventSchema>;

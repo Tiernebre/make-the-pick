@@ -43,6 +43,18 @@ export class DraftPickConflictError extends Error {
   }
 }
 
+/**
+ * Thrown by deletePick/decrementCurrentPick when the caller asked to undo
+ * something that does not exist. The service maps this to BAD_REQUEST so
+ * clients get a clear "nothing to undo" response.
+ */
+export class DraftUndoError extends Error {
+  constructor(message = "draft undo failed") {
+    super(message);
+    this.name = "DraftUndoError";
+  }
+}
+
 export function createDraftRepository(db: Database) {
   return {
     async findByLeagueId(leagueId: string): Promise<DraftRow | null> {
@@ -77,7 +89,7 @@ export function createDraftRepository(db: Database) {
 
     async updateStatus(
       id: string,
-      status: "pending" | "in_progress" | "complete",
+      status: "pending" | "in_progress" | "paused" | "complete",
       timestamps: UpdateDraftStatusTimestamps,
     ): Promise<DraftRow> {
       log.debug({ draftId: id, status }, "updating draft status");
@@ -92,6 +104,104 @@ export function createDraftRepository(db: Database) {
         eq(draft.id, id),
       ).returning();
       return updated;
+    },
+
+    async pauseDraft(id: string, pausedAt: Date): Promise<DraftRow> {
+      log.debug({ draftId: id }, "pausing draft");
+      const [updated] = await db.update(draft).set({
+        status: "paused",
+        pausedAt,
+        currentTurnDeadline: null,
+      }).where(eq(draft.id, id)).returning();
+      return updated;
+    },
+
+    async resumeDraft(
+      id: string,
+      deadline: Date | null,
+    ): Promise<DraftRow> {
+      log.debug({ draftId: id }, "resuming draft");
+      const [updated] = await db.update(draft).set({
+        status: "in_progress",
+        pausedAt: null,
+        currentTurnDeadline: deadline,
+      }).where(eq(draft.id, id)).returning();
+      return updated;
+    },
+
+    /**
+     * Flip a draft from 'complete' back to 'in_progress' and clear
+     * completedAt. Used by undoLastPick when the final pick is undone — the
+     * draft is no longer complete, so the timestamp and status must be
+     * rolled back in lockstep.
+     */
+    async reopenCompletedDraft(
+      id: string,
+      deadline: Date | null,
+    ): Promise<DraftRow> {
+      log.debug({ draftId: id }, "reopening completed draft");
+      const [updated] = await db.update(draft).set({
+        status: "in_progress",
+        completedAt: null,
+        currentTurnDeadline: deadline,
+      }).where(eq(draft.id, id)).returning();
+      return updated;
+    },
+
+    async findLastPick(draftId: string): Promise<DraftPickRow | null> {
+      log.debug({ draftId }, "finding last pick");
+      const [row] = await db.select().from(draftPick).where(
+        eq(draftPick.draftId, draftId),
+      ).orderBy(sql`${draftPick.pickNumber} desc`).limit(1);
+      return row ?? null;
+    },
+
+    /**
+     * Atomically delete the most-recently-made pick and decrement the draft's
+     * currentPick counter. These two writes must land together — a partial
+     * undo would leave the draft pointing at a pick slot that still has a row
+     * in draft_pick (or vice versa), which would break makePick's unique
+     * constraint and corrupt turn resolution.
+     *
+     * If the draft was in 'complete' status, the caller is responsible for
+     * clearing status/completedAt/deadline after this returns — that logic
+     * lives in the service because it depends on league rules.
+     */
+    async undoLastPick(
+      draftId: string,
+    ): Promise<{ pick: DraftPickRow; currentPick: number }> {
+      log.debug({ draftId }, "undoing last pick");
+      return await db.transaction(async (tx) => {
+        const [lastPick] = await tx.select().from(draftPick).where(
+          eq(draftPick.draftId, draftId),
+        ).orderBy(sql`${draftPick.pickNumber} desc`).limit(1);
+        if (!lastPick) {
+          throw new DraftUndoError("no picks to undo");
+        }
+        const [deleted] = await tx.delete(draftPick).where(
+          and(
+            eq(draftPick.draftId, draftId),
+            eq(draftPick.pickNumber, lastPick.pickNumber),
+          ),
+        ).returning();
+        if (!deleted) {
+          throw new DraftUndoError("failed to delete last pick");
+        }
+        const [draftRow] = await tx.select({
+          currentPick: draft.currentPick,
+        }).from(draft).where(eq(draft.id, draftId));
+        if (!draftRow || draftRow.currentPick <= 0) {
+          throw new DraftUndoError(
+            "cannot decrement draft currentPick below 0",
+          );
+        }
+        const [updated] = await tx.update(draft).set({
+          currentPick: sql`${draft.currentPick} - 1`,
+        }).where(eq(draft.id, draftId)).returning({
+          currentPick: draft.currentPick,
+        });
+        return { pick: deleted, currentPick: updated.currentPick };
+      });
     },
 
     async updateTurnDeadline(

@@ -41,6 +41,7 @@ function createFakeDraft(
     startedAt: null,
     completedAt: null,
     currentTurnDeadline: null,
+    pausedAt: null,
     createdAt: new Date(),
     ...overrides,
   };
@@ -83,7 +84,25 @@ function createFakeDraftRepo(
     create: (_input) => Promise.resolve(createFakeDraft()),
     updateStatus: (_id, _status, _timestamps) =>
       Promise.resolve(createFakeDraft()),
+    pauseDraft: (_id, _pausedAt) => Promise.resolve(createFakeDraft()),
+    resumeDraft: (_id, _deadline) => Promise.resolve(createFakeDraft()),
+    reopenCompletedDraft: (_id, _deadline) =>
+      Promise.resolve(createFakeDraft()),
     incrementCurrentPick: (_id) => Promise.resolve(0),
+    undoLastPick: (id) =>
+      Promise.resolve({
+        pick: {
+          id: crypto.randomUUID(),
+          draftId: id,
+          leaguePlayerId: crypto.randomUUID(),
+          poolItemId: crypto.randomUUID(),
+          pickNumber: 0,
+          pickedAt: new Date(),
+          autoPicked: false,
+        },
+        currentPick: 0,
+      }),
+    findLastPick: (_draftId) => Promise.resolve(null),
     listPicks: (_draftId) => Promise.resolve([]),
     createPick: (input) =>
       Promise.resolve({
