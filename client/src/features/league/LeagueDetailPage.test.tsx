@@ -8,7 +8,6 @@ const {
   mockUseLeaguePlayers,
   mockUseDeleteLeague,
   mockDeleteMutate,
-  mockUseUpdateLeagueSettings,
   mockUseAdvanceLeagueStatus,
   mockAdvanceMutate,
 } = vi.hoisted(
@@ -17,7 +16,6 @@ const {
     mockUseLeaguePlayers: vi.fn(),
     mockUseDeleteLeague: vi.fn(),
     mockDeleteMutate: vi.fn(),
-    mockUseUpdateLeagueSettings: vi.fn(),
     mockUseAdvanceLeagueStatus: vi.fn(),
     mockAdvanceMutate: vi.fn(),
   }),
@@ -27,12 +25,7 @@ vi.mock("./use-leagues", () => ({
   useLeague: mockUseLeague,
   useLeaguePlayers: mockUseLeaguePlayers,
   useDeleteLeague: mockUseDeleteLeague,
-  useUpdateLeagueSettings: mockUseUpdateLeagueSettings,
   useAdvanceLeagueStatus: mockUseAdvanceLeagueStatus,
-}));
-
-vi.mock("../pokemon-version/use-pokemon-versions", () => ({
-  usePokemonVersions: () => ({ data: [], isLoading: false }),
 }));
 
 vi.mock("../../auth", () => ({
@@ -72,10 +65,6 @@ describe("LeagueDetailPage", () => {
     mockUseLeaguePlayers.mockReturnValue({ data: [], isLoading: false });
     mockUseDeleteLeague.mockReturnValue({
       mutate: mockDeleteMutate,
-      isPending: false,
-    });
-    mockUseUpdateLeagueSettings.mockReturnValue({
-      mutate: vi.fn(),
       isPending: false,
     });
     mockUseAdvanceLeagueStatus.mockReturnValue({
@@ -371,6 +360,69 @@ describe("LeagueDetailPage", () => {
     expect(
       screen.queryByRole("button", { name: /advance to/i }),
     ).not.toBeInTheDocument();
+  });
+
+  it("shows a Configure link for commissioner during setup", () => {
+    mockUseLeague.mockReturnValue({
+      data: {
+        ...mockLeague,
+        sportType: "pokemon",
+        maxPlayers: 8,
+        rulesConfig: {
+          draftFormat: "snake",
+          numberOfRounds: 10,
+          pickTimeLimitSeconds: null,
+          poolSizeMultiplier: 2,
+        },
+      },
+      isLoading: false,
+    });
+    mockUseLeaguePlayers.mockReturnValue({
+      data: [
+        {
+          id: "p1",
+          userId: "user-1",
+          name: "Alice",
+          image: null,
+          role: "commissioner",
+          joinedAt: "2026-01-01T00:00:00Z",
+        },
+      ],
+      isLoading: false,
+    });
+    renderPage();
+    const configureLink = screen.getByRole("link", { name: /configure/i });
+    expect(configureLink).toHaveAttribute(
+      "href",
+      "/leagues/league-1/settings",
+    );
+  });
+
+  it("renders a 'Your team' panel", () => {
+    mockUseLeague.mockReturnValue({ data: mockLeague, isLoading: false });
+    mockUseLeaguePlayers.mockReturnValue({
+      data: [
+        {
+          id: "p1",
+          userId: "user-1",
+          name: "Alice",
+          image: null,
+          role: "member",
+          joinedAt: "2026-01-01T00:00:00Z",
+        },
+      ],
+      isLoading: false,
+    });
+    renderPage();
+    expect(screen.getByText(/your team/i)).toBeInTheDocument();
+  });
+
+  it("renders the lifecycle stepper", () => {
+    mockUseLeague.mockReturnValue({ data: mockLeague, isLoading: false });
+    renderPage();
+    expect(
+      screen.getByRole("group", { name: /league lifecycle/i }),
+    ).toBeInTheDocument();
   });
 
   it("does not render a Save Settings button", () => {

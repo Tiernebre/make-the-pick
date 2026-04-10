@@ -4,33 +4,47 @@ import {
   Anchor,
   Avatar,
   Badge,
+  Box,
   Button,
   Card,
   Container,
   CopyButton,
+  Grid,
   Group,
   LoadingOverlay,
   Modal,
-  NumberInput,
-  Select,
+  Paper,
   Stack,
-  Switch,
   Text,
   Title,
   Tooltip,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { useEffect, useState } from "react";
+import {
+  IconAlertTriangle,
+  IconSettings,
+  IconSparkles,
+} from "@tabler/icons-react";
 import { Link, useLocation, useParams } from "wouter";
 import { useSession } from "../../auth";
-import { usePokemonVersions } from "../pokemon-version/use-pokemon-versions";
+import { LifecycleStepper } from "./LifecycleStepper";
 import {
   useAdvanceLeagueStatus,
   useDeleteLeague,
   useLeague,
   useLeaguePlayers,
-  useUpdateLeagueSettings,
 } from "./use-leagues";
+
+const NEXT_STATUS: Record<string, string | null> = {
+  setup: "drafting",
+  drafting: "competing",
+  competing: "complete",
+  complete: null,
+};
+
+function capitalize(word: string): string {
+  return word.charAt(0).toUpperCase() + word.slice(1);
+}
 
 export function LeagueDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -38,138 +52,17 @@ export function LeagueDetailPage() {
   const players = useLeaguePlayers(id!);
   const { data: session } = useSession();
   const deleteLeague = useDeleteLeague();
-  const updateSettings = useUpdateLeagueSettings();
   const advanceStatus = useAdvanceLeagueStatus();
   const [, navigate] = useLocation();
+
   const [deleteOpened, { open: openDelete, close: closeDelete }] =
     useDisclosure(false);
   const [advanceOpened, { open: openAdvance, close: closeAdvance }] =
     useDisclosure(false);
 
-  const [sportType, setSportType] = useState<string | null>(null);
-  const [draftFormat, setDraftFormat] = useState<string | null>("snake");
-  const [numberOfRounds, setNumberOfRounds] = useState<number | string>("");
-  const [pickTimeLimitSeconds, setPickTimeLimitSeconds] = useState<
-    number | string
-  >("");
-  const [maxPlayers, setMaxPlayers] = useState<number | string>("");
-  const [gameVersion, setGameVersion] = useState<string | null>(null);
-  const [poolSizeMultiplier, setPoolSizeMultiplier] = useState<number | string>(
-    2,
-  );
-  const [excludeLegendaries, setExcludeLegendaries] = useState(false);
-  const [excludeStarters, setExcludeStarters] = useState(false);
-  const [excludeTradeEvolutions, setExcludeTradeEvolutions] = useState(false);
-  const pokemonVersions = usePokemonVersions();
-
-  useEffect(() => {
-    if (league.data) {
-      if (league.data.sportType) setSportType(league.data.sportType);
-      if (league.data.maxPlayers) setMaxPlayers(league.data.maxPlayers);
-      const rules = league.data.rulesConfig as {
-        draftFormat?: string;
-        numberOfRounds?: number;
-        pickTimeLimitSeconds?: number | null;
-        poolSizeMultiplier?: number;
-        gameVersion?: string;
-        excludeLegendaries?: boolean;
-        excludeStarters?: boolean;
-        excludeTradeEvolutions?: boolean;
-      } | null;
-      if (rules) {
-        if (rules.draftFormat) setDraftFormat(rules.draftFormat);
-        if (rules.numberOfRounds) setNumberOfRounds(rules.numberOfRounds);
-        if (rules.pickTimeLimitSeconds) {
-          setPickTimeLimitSeconds(rules.pickTimeLimitSeconds);
-        }
-        if (rules.gameVersion) {
-          setGameVersion(rules.gameVersion);
-        }
-        if (rules.poolSizeMultiplier) {
-          setPoolSizeMultiplier(rules.poolSizeMultiplier);
-        }
-        setExcludeLegendaries(rules.excludeLegendaries ?? false);
-        setExcludeStarters(rules.excludeStarters ?? false);
-        setExcludeTradeEvolutions(rules.excludeTradeEvolutions ?? false);
-      }
-    }
-  }, [league.data]);
-
   const isCommissioner = players.data?.some(
     (p) => p.userId === session?.user?.id && p.role === "commissioner",
   );
-
-  type SettingsState = {
-    sportType: string | null;
-    draftFormat: string | null;
-    numberOfRounds: number | string;
-    pickTimeLimitSeconds: number | string;
-    maxPlayers: number | string;
-    poolSizeMultiplier: number | string;
-    gameVersion: string | null;
-    excludeLegendaries: boolean;
-    excludeStarters: boolean;
-    excludeTradeEvolutions: boolean;
-  };
-
-  const currentSettings: SettingsState = {
-    sportType,
-    draftFormat,
-    numberOfRounds,
-    pickTimeLimitSeconds,
-    maxPlayers,
-    poolSizeMultiplier,
-    gameVersion,
-    excludeLegendaries,
-    excludeStarters,
-    excludeTradeEvolutions,
-  };
-
-  const isSettingsStateValid = (s: SettingsState) =>
-    !!s.sportType && !!s.draftFormat &&
-    Number(s.numberOfRounds) >= 1 && Number(s.maxPlayers) >= 2 &&
-    Number(s.poolSizeMultiplier) >= 1.5 && Number(s.poolSizeMultiplier) <= 3;
-
-  const saveSettings = (s: SettingsState) => {
-    if (!isSettingsStateValid(s)) return;
-    updateSettings.mutate({
-      leagueId: id!,
-      sportType: s.sportType as "pokemon",
-      maxPlayers: Number(s.maxPlayers),
-      rulesConfig: {
-        draftFormat: s.draftFormat as "snake" | "linear",
-        numberOfRounds: Number(s.numberOfRounds),
-        pickTimeLimitSeconds: s.pickTimeLimitSeconds
-          ? Number(s.pickTimeLimitSeconds)
-          : null,
-        poolSizeMultiplier: Number(s.poolSizeMultiplier),
-        ...(s.gameVersion ? { gameVersion: s.gameVersion } : {}),
-        excludeLegendaries: s.excludeLegendaries,
-        excludeStarters: s.excludeStarters,
-        excludeTradeEvolutions: s.excludeTradeEvolutions,
-      },
-    });
-  };
-
-  const saveCurrentSettings = () => saveSettings(currentSettings);
-
-  const handleDelete = () => {
-    deleteLeague.mutate(
-      { id: id! },
-      {
-        onSuccess: () => {
-          navigate("/");
-        },
-      },
-    );
-  };
-
-  const NEXT_STATUS: Record<string, string | null> = {
-    setup: "drafting",
-    drafting: "competing",
-    competing: "complete",
-    complete: null,
-  };
 
   const nextStatus = league.data ? NEXT_STATUS[league.data.status] : null;
 
@@ -187,6 +80,13 @@ export function LeagueDetailPage() {
   const setupPrerequisitesMet = league.data?.status !== "setup" ||
     persistedSettingsValid;
 
+  const handleDelete = () => {
+    deleteLeague.mutate(
+      { id: id! },
+      { onSuccess: () => navigate("/") },
+    );
+  };
+
   const handleAdvance = () => {
     advanceStatus.mutate(
       { leagueId: id! },
@@ -194,8 +94,12 @@ export function LeagueDetailPage() {
     );
   };
 
+  const currentUserPlayer = players.data?.find(
+    (p) => p.userId === session?.user?.id,
+  );
+
   return (
-    <Container size="sm" py="xl" pos="relative">
+    <Container size="lg" py="xl" pos="relative">
       <LoadingOverlay visible={league.isLoading} />
 
       <Anchor component={Link} href="/" mb="md" display="block">
@@ -204,382 +108,289 @@ export function LeagueDetailPage() {
 
       {league.data && (
         <>
-          <Title order={1} mb="lg">
-            {league.data.name}
-          </Title>
+          {/* Hero strip */}
+          <Paper
+            withBorder
+            radius="md"
+            p="lg"
+            mb="lg"
+            style={{
+              background:
+                "linear-gradient(135deg, var(--mantine-color-mint-green-0), var(--mantine-color-body))",
+            }}
+          >
+            <Group justify="space-between" align="flex-start" wrap="wrap">
+              <Stack gap="xs" style={{ flex: 1, minWidth: 260 }}>
+                <Title order={1}>{league.data.name}</Title>
+                {league.data.sportType && (
+                  <Group gap="xs">
+                    <Badge color="mint-green" variant="light" tt="capitalize">
+                      {league.data.sportType}
+                    </Badge>
+                  </Group>
+                )}
+                <Box mt="xs">
+                  <LifecycleStepper currentPhase={league.data.status} />
+                </Box>
+              </Stack>
 
-          <Card shadow="sm" padding="lg" radius="md" withBorder>
-            <Group mb="sm">
-              <Text fw={500}>Status</Text>
-              <Badge variant="light">{league.data.status}</Badge>
-            </Group>
-
-            <Group mb="sm">
-              <Text fw={500}>Invite Code</Text>
-              <Group gap="xs">
-                <Text ff="monospace">{league.data.inviteCode}</Text>
-                <CopyButton value={league.data.inviteCode}>
-                  {({ copied, copy }) => (
-                    <Tooltip label={copied ? "Copied" : "Copy"}>
-                      <ActionIcon
-                        variant="subtle"
-                        color={copied ? "teal" : "gray"}
-                        onClick={copy}
-                      >
-                        {copied ? "✓" : "⎘"}
-                      </ActionIcon>
-                    </Tooltip>
-                  )}
-                </CopyButton>
+              <Group gap="sm">
+                {league.data.status === "drafting" && (
+                  <>
+                    <Button
+                      component={Link}
+                      href={`/leagues/${league.data.id}/draft`}
+                      size="md"
+                    >
+                      Go to Draft
+                    </Button>
+                    <Button
+                      component={Link}
+                      href={`/leagues/${league.data.id}/draft/pool`}
+                      variant="light"
+                      size="md"
+                    >
+                      View Draft Pool
+                    </Button>
+                  </>
+                )}
+                {isCommissioner && nextStatus && setupPrerequisitesMet && (
+                  <Button
+                    onClick={() => {
+                      advanceStatus.reset();
+                      openAdvance();
+                    }}
+                    size="md"
+                  >
+                    Advance to {capitalize(nextStatus)}
+                  </Button>
+                )}
               </Group>
             </Group>
+          </Paper>
 
-            <Group>
-              <Text fw={500}>Created</Text>
-              <Text c="dimmed">
-                {new Date(league.data.createdAt).toLocaleDateString()}
-              </Text>
-            </Group>
-          </Card>
-
-          {isCommissioner && league.data.status === "setup" && (
-            <>
-              <Title order={3} mt="xl" mb="sm">
-                League Settings
-              </Title>
-              <Card shadow="sm" padding="lg" radius="md" withBorder>
-                <Stack gap="md">
-                  <Select
-                    label="Sport Type"
-                    data={[{ value: "pokemon", label: "Pokemon" }]}
-                    value={sportType}
-                    onChange={(value) => {
-                      setSportType(value);
-                      saveSettings({ ...currentSettings, sportType: value });
-                    }}
-                    required
-                  />
-                  {sportType === "pokemon" && (
-                    <>
-                      <Select
-                        label="Game Version"
-                        description="Optionally limit the draft pool to a specific game's regional dex"
-                        placeholder="All Pokemon"
-                        data={Object.entries(
-                          (pokemonVersions.data ?? []).reduce<
-                            Record<
-                              string,
-                              { value: string; label: string }[]
-                            >
-                          >((acc, v) => {
-                            const group = `Generation ${v.generation}`;
-                            if (!acc[group]) acc[group] = [];
-                            acc[group].push({
-                              value: v.id,
-                              label: `${v.name} (${v.region})`,
-                            });
-                            return acc;
-                          }, {}),
-                        ).map(([group, items]) => ({ group, items }))}
-                        value={gameVersion}
-                        onChange={(value) => {
-                          setGameVersion(value);
-                          saveSettings({
-                            ...currentSettings,
-                            gameVersion: value,
-                          });
-                        }}
-                        clearable
-                        searchable
+          <Grid gutter="lg">
+            {/* Left column (~2/3) */}
+            <Grid.Col span={{ base: 12, md: 8 }}>
+              <Stack gap="lg">
+                {/* Your team panel */}
+                <Card shadow="sm" padding="lg" radius="md" withBorder>
+                  <Group justify="space-between" mb="sm">
+                    <Group gap="xs">
+                      <IconSparkles
+                        size={18}
+                        color="var(--mantine-color-mint-green-6)"
                       />
-                      <Switch
-                        label="Exclude Legendaries"
-                        description="Remove legendary and mythical Pokemon from the draft pool"
-                        checked={excludeLegendaries}
-                        onChange={(event) => {
-                          const next = event.currentTarget.checked;
-                          setExcludeLegendaries(next);
-                          saveSettings({
-                            ...currentSettings,
-                            excludeLegendaries: next,
-                          });
-                        }}
-                      />
-                      <Switch
-                        label="Exclude Starters"
-                        description="Remove starter Pokemon and their evolutions from the draft pool"
-                        checked={excludeStarters}
-                        onChange={(event) => {
-                          const next = event.currentTarget.checked;
-                          setExcludeStarters(next);
-                          saveSettings({
-                            ...currentSettings,
-                            excludeStarters: next,
-                          });
-                        }}
-                      />
-                      <Switch
-                        label="Exclude Trade Evolutions"
-                        description="Remove Pokemon that can only be obtained through trade evolution (e.g. Golem, Gengar, Alakazam)"
-                        checked={excludeTradeEvolutions}
-                        onChange={(event) => {
-                          const next = event.currentTarget.checked;
-                          setExcludeTradeEvolutions(next);
-                          saveSettings({
-                            ...currentSettings,
-                            excludeTradeEvolutions: next,
-                          });
-                        }}
-                      />
-                    </>
-                  )}
-                  <Select
-                    label="Draft Format"
-                    data={[
-                      { value: "snake", label: "Snake" },
-                      { value: "linear", label: "Linear" },
-                    ]}
-                    value={draftFormat}
-                    onChange={(value) => {
-                      setDraftFormat(value);
-                      saveSettings({ ...currentSettings, draftFormat: value });
-                    }}
-                    required
-                  />
-                  <NumberInput
-                    label="Number of Rounds"
-                    min={1}
-                    value={numberOfRounds}
-                    onChange={setNumberOfRounds}
-                    onBlur={saveCurrentSettings}
-                    required
-                  />
-                  <NumberInput
-                    label="Pick Time Limit (seconds)"
-                    description="Leave empty for no time limit"
-                    min={1}
-                    value={pickTimeLimitSeconds}
-                    onChange={setPickTimeLimitSeconds}
-                    onBlur={saveCurrentSettings}
-                  />
-                  <NumberInput
-                    label="Draft Pool Size Multiplier"
-                    description="Pool size = rounds × players × multiplier"
-                    min={1.5}
-                    max={3}
-                    step={0.5}
-                    decimalScale={1}
-                    value={poolSizeMultiplier}
-                    onChange={setPoolSizeMultiplier}
-                    onBlur={saveCurrentSettings}
-                    required
-                  />
-                  <NumberInput
-                    label="Max Players"
-                    min={2}
-                    value={maxPlayers}
-                    onChange={setMaxPlayers}
-                    onBlur={saveCurrentSettings}
-                    required
-                  />
-                  {updateSettings.isPending && (
-                    <Text c="dimmed" size="sm">Saving...</Text>
-                  )}
-                  {updateSettings.isError && (
-                    <Text c="red" size="sm">
-                      Failed to save: {updateSettings.error.message}
-                    </Text>
-                  )}
-                </Stack>
-              </Card>
-            </>
-          )}
-
-          {!isCommissioner && league.data.sportType && (
-            <>
-              <Title order={3} mt="xl" mb="sm">
-                League Settings
-              </Title>
-              <Card shadow="sm" padding="lg" radius="md" withBorder>
-                <Stack gap="xs">
-                  <Group>
-                    <Text fw={500}>Sport Type</Text>
-                    <Badge variant="light">{league.data.sportType}</Badge>
+                      <Title order={3}>Your team</Title>
+                    </Group>
                   </Group>
-                  {league.data.rulesConfig &&
-                    typeof league.data.rulesConfig === "object" && (
-                    <>
-                      {(league.data.rulesConfig as { gameVersion?: string })
-                        .gameVersion && (
-                        <Group>
-                          <Text fw={500}>Game Version</Text>
-                          <Badge variant="light">
-                            {(
-                              league.data.rulesConfig as {
-                                gameVersion: string;
-                              }
-                            ).gameVersion}
-                          </Badge>
+                  {currentUserPlayer
+                    ? (
+                      <Group gap="md">
+                        <Avatar
+                          src={currentUserPlayer.image}
+                          alt={currentUserPlayer.name}
+                          radius="xl"
+                          size="lg"
+                          color="mint-green"
+                        >
+                          {currentUserPlayer.name
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")
+                            .toUpperCase()
+                            .slice(0, 2)}
+                        </Avatar>
+                        <Stack gap={2}>
+                          <Text fw={600}>{currentUserPlayer.name}</Text>
+                          <Text size="sm" c="dimmed" tt="capitalize">
+                            {currentUserPlayer.role}
+                          </Text>
+                        </Stack>
+                      </Group>
+                    )
+                    : (
+                      <Text c="dimmed" size="sm">
+                        Join this league to see your trainer card here.
+                      </Text>
+                    )}
+                  <Text c="dimmed" size="sm" mt="md">
+                    No picks yet. Your roster will appear here once the draft
+                    begins.
+                  </Text>
+                </Card>
+
+                {/* Players / who's in */}
+                <Card shadow="sm" padding="lg" radius="md" withBorder>
+                  <Group justify="space-between" mb="sm">
+                    <Title order={3}>
+                      {league.data.status === "setup"
+                        ? "Who's in"
+                        : league.data.status === "drafting"
+                        ? "Players"
+                        : "Standings"}
+                    </Title>
+                    {league.data.maxPlayers && (
+                      <Text size="sm" c="dimmed">
+                        {players.data?.length ?? 0} / {league.data.maxPlayers}
+                      </Text>
+                    )}
+                  </Group>
+                  <Stack gap="sm">
+                    {players.data?.map((player) => (
+                      <Group key={player.id} justify="space-between">
+                        <Group gap="sm">
+                          <Avatar
+                            src={player.image}
+                            alt={player.name}
+                            radius="xl"
+                            size="sm"
+                            color="mint-green"
+                          >
+                            {player.name
+                              .split(" ")
+                              .map((n) =>
+                                n[0]
+                              )
+                              .join("")
+                              .toUpperCase()
+                              .slice(0, 2)}
+                          </Avatar>
+                          <Text size="sm">{player.name}</Text>
                         </Group>
-                      )}
-                      <Group>
-                        <Text fw={500}>Draft Format</Text>
-                        <Badge variant="light">
-                          {(league.data.rulesConfig as { draftFormat: string })
-                            .draftFormat}
+                        <Badge variant="light" size="sm" tt="capitalize">
+                          {player.role}
                         </Badge>
                       </Group>
-                      <Group>
-                        <Text fw={500}>Rounds</Text>
-                        <Text c="dimmed">
-                          {(
-                            league.data.rulesConfig as {
-                              numberOfRounds: number;
-                            }
-                          ).numberOfRounds}
+                    ))}
+                    {(!players.data || players.data.length === 0) && (
+                      <Text c="dimmed" size="sm">
+                        No players yet.
+                      </Text>
+                    )}
+                  </Stack>
+                </Card>
+              </Stack>
+            </Grid.Col>
+
+            {/* Right column (~1/3) */}
+            <Grid.Col span={{ base: 12, md: 4 }}>
+              <Stack gap="lg">
+                <Card shadow="sm" padding="lg" radius="md" withBorder>
+                  <Title order={4} mb="sm">League info</Title>
+                  <Stack gap="xs">
+                    <Group justify="space-between">
+                      <Text size="sm" fw={500}>Invite code</Text>
+                      <Group gap={4}>
+                        <Text ff="monospace" size="sm">
+                          {league.data.inviteCode}
                         </Text>
+                        <CopyButton value={league.data.inviteCode}>
+                          {({ copied, copy }) => (
+                            <Tooltip label={copied ? "Copied" : "Copy"}>
+                              <ActionIcon
+                                variant="subtle"
+                                size="sm"
+                                color={copied ? "teal" : "gray"}
+                                onClick={copy}
+                                aria-label="Copy invite code"
+                              >
+                                {copied ? "✓" : "⎘"}
+                              </ActionIcon>
+                            </Tooltip>
+                          )}
+                        </CopyButton>
                       </Group>
-                      <Group>
-                        <Text fw={500}>Pick Time Limit</Text>
-                        <Text c="dimmed">
-                          {(
-                              league.data.rulesConfig as {
-                                pickTimeLimitSeconds: number | null;
-                              }
-                            ).pickTimeLimitSeconds
-                            ? `${
-                              (
-                                league.data.rulesConfig as {
-                                  pickTimeLimitSeconds: number;
-                                }
-                              ).pickTimeLimitSeconds
-                            }s`
-                            : "No limit"}
-                        </Text>
-                      </Group>
-                      <Group>
-                        <Text fw={500}>Draft Pool Multiplier</Text>
-                        <Text c="dimmed">
-                          {(
-                            league.data.rulesConfig as {
-                              poolSizeMultiplier?: number;
-                            }
-                          ).poolSizeMultiplier ?? 2}x
-                        </Text>
-                      </Group>
-                      {(league.data.rulesConfig as {
-                        excludeLegendaries?: boolean;
-                      }).excludeLegendaries && (
-                        <Group>
-                          <Text fw={500}>Legendaries</Text>
-                          <Badge variant="light" color="red">Excluded</Badge>
-                        </Group>
-                      )}
-                      {(league.data.rulesConfig as {
-                        excludeStarters?: boolean;
-                      }).excludeStarters && (
-                        <Group>
-                          <Text fw={500}>Starters</Text>
-                          <Badge variant="light" color="red">Excluded</Badge>
-                        </Group>
-                      )}
-                      {(league.data.rulesConfig as {
-                        excludeTradeEvolutions?: boolean;
-                      }).excludeTradeEvolutions && (
-                        <Group>
-                          <Text fw={500}>Trade Evolutions</Text>
-                          <Badge variant="light" color="red">Excluded</Badge>
-                        </Group>
-                      )}
-                    </>
-                  )}
-                  {league.data.maxPlayers && (
-                    <Group>
-                      <Text fw={500}>Max Players</Text>
-                      <Text c="dimmed">{league.data.maxPlayers}</Text>
                     </Group>
-                  )}
-                </Stack>
-              </Card>
-            </>
-          )}
+                    <Group justify="space-between">
+                      <Text size="sm" fw={500}>Created</Text>
+                      <Text size="sm" c="dimmed">
+                        {new Date(league.data.createdAt).toLocaleDateString()}
+                      </Text>
+                    </Group>
+                  </Stack>
+                </Card>
 
-          <Title order={3} mt="xl" mb="sm">
-            Players
-          </Title>
-          <Card shadow="sm" padding="lg" radius="md" withBorder>
-            <Stack gap="sm">
-              {players.data?.map((player) => (
-                <Group key={player.id} justify="space-between">
-                  <Group gap="sm">
-                    <Avatar
-                      src={player.image}
-                      alt={player.name}
-                      radius="xl"
-                      size="sm"
-                      color="blue"
+                <Card shadow="sm" padding="lg" radius="md" withBorder>
+                  <Group justify="space-between" mb="sm">
+                    <Title order={4}>Rules</Title>
+                    <Button
+                      component={Link}
+                      href={`/leagues/${league.data.id}/settings`}
+                      size="xs"
+                      variant="subtle"
+                      leftSection={<IconSettings size={14} />}
                     >
-                      {player.name
-                        .split(" ")
-                        .map((n) =>
-                          n[0]
-                        )
-                        .join("")
-                        .toUpperCase()
-                        .slice(0, 2)}
-                    </Avatar>
-                    <Text size="sm">{player.name}</Text>
+                      {isCommissioner && league.data.status === "setup"
+                        ? "Configure"
+                        : "View"}
+                    </Button>
                   </Group>
-                  <Badge variant="light" size="sm">
-                    {player.role}
-                  </Badge>
+                  {league.data.rulesConfig &&
+                      typeof league.data.rulesConfig === "object"
+                    ? (
+                      <Stack gap="xs">
+                        <Group justify="space-between">
+                          <Text size="sm" c="dimmed">Format</Text>
+                          <Text size="sm" tt="capitalize">
+                            {(league.data.rulesConfig as {
+                              draftFormat?: string;
+                            }).draftFormat ?? "—"}
+                          </Text>
+                        </Group>
+                        <Group justify="space-between">
+                          <Text size="sm" c="dimmed">Rounds</Text>
+                          <Text size="sm">
+                            {(league.data.rulesConfig as {
+                              numberOfRounds?: number;
+                            }).numberOfRounds ?? "—"}
+                          </Text>
+                        </Group>
+                        {league.data.maxPlayers && (
+                          <Group justify="space-between">
+                            <Text size="sm" c="dimmed">Max players</Text>
+                            <Text size="sm">{league.data.maxPlayers}</Text>
+                          </Group>
+                        )}
+                      </Stack>
+                    )
+                    : (
+                      <Text size="sm" c="dimmed">
+                        Not configured yet.
+                      </Text>
+                    )}
+                </Card>
+              </Stack>
+            </Grid.Col>
+          </Grid>
+
+          {/* Danger zone — commissioner only, visually isolated from normal actions */}
+          {isCommissioner && (
+            <Paper
+              withBorder
+              radius="md"
+              p="md"
+              mt="xl"
+              style={{ borderColor: "var(--mantine-color-red-3)" }}
+            >
+              <Group justify="space-between" wrap="wrap">
+                <Group gap="xs">
+                  <IconAlertTriangle
+                    size={18}
+                    color="var(--mantine-color-red-6)"
+                  />
+                  <Text fw={600} c="red">Danger zone</Text>
                 </Group>
-              ))}
-            </Stack>
-          </Card>
-
-          <Group mt="lg">
-            {league.data.status === "drafting" && (
-              <>
                 <Button
-                  component={Link}
-                  href={`/leagues/${league.data.id}/draft`}
-                  variant="filled"
-                >
-                  Go to Draft
-                </Button>
-                <Button
-                  component={Link}
-                  href={`/leagues/${league.data.id}/draft/pool`}
+                  color="red"
                   variant="light"
+                  onClick={openDelete}
                 >
-                  View Draft Pool
+                  Delete League
                 </Button>
-              </>
-            )}
-
-            {isCommissioner && nextStatus && setupPrerequisitesMet && (
-              <Button
-                onClick={() => {
-                  advanceStatus.reset();
-                  openAdvance();
-                }}
-              >
-                Advance to {nextStatus.charAt(0).toUpperCase() +
-                  nextStatus.slice(1)}
-              </Button>
-            )}
-
-            {isCommissioner && (
-              <Button
-                color="red"
-                variant="light"
-                onClick={openDelete}
-              >
-                Delete League
-              </Button>
-            )}
-          </Group>
+              </Group>
+            </Paper>
+          )}
 
           <Modal
             opened={advanceOpened}
@@ -589,14 +400,9 @@ export function LeagueDetailPage() {
             <Stack gap="md">
               <Text>
                 Are you sure you want to advance{" "}
-                <Text span fw={700}>
-                  {league.data.name}
-                </Text>{" "}
-                to{" "}
-                <Text span fw={700}>
-                  {nextStatus}
-                </Text>
-                ? This action cannot be undone.
+                <Text span fw={700}>{league.data.name}</Text> to{" "}
+                <Text span fw={700}>{nextStatus}</Text>? This action cannot be
+                undone.
               </Text>
               {advanceStatus.isError && (
                 <Alert color="red" title="Failed to advance">
@@ -624,10 +430,8 @@ export function LeagueDetailPage() {
           >
             <Text mb="lg">
               Are you sure you want to delete{" "}
-              <Text span fw={700}>
-                {league.data.name}
-              </Text>
-              ? This action cannot be undone.
+              <Text span fw={700}>{league.data.name}</Text>? This action cannot
+              be undone.
             </Text>
             <Group justify="flex-end">
               <Button variant="default" onClick={closeDelete}>
