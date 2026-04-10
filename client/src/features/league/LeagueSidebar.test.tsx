@@ -172,6 +172,37 @@ describe("LeagueSidebar", () => {
     expect(overview.getAttribute("data-active")).toBe("true");
   });
 
+  it("has a Picks link when the league is competing", () => {
+    setup({ leagueStatus: "competing" });
+    renderSidebar({ leagueId: "L1", location: "/leagues/L1" });
+    const picks = screen.getByRole("link", { name: /picks/i });
+    expect(picks).toHaveAttribute("href", "/leagues/L1/picks");
+  });
+
+  it("has a Picks link when the league is complete", () => {
+    setup({ leagueStatus: "complete" });
+    renderSidebar({ leagueId: "L1", location: "/leagues/L1" });
+    const picks = screen.getByRole("link", { name: /picks/i });
+    expect(picks).toHaveAttribute("href", "/leagues/L1/picks");
+  });
+
+  it("disables the Picks link while the league is still drafting", () => {
+    setup({ leagueStatus: "drafting" });
+    renderSidebar({ leagueId: "L1", location: "/leagues/L1" });
+    expect(screen.queryByRole("link", { name: /picks/i })).toBeNull();
+    expect(screen.getByText(/picks/i)).toBeInTheDocument();
+  });
+
+  it("highlights Picks as active on the picks route", () => {
+    setup({ leagueStatus: "competing" });
+    const { container } = renderSidebar({
+      leagueId: "L1",
+      location: "/leagues/L1/picks",
+    });
+    const picks = within(container).getByRole("link", { name: /picks/i });
+    expect(picks.getAttribute("data-active")).toBe("true");
+  });
+
   it("highlights Draft Room as active on the draft route", () => {
     setup();
     const { container } = renderSidebar({
