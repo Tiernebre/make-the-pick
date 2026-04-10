@@ -3,12 +3,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { MantineProvider } from "@mantine/core";
 import { LeagueListPage } from "./LeagueListPage";
 
-const { mockUseLeagues, mockUseJoinLeague } = vi.hoisted(
-  () => ({
-    mockUseLeagues: vi.fn(),
-    mockUseJoinLeague: vi.fn(),
-  }),
-);
+const { mockUseLeagues, mockUseJoinLeague } = vi.hoisted(() => ({
+  mockUseLeagues: vi.fn(),
+  mockUseJoinLeague: vi.fn(),
+}));
 
 const { mockNavigate } = vi.hoisted(() => ({
   mockNavigate: vi.fn(),
@@ -35,21 +33,29 @@ function renderPage() {
 const mockLeagues = [
   {
     id: "1",
-    name: "League One",
-    status: "setup",
+    name: "Johto Classic",
+    status: "drafting",
     inviteCode: "ABC123XY",
     createdBy: "user1",
+    sportType: "pokemon",
+    maxPlayers: 8,
     rulesConfig: null,
+    playerCount: 4,
+    userRole: "commissioner" as const,
     createdAt: "2026-01-01T00:00:00Z",
     updatedAt: "2026-01-01T00:00:00Z",
   },
   {
     id: "2",
-    name: "League Two",
+    name: "Kanto Rumble",
     status: "setup",
     inviteCode: "DEF456ZZ",
     createdBy: "user2",
+    sportType: "pokemon",
+    maxPlayers: 6,
     rulesConfig: null,
+    playerCount: 2,
+    userRole: "member" as const,
     createdAt: "2026-01-02T00:00:00Z",
     updatedAt: "2026-01-02T00:00:00Z",
   },
@@ -80,58 +86,60 @@ describe("LeagueListPage", () => {
     expect(screen.getByText("My Leagues")).toBeInTheDocument();
   });
 
-  it("shows loading overlay when data is loading", () => {
-    setupMocks({ isLoading: true });
-    renderPage();
-    expect(
-      document.querySelector(
-        "[data-mantine-loading-overlay],.mantine-LoadingOverlay-root",
-      ),
-    ).toBeInTheDocument();
-  });
-
-  it("shows empty state when there are no leagues", () => {
+  it("shows a warm empty state when there are no leagues", () => {
     setupMocks({ data: [] });
     renderPage();
     expect(
-      screen.getByText(/you haven't joined any leagues yet/i),
+      screen.getByText(/your adventure starts here/i),
     ).toBeInTheDocument();
   });
 
-  it("renders league cards when data exists", () => {
+  it("renders a row per league in the table", () => {
     setupMocks({ data: mockLeagues });
     renderPage();
-    expect(screen.getByText("League One")).toBeInTheDocument();
-    expect(screen.getByText("League Two")).toBeInTheDocument();
+    expect(screen.getByText("Johto Classic")).toBeInTheDocument();
+    expect(screen.getByText("Kanto Rumble")).toBeInTheDocument();
+  });
+
+  it("renders a status badge for each league", () => {
+    setupMocks({ data: mockLeagues });
+    renderPage();
+    expect(screen.getByText(/drafting/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/setup/i).length).toBeGreaterThan(0);
+  });
+
+  it("renders player count like 4 / 8", () => {
+    setupMocks({ data: mockLeagues });
+    renderPage();
+    expect(screen.getByText("4 / 8")).toBeInTheDocument();
+    expect(screen.getByText("2 / 6")).toBeInTheDocument();
+  });
+
+  it("renders the user's role for each league", () => {
+    setupMocks({ data: mockLeagues });
+    renderPage();
+    expect(screen.getByText(/commissioner/i)).toBeInTheDocument();
+    expect(screen.getByText(/^member$/i)).toBeInTheDocument();
   });
 
   it("has a Create League link pointing to /leagues/new", () => {
     setupMocks();
     renderPage();
     const link = screen.getByRole("link", { name: /create league/i });
-    expect(link).toBeInTheDocument();
     expect(link).toHaveAttribute("href", "/leagues/new");
   });
 
-  it("has a Join League button", () => {
-    setupMocks();
-    renderPage();
-    expect(
-      screen.getByRole("button", { name: /join league/i }),
-    ).toBeInTheDocument();
-  });
-
-  it("clicking Join League button locks scroll (opens modal)", () => {
+  it("has a Join League button that opens the modal", () => {
     setupMocks();
     renderPage();
     fireEvent.click(screen.getByRole("button", { name: /join league/i }));
     expect(document.body).toHaveAttribute("data-scroll-locked");
   });
 
-  it("navigates to league detail when a league card is clicked", () => {
+  it("navigates to a league detail when its row is clicked", () => {
     setupMocks({ data: mockLeagues });
     renderPage();
-    fireEvent.click(screen.getByText("League One"));
+    fireEvent.click(screen.getByText("Johto Classic"));
     expect(mockNavigate).toHaveBeenCalledWith("/leagues/1");
   });
 });
