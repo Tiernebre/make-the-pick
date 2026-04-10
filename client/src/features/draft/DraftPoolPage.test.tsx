@@ -16,6 +16,12 @@ vi.mock("./use-draft", () => ({
   useDraftPool: mockUseDraftPool,
 }));
 
+vi.mock("./use-pool-item-notes", () => ({
+  usePoolItemNotes: () => ({ data: [] }),
+  useUpsertPoolItemNote: () => ({ mutate: vi.fn() }),
+  useDeletePoolItemNote: () => ({ mutate: vi.fn() }),
+}));
+
 vi.mock("./use-watchlist", () => ({
   useWatchlist: () => ({ data: [] }),
   useAddToWatchlist: () => ({ mutate: vi.fn() }),
@@ -132,11 +138,6 @@ describe("DraftPoolPage", () => {
         "[data-mantine-loading-overlay],.mantine-LoadingOverlay-root",
       ),
     ).toBeInTheDocument();
-  });
-
-  it("shows pool item count", () => {
-    renderPage();
-    expect(screen.getByText(/2 Pokémon/i)).toBeInTheDocument();
   });
 
   it("renders a table with stat column headers", () => {

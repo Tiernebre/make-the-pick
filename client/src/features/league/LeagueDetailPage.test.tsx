@@ -31,6 +31,10 @@ vi.mock("./use-leagues", () => ({
   useAdvanceLeagueStatus: mockUseAdvanceLeagueStatus,
 }));
 
+vi.mock("../pokemon-version/use-pokemon-versions", () => ({
+  usePokemonVersions: () => ({ data: [], isLoading: false }),
+}));
+
 vi.mock("../../auth", () => ({
   useSession: () => ({ data: { user: { id: "user-1" } } }),
 }));
