@@ -90,6 +90,8 @@ export {
   poolItemEffortSchema,
   type PoolItemEncounter,
   poolItemEncounterSchema,
+  type PoolItemEncounterSource,
+  poolItemEncounterSourceSchema,
 } from "./schemas/mod.ts";
 export {
   type PokemonMovesEntry,

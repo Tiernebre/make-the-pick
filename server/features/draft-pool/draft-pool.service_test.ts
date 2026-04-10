@@ -1597,6 +1597,164 @@ Deno.test("draftPoolService.getByLeagueId: returns null encounter when species h
   assertEquals(result.items[0].evolution, null);
 });
 
+Deno.test("draftPoolService.getByLeagueId: falls back to pre-evolution encounters when evolved Pokemon has none", async () => {
+  const fakeLeague = createFakeLeague({
+    rulesConfig: {
+      draftFormat: "snake",
+      numberOfRounds: 5,
+      pickTimeLimitSeconds: null,
+      poolSizeMultiplier: 2,
+      gameVersion: "emerald",
+    },
+  });
+  const fakePool = {
+    id: crypto.randomUUID(),
+    leagueId: fakeLeague.id,
+    name: "Pool",
+    createdAt: new Date(),
+  };
+  // pokemonId 3 evolves from 2, which evolves from 1. Only 1 has wild encounters.
+  const chainEncounters: PokemonEncountersData = {
+    emerald: {
+      "1": {
+        primary: { location: "Route 101", method: "Walk" },
+        encounters: [
+          {
+            location: "Route 101",
+            method: "Walk",
+            minLevel: 3,
+            maxLevel: 5,
+            chance: 30,
+          },
+        ],
+      },
+    },
+  };
+  const chainEvolutions: PokemonEvolutionsData = {
+    "1": { pokemonId: 1, chainId: 1, evolvesFromId: null, triggers: [] },
+    "2": {
+      pokemonId: 2,
+      chainId: 1,
+      evolvesFromId: 1,
+      triggers: [
+        {
+          trigger: "level-up",
+          minLevel: 16,
+          item: null,
+          heldItem: null,
+          knownMove: null,
+          minHappiness: null,
+          timeOfDay: null,
+          needsOverworldRain: false,
+          location: null,
+          tradeSpecies: null,
+        },
+      ],
+    },
+    "3": {
+      pokemonId: 3,
+      chainId: 1,
+      evolvesFromId: 2,
+      triggers: [
+        {
+          trigger: "level-up",
+          minLevel: 36,
+          item: null,
+          heldItem: null,
+          knownMove: null,
+          minHappiness: null,
+          timeOfDay: null,
+          needsOverworldRain: false,
+          location: null,
+          tradeSpecies: null,
+        },
+      ],
+    },
+  };
+  const storedItems = [
+    createFakeStoredPoolItem(fakePool.id, 2),
+    createFakeStoredPoolItem(fakePool.id, 3),
+  ];
+
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve(createMemberPlayer(fakeLeague.id)),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    findByLeagueId: (_leagueId) => Promise.resolve(fakePool),
+    findItemsByPoolId: (_poolId) => Promise.resolve(storedItems),
+  });
+
+  const service = createDraftPoolService({
+    draftPoolRepo,
+    leagueRepo,
+    pokemonData: createFakePokemonData(5),
+    pokemonVersions: fakePokemonVersions,
+    regionalPokedexes: fakeRegionalPokedexes,
+    pokemonEncounters: chainEncounters,
+    pokemonEvolutions: chainEvolutions,
+  });
+
+  const result = await service.getByLeagueId("user-2", fakeLeague.id);
+  const byId = new Map(
+    result.items.map((item) => [item.metadata?.pokemonId, item]),
+  );
+
+  const firstStage = byId.get(2)!;
+  assertEquals(firstStage.encounter?.primary?.location, "Route 101");
+  assertEquals(firstStage.encounter?.source?.pokemonId, 1);
+  assertEquals(firstStage.encounter?.source?.name, "pokemon-1");
+
+  const secondStage = byId.get(3)!;
+  assertEquals(secondStage.encounter?.primary?.location, "Route 101");
+  assertEquals(secondStage.encounter?.all.length, 1);
+  assertEquals(secondStage.encounter?.source?.pokemonId, 1);
+  assertEquals(secondStage.encounter?.source?.name, "pokemon-1");
+});
+
+Deno.test("draftPoolService.getByLeagueId: base-stage encounters have no source", async () => {
+  const fakeLeague = createFakeLeague({
+    rulesConfig: {
+      draftFormat: "snake",
+      numberOfRounds: 5,
+      pickTimeLimitSeconds: null,
+      poolSizeMultiplier: 2,
+      gameVersion: "emerald",
+    },
+  });
+  const fakePool = {
+    id: crypto.randomUUID(),
+    leagueId: fakeLeague.id,
+    name: "Pool",
+    createdAt: new Date(),
+  };
+  const storedItems = [createFakeStoredPoolItem(fakePool.id, 1)];
+
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve(createMemberPlayer(fakeLeague.id)),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    findByLeagueId: (_leagueId) => Promise.resolve(fakePool),
+    findItemsByPoolId: (_poolId) => Promise.resolve(storedItems),
+  });
+
+  const service = createDraftPoolService({
+    draftPoolRepo,
+    leagueRepo,
+    pokemonData: createFakePokemonData(5),
+    pokemonVersions: fakePokemonVersions,
+    regionalPokedexes: fakeRegionalPokedexes,
+    pokemonEncounters: fakeEncounters,
+    pokemonEvolutions: fakeEvolutions,
+  });
+
+  const result = await service.getByLeagueId("user-2", fakeLeague.id);
+  assertEquals(result.items[0].encounter?.source ?? null, null);
+});
+
 Deno.test("draftPoolService.generate: throws when all Pokemon are excluded by filters", async () => {
   const fakeLeague = createFakeLeague({
     rulesConfig: {
