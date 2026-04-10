@@ -15,6 +15,13 @@ export default defineConfig({
         __dirname,
         "src/test-stubs/react-remove-scroll.ts",
       ),
+      // The shared workspace package is a Deno workspace member and not
+      // installed under node_modules. Alias it to its entry file so vite
+      // (and vitest) can resolve runtime imports of Zod schemas.
+      "@make-the-pick/shared": path.resolve(
+        __dirname,
+        "../packages/shared/mod.ts",
+      ),
     },
   },
   test: {
