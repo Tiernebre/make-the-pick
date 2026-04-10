@@ -1,4 +1,4 @@
-import { and, count, eq, sql } from "drizzle-orm";
+import { and, count, eq, notInArray, sql } from "drizzle-orm";
 import type { db } from "../../db/mod.ts";
 import { league, leaguePlayer, user } from "../../db/mod.ts";
 import { logger } from "../../logger.ts";
@@ -123,6 +123,7 @@ export function createLeagueRepository(db: Database) {
           userId: leaguePlayer.userId,
           name: user.name,
           image: user.image,
+          isNpc: user.isNpc,
           role: leaguePlayer.role,
           joinedAt: leaguePlayer.joinedAt,
         })
@@ -132,6 +133,25 @@ export function createLeagueRepository(db: Database) {
       log.debug(
         { leagueId, count: rows.length },
         "findPlayersByLeagueId result",
+      );
+      return rows;
+    },
+
+    async findAvailableNpcUsers(leagueId: string) {
+      log.debug({ leagueId }, "finding available NPC users");
+      const existing = await db
+        .select({ userId: leaguePlayer.userId })
+        .from(leaguePlayer)
+        .where(eq(leaguePlayer.leagueId, leagueId));
+      const existingIds = existing.map((r) => r.userId);
+      const rows = await db.select().from(user).where(
+        existingIds.length > 0
+          ? and(eq(user.isNpc, true), notInArray(user.id, existingIds))
+          : eq(user.isNpc, true),
+      );
+      log.debug(
+        { leagueId, count: rows.length },
+        "findAvailableNpcUsers result",
       );
       return rows;
     },

@@ -26,11 +26,14 @@ import { useSession } from "../../auth";
 import { LifecycleStepper } from "./LifecycleStepper";
 import { TrainerCard } from "./TrainerCard";
 import {
+  useAddNpcPlayer,
   useAdvanceLeagueStatus,
   useDeleteLeague,
   useLeague,
   useLeaguePlayers,
 } from "./use-leagues";
+
+const IS_DEV = import.meta.env.DEV;
 
 const NEXT_STATUS: Record<string, string | null> = {
   setup: "drafting",
@@ -50,6 +53,7 @@ export function LeagueDetailPage() {
   const { data: session } = useSession();
   const deleteLeague = useDeleteLeague();
   const advanceStatus = useAdvanceLeagueStatus();
+  const addNpcPlayer = useAddNpcPlayer();
   const [, navigate] = useLocation();
 
   const [deleteOpened, { open: openDelete, close: closeDelete }] =
@@ -233,6 +237,11 @@ export function LeagueDetailPage() {
                               .slice(0, 2)}
                           </Avatar>
                           <Text size="sm">{player.name}</Text>
+                          {player.isNpc && (
+                            <Badge variant="light" color="grape" size="xs">
+                              NPC
+                            </Badge>
+                          )}
                         </Group>
                         <Badge variant="light" size="sm" tt="capitalize">
                           {player.role}
@@ -243,6 +252,17 @@ export function LeagueDetailPage() {
                       <Text c="dimmed" size="sm">
                         No players yet.
                       </Text>
+                    )}
+                    {IS_DEV && isCommissioner &&
+                      league.data.status === "setup" && (
+                      <Button
+                        variant="light"
+                        size="xs"
+                        loading={addNpcPlayer.isPending}
+                        onClick={() => addNpcPlayer.mutate({ leagueId: id! })}
+                      >
+                        + Add NPC (dev)
+                      </Button>
                     )}
                   </Stack>
                 </Card>

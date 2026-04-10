@@ -28,3 +28,5 @@ export type {
   Clock,
   DraftTimerScheduler,
 } from "./draft.timers.ts";
+export { createNpcScheduler } from "./npc-scheduler.ts";
+export type { NpcScheduler } from "./npc-scheduler.ts";

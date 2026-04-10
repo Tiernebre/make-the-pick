@@ -258,6 +258,56 @@ export function createLeagueService(
       return league;
     },
 
+    async addNpcPlayer(
+      userId: string,
+      input: { leagueId: string },
+    ) {
+      log.debug({ userId, leagueId: input.leagueId }, "adding NPC to league");
+      const league = await deps.leagueRepo.findById(input.leagueId);
+      if (!league) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "League not found" });
+      }
+      const caller = await deps.leagueRepo.findPlayer(input.leagueId, userId);
+      if (caller?.role !== "commissioner") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only the league commissioner can add NPC players",
+        });
+      }
+      if (league.status !== "setup") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "NPCs can only be added while the league is in setup",
+        });
+      }
+      if (league.maxPlayers !== null) {
+        const playerCount = await deps.leagueRepo.countPlayers(input.leagueId);
+        if (playerCount >= league.maxPlayers) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "League is full",
+          });
+        }
+      }
+      const available = await deps.leagueRepo.findAvailableNpcUsers(
+        input.leagueId,
+      );
+      if (available.length === 0) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            "No NPC users available — run `deno task seed:dev` to seed the NPC pool",
+        });
+      }
+      const npc = available[0];
+      await deps.leagueRepo.addPlayer(input.leagueId, npc.id);
+      log.debug(
+        { leagueId: input.leagueId, npcId: npc.id, npcName: npc.name },
+        "NPC added to league",
+      );
+      return { userId: npc.id, name: npc.name };
+    },
+
     async removePlayer(
       userId: string,
       input: { leagueId: string; playerUserId: string },
