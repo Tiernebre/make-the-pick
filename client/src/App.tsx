@@ -34,6 +34,7 @@ import { AppLayout } from "./components/AppLayout";
 import { LoginPage } from "./pages/LoginPage";
 import {
   CreateLeaguePage,
+  HomeDashboard,
   JoinLeaguePage,
   LeagueDetailPage,
   LeagueListPage,
@@ -88,10 +89,17 @@ export function App() {
                 </AppLayout>
               </AuthGuard>
             </Route>
-            <Route>
+            <Route path="/leagues">
               <AuthGuard>
                 <AppLayout>
                   <LeagueListPage />
+                </AppLayout>
+              </AuthGuard>
+            </Route>
+            <Route>
+              <AuthGuard>
+                <AppLayout>
+                  <HomeDashboard />
                 </AppLayout>
               </AuthGuard>
             </Route>

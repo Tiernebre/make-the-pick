@@ -65,7 +65,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     ? NAVBAR_COLLAPSED_WIDTH
     : NAVBAR_EXPANDED_WIDTH;
 
-  const isLeaguesActive = location.startsWith("/leagues") || location === "/";
+  const isLeaguesActive = location.startsWith("/leagues");
   const leagueItems = leagues.data ?? [];
 
   return (
@@ -120,7 +120,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                   <Tooltip label="Leagues" position="right">
                     <div>
                       <SidebarLink
-                        to="/"
+                        to="/leagues"
                         label="Leagues"
                         icon={<IconTrophy size={20} />}
                         active={isLeaguesActive}
@@ -151,7 +151,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                     ))}
                     <NavLink
                       component={Link}
-                      href="/"
+                      href="/leagues"
                       label="Browse all"
                       c="dimmed"
                     />

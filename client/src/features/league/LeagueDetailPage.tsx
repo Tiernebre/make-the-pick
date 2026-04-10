@@ -83,7 +83,7 @@ export function LeagueDetailPage() {
   const handleDelete = () => {
     deleteLeague.mutate(
       { id: id! },
-      { onSuccess: () => navigate("/") },
+      { onSuccess: () => navigate("/leagues") },
     );
   };
 
@@ -102,7 +102,7 @@ export function LeagueDetailPage() {
     <Container size="lg" py="xl" pos="relative">
       <LoadingOverlay visible={league.isLoading} />
 
-      <Anchor component={Link} href="/" mb="md" display="block">
+      <Anchor component={Link} href="/leagues" mb="md" display="block">
         &larr; Back to Leagues
       </Anchor>
 

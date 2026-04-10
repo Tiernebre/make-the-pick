@@ -32,11 +32,11 @@ afterEach(() => {
   cleanup();
 });
 
-test("renders My Leagues title on the landing page", () => {
+test("renders the Home dashboard welcome banner on the landing page", () => {
   mockUseLeagues.mockReturnValue({ data: [], isLoading: false });
   mockUseCreateLeague.mockReturnValue({ mutate: vi.fn(), isPending: false });
   mockUseJoinLeague.mockReturnValue({ mutate: vi.fn(), isPending: false });
 
   render(<App />);
-  expect(screen.getByText("My Leagues")).toBeInTheDocument();
+  expect(screen.getByText(/welcome back, test/i)).toBeInTheDocument();
 });

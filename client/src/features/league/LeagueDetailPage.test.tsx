@@ -111,7 +111,7 @@ describe("LeagueDetailPage", () => {
     renderPage();
     const backLink = screen.getByRole("link", { name: /back to leagues/i });
     expect(backLink).toBeInTheDocument();
-    expect(backLink).toHaveAttribute("href", "/");
+    expect(backLink).toHaveAttribute("href", "/leagues");
   });
 
   it("calls useLeague with the id from route params", () => {
