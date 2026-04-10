@@ -12,6 +12,7 @@ const {
   mockUseStartDraft,
   mockStartDraftMutate,
   mockMakePickMutate,
+  mockUseDraftEvents,
 } = vi.hoisted(() => ({
   mockUseLeague: vi.fn(),
   mockUseLeaguePlayers: vi.fn(),
@@ -20,6 +21,7 @@ const {
   mockUseStartDraft: vi.fn(),
   mockStartDraftMutate: vi.fn(),
   mockMakePickMutate: vi.fn(),
+  mockUseDraftEvents: vi.fn(),
 }));
 
 vi.mock("../league/use-leagues", () => ({
@@ -31,6 +33,10 @@ vi.mock("./use-draft", () => ({
   useDraft: mockUseDraft,
   useMakePick: mockUseMakePick,
   useStartDraft: mockUseStartDraft,
+}));
+
+vi.mock("./use-draft-events", () => ({
+  useDraftEvents: mockUseDraftEvents,
 }));
 
 vi.mock("../../auth", () => ({
@@ -119,6 +125,7 @@ describe("DraftPage", () => {
       isPending: false,
       error: null,
     });
+    mockUseDraftEvents.mockReturnValue({ status: "idle" });
   });
 
   afterEach(() => {
@@ -193,6 +200,28 @@ describe("DraftPage", () => {
     expect(
       screen.getByRole("button", { name: /start draft/i }),
     ).toBeInTheDocument();
+  });
+
+  it("subscribes to live draft events with the league id when the draft is in progress", () => {
+    renderPage();
+    expect(mockUseDraftEvents).toHaveBeenCalled();
+    const [calledLeagueId, calledOpts] = mockUseDraftEvents.mock.calls[0];
+    expect(calledLeagueId).toBe("league-1");
+    expect(calledOpts).toMatchObject({ enabled: true });
+  });
+
+  it("does not enable the draft events subscription when the draft is pending", () => {
+    mockUseDraft.mockReturnValue({
+      data: makeDraftState({ status: "pending" }),
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+    renderPage();
+    const lastCall =
+      mockUseDraftEvents.mock.calls[mockUseDraftEvents.mock.calls.length - 1];
+    expect(lastCall[0]).toBe("league-1");
+    expect(lastCall[1]).toMatchObject({ enabled: false });
   });
 
   it("does not show Start Draft button when pending and user is not commissioner", () => {
