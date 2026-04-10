@@ -127,6 +127,27 @@ export function AvailablePoolTable({
   const columns = useMemo<MRT_ColumnDef<DraftPoolItem>[]>(
     () => [
       {
+        id: "draft",
+        header: "",
+        size: 90,
+        enableSorting: false,
+        enableColumnFilter: false,
+        enableResizing: false,
+        Cell: ({ row }) =>
+          isMyTurn
+            ? (
+              <Button
+                size="xs"
+                variant="light"
+                onClick={() => handleClickItem(row.original)}
+                aria-label={`Draft ${row.original.name}`}
+              >
+                Draft
+              </Button>
+            )
+            : null,
+      },
+      {
         id: "watchlist",
         header: "",
         size: 44,
@@ -290,27 +311,6 @@ export function AvailablePoolTable({
             {cell.getValue<number | null>() ?? "—"}
           </span>
         ),
-      },
-      {
-        id: "draft",
-        header: "",
-        size: 90,
-        enableSorting: false,
-        enableColumnFilter: false,
-        enableResizing: false,
-        Cell: ({ row }) =>
-          isMyTurn
-            ? (
-              <Button
-                size="xs"
-                variant="light"
-                onClick={() => handleClickItem(row.original)}
-                aria-label={`Draft ${row.original.name}`}
-              >
-                Draft
-              </Button>
-            )
-            : null,
       },
     ],
     [
