@@ -3,7 +3,6 @@ import {
   Button,
   Card,
   Container,
-  Grid,
   Group,
   Paper,
   Stack,
@@ -13,7 +12,6 @@ import {
 import { useDisclosure } from "@mantine/hooks";
 import {
   IconChevronRight,
-  IconCircleCheck,
   IconPlus,
   IconTicket,
   IconTrophy,
@@ -64,49 +62,25 @@ export function HomeDashboard() {
         </Group>
       </Paper>
 
-      <Grid gutter="lg">
-        <Grid.Col span={{ base: 12, md: 7 }}>
-          <Card shadow="sm" padding="lg" radius="md" withBorder>
-            <Title order={4} mb="sm">Recent activity</Title>
-            <Stack gap="xs">
-              <Group gap="xs">
-                <IconCircleCheck
-                  size={16}
-                  color="var(--mantine-color-mint-green-6)"
-                />
-                <Text size="sm" c="dimmed">
-                  Activity feed will light up here once your leagues get
-                  rolling.
-                </Text>
-              </Group>
-            </Stack>
-          </Card>
-        </Grid.Col>
-
-        <Grid.Col span={{ base: 12, md: 5 }}>
-          <Card shadow="sm" padding="lg" radius="md" withBorder>
-            <Title order={4} mb="sm">Quick actions</Title>
-            <Stack gap="sm">
-              <Button
-                component={Link}
-                href="/leagues/new"
-                leftSection={<IconPlus size={16} />}
-                fullWidth
-              >
-                Create League
-              </Button>
-              <Button
-                variant="outline"
-                leftSection={<IconTicket size={16} />}
-                onClick={joinHandlers.open}
-                fullWidth
-              >
-                Join by invite code
-              </Button>
-            </Stack>
-          </Card>
-        </Grid.Col>
-      </Grid>
+      <Card shadow="sm" padding="lg" radius="md" withBorder>
+        <Title order={4} mb="sm">Quick actions</Title>
+        <Stack gap="sm">
+          <Button
+            component={Link}
+            href="/leagues/new"
+            leftSection={<IconPlus size={16} />}
+          >
+            Create League
+          </Button>
+          <Button
+            variant="outline"
+            leftSection={<IconTicket size={16} />}
+            onClick={joinHandlers.open}
+          >
+            Join by invite code
+          </Button>
+        </Stack>
+      </Card>
 
       <JoinLeagueModal opened={joinOpened} onClose={joinHandlers.close} />
     </Container>
