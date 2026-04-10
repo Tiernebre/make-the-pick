@@ -28,6 +28,9 @@ export function createLeagueService(
     leagueRepo: LeagueRepository;
     draftRepo: DraftRepository;
     draftPoolService: DraftPoolService;
+    startDraft?: (
+      input: { userId: string; leagueId: string },
+    ) => Promise<unknown>;
   },
 ) {
   return {
@@ -201,6 +204,12 @@ export function createLeagueService(
         { leagueId: input.leagueId, newStatus: nextStatus },
         "league status advanced",
       );
+      if (league.status === "setup" && deps.startDraft) {
+        await deps.startDraft({
+          userId,
+          leagueId: input.leagueId,
+        });
+      }
       return updated;
     },
 

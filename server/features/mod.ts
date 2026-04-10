@@ -81,13 +81,6 @@ export function createFeatureRouters(db: Database) {
   });
   const draftPoolRouter = createDraftPoolRouter(draftPoolService);
 
-  const leagueService = createLeagueService({
-    leagueRepo,
-    draftRepo,
-    draftPoolService,
-  });
-  const leagueRouter = createLeagueRouter(leagueService);
-
   const draftEventPublisher = createDraftEventPublisher();
   // Create the scheduler up front so we can pass it into the service; then
   // wire the auto-pick handler back into the scheduler after the service
@@ -105,6 +98,14 @@ export function createFeatureRouters(db: Database) {
     draftService.runAutoPick({ leagueId })
   );
   const draftRouter = createDraftRouter(draftService);
+
+  const leagueService = createLeagueService({
+    leagueRepo,
+    draftRepo,
+    draftPoolService,
+    startDraft: (input) => draftService.startDraft(input),
+  });
+  const leagueRouter = createLeagueRouter(leagueService);
 
   const userRepo = createUserRepository(db);
   const userService = createUserService({ userRepo });
