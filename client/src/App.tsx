@@ -40,7 +40,7 @@ import {
   LeagueListPage,
   LeagueSettingsPage,
 } from "./features/league/mod";
-import { DraftPage, DraftPoolPage } from "./features/draft/mod";
+import { DraftPage, DraftPoolPage, PicksPage } from "./features/draft/mod";
 
 export function App() {
   return (
@@ -58,6 +58,13 @@ export function App() {
               <AuthGuard>
                 <AppLayout>
                   <CreateLeaguePage />
+                </AppLayout>
+              </AuthGuard>
+            </Route>
+            <Route path="/leagues/:id/picks">
+              <AuthGuard>
+                <AppLayout>
+                  <PicksPage />
                 </AppLayout>
               </AuthGuard>
             </Route>

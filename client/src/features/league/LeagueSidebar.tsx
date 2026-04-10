@@ -56,16 +56,19 @@ export function LeagueSidebar(
 
   const status = league.data?.status ?? "setup";
   const draftEnabled = status !== "setup";
+  const picksEnabled = status === "competing" || status === "complete";
   const name = league.data?.name ?? "League";
 
   const overviewHref = `/leagues/${leagueId}`;
   const draftHref = `/leagues/${leagueId}/draft`;
   const poolHref = `/leagues/${leagueId}/draft/pool`;
+  const picksHref = `/leagues/${leagueId}/picks`;
   const settingsHref = `/leagues/${leagueId}/settings`;
 
   const isOverviewActive = location === overviewHref;
   const isDraftActive = location === draftHref;
   const isPoolActive = location === poolHref;
+  const isPicksActive = location === picksHref;
   const isSettingsActive = location === settingsHref;
 
   return (
@@ -132,11 +135,13 @@ export function LeagueSidebar(
           badge="Soon"
         />
         <LeagueNavItem
+          to={picksEnabled ? picksHref : undefined}
           label="Picks"
           icon={<IconChecklist size={20} />}
+          active={isPicksActive}
           collapsed={collapsed}
-          disabled
-          badge="Soon"
+          disabled={!picksEnabled}
+          tooltip={!picksEnabled ? "Available after the draft" : undefined}
         />
         {isCommissioner && (
           <LeagueNavItem
