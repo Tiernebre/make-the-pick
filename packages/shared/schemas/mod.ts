@@ -41,6 +41,7 @@ export {
   type PoolItemAvailability,
   poolItemAvailabilitySchema,
 } from "./draft-pool.ts";
+
 export { type HealthResponse, healthResponseSchema } from "./health.ts";
 export {
   type AdvanceLeagueStatusInput,
@@ -71,6 +72,28 @@ export {
   type RegionalPokedexEntry,
   regionalPokedexEntrySchema,
 } from "./pokemon.ts";
+export {
+  type PokemonEncounterPrimary,
+  pokemonEncounterPrimarySchema,
+  type PokemonEncountersData,
+  pokemonEncountersDataSchema,
+  type PokemonEncountersEntry,
+  pokemonEncountersEntrySchema,
+  type PokemonEncounterSummary,
+  pokemonEncounterSummarySchema,
+  type PoolItemEffort,
+  poolItemEffortSchema,
+  type PoolItemEncounter,
+  poolItemEncounterSchema,
+} from "./pokemon-encounters.ts";
+export {
+  type EvolutionTrigger,
+  evolutionTriggerSchema,
+  type PokemonEvolution,
+  pokemonEvolutionSchema,
+  type PokemonEvolutionsData,
+  pokemonEvolutionsDataSchema,
+} from "./pokemon-evolutions.ts";
 export {
   type PokemonMovesEntry,
   pokemonMovesEntrySchema,

@@ -2,12 +2,14 @@ import { assertEquals, assertRejects } from "@std/assert";
 import { TRPCError } from "@trpc/server";
 import type {
   Pokemon,
+  PokemonEncountersData,
+  PokemonEvolutionsData,
   PokemonVersion,
   RegionalPokedexEntry,
 } from "@make-the-pick/shared";
 import type { LeagueRepository } from "../league/league.repository.ts";
 import type { DraftPoolRepository } from "./draft-pool.repository.ts";
-import { createDraftPoolService } from "./draft-pool.service.ts";
+import { computeEffort, createDraftPoolService } from "./draft-pool.service.ts";
 
 type FakeLeague = Awaited<ReturnType<LeagueRepository["findById"]>>;
 type FakePlayer = Awaited<ReturnType<LeagueRepository["findPlayer"]>>;
@@ -1329,6 +1331,269 @@ Deno.test("draftPoolService.generate: populates availability on returned items",
       `item ${item.name} should have an availability bucket, got ${bucket}`,
     );
   }
+});
+
+// --- encounter, effort, evolution derivation ---
+
+const fakeEncounters: PokemonEncountersData = {
+  emerald: {
+    "1": {
+      primary: { location: "Route 101", method: "Walk" },
+      encounters: [
+        {
+          location: "Route 101",
+          method: "Walk",
+          minLevel: 3,
+          maxLevel: 5,
+          chance: 30,
+        },
+      ],
+    },
+    "2": {
+      primary: { location: "Rare Cave", method: "Walk" },
+      encounters: [
+        {
+          location: "Rare Cave",
+          method: "Walk",
+          minLevel: 25,
+          maxLevel: 30,
+          chance: 5,
+        },
+      ],
+    },
+  },
+};
+
+const fakeEvolutions: PokemonEvolutionsData = {
+  "1": {
+    pokemonId: 1,
+    chainId: 1,
+    evolvesFromId: null,
+    triggers: [],
+  },
+  "2": {
+    pokemonId: 2,
+    chainId: 1,
+    evolvesFromId: 1,
+    triggers: [
+      {
+        trigger: "level-up",
+        minLevel: 45,
+        item: null,
+        heldItem: null,
+        knownMove: null,
+        minHappiness: null,
+        timeOfDay: null,
+        needsOverworldRain: false,
+        location: null,
+        tradeSpecies: null,
+      },
+    ],
+  },
+};
+
+Deno.test("computeEffort: low score when the Pokemon is easy to obtain", () => {
+  const result = computeEffort({
+    captureRate: 190,
+    encounter: {
+      primary: { location: "Route 101", method: "Walk" },
+      all: [
+        {
+          location: "Route 101",
+          method: "Walk",
+          minLevel: 3,
+          maxLevel: 5,
+          chance: 30,
+        },
+      ],
+    },
+    evolution: null,
+    isTradeEvolution: false,
+  });
+  assertEquals(result.score, 1);
+});
+
+Deno.test("computeEffort: high score when the Pokemon is rare, trade-evo, and late-level", () => {
+  const result = computeEffort({
+    captureRate: 25,
+    encounter: {
+      primary: { location: "Secret Cave", method: "Walk" },
+      all: [
+        {
+          location: "Secret Cave",
+          method: "Walk",
+          minLevel: 40,
+          maxLevel: 45,
+          chance: 3,
+        },
+      ],
+    },
+    evolution: {
+      pokemonId: 68,
+      chainId: 36,
+      evolvesFromId: 67,
+      triggers: [
+        {
+          trigger: "trade",
+          minLevel: null,
+          item: null,
+          heldItem: null,
+          knownMove: null,
+          minHappiness: null,
+          timeOfDay: null,
+          needsOverworldRain: false,
+          location: null,
+          tradeSpecies: null,
+        },
+      ],
+    },
+    isTradeEvolution: true,
+  });
+  assertEquals(result.score, 4);
+});
+
+Deno.test("computeEffort: flags held-item trade evolutions as complex", () => {
+  const result = computeEffort({
+    captureRate: 190,
+    encounter: {
+      primary: { location: "Route 1", method: "Walk" },
+      all: [
+        {
+          location: "Route 1",
+          method: "Walk",
+          minLevel: 3,
+          maxLevel: 5,
+          chance: 30,
+        },
+      ],
+    },
+    evolution: {
+      pokemonId: 199,
+      chainId: 41,
+      evolvesFromId: 79,
+      triggers: [
+        {
+          trigger: "trade",
+          minLevel: null,
+          item: null,
+          heldItem: "kings-rock",
+          knownMove: null,
+          minHappiness: null,
+          timeOfDay: null,
+          needsOverworldRain: false,
+          location: null,
+          tradeSpecies: null,
+        },
+      ],
+    },
+    isTradeEvolution: false,
+  });
+  assertEquals(result.score, 2);
+  assertEquals(
+    result.reasons.some((r) => r.toLowerCase().includes("complex")),
+    true,
+  );
+});
+
+Deno.test("draftPoolService.getByLeagueId: attaches encounter, effort, and evolution", async () => {
+  const fakeLeague = createFakeLeague({
+    rulesConfig: {
+      draftFormat: "snake",
+      numberOfRounds: 5,
+      pickTimeLimitSeconds: null,
+      poolSizeMultiplier: 2,
+      gameVersion: "emerald",
+    },
+  });
+  const fakePool = {
+    id: crypto.randomUUID(),
+    leagueId: fakeLeague.id,
+    name: "Pool",
+    createdAt: new Date(),
+  };
+  const storedItems = [
+    createFakeStoredPoolItem(fakePool.id, 1),
+    createFakeStoredPoolItem(fakePool.id, 2),
+  ];
+
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve(createMemberPlayer(fakeLeague.id)),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    findByLeagueId: (_leagueId) => Promise.resolve(fakePool),
+    findItemsByPoolId: (_poolId) => Promise.resolve(storedItems),
+  });
+
+  const service = createDraftPoolService({
+    draftPoolRepo,
+    leagueRepo,
+    pokemonData: createFakePokemonData(5),
+    pokemonVersions: fakePokemonVersions,
+    regionalPokedexes: fakeRegionalPokedexes,
+    pokemonEncounters: fakeEncounters,
+    pokemonEvolutions: fakeEvolutions,
+  });
+
+  const result = await service.getByLeagueId("user-2", fakeLeague.id);
+  const byId = new Map(
+    result.items.map((item) => [item.metadata?.pokemonId, item]),
+  );
+
+  const commonMon = byId.get(1)!;
+  assertEquals(commonMon.encounter?.primary?.location, "Route 101");
+  assertEquals(commonMon.encounter?.all.length, 1);
+  assertEquals(commonMon.effort?.score, 1);
+  assertEquals(commonMon.evolution?.pokemonId, 1);
+
+  const rareMon = byId.get(2)!;
+  assertEquals(rareMon.encounter?.primary?.location, "Rare Cave");
+  assertEquals(rareMon.effort !== null && rareMon.effort.score > 1, true);
+  assertEquals(rareMon.evolution?.evolvesFromId, 1);
+});
+
+Deno.test("draftPoolService.getByLeagueId: returns null encounter when species has no data in this version", async () => {
+  const fakeLeague = createFakeLeague({
+    rulesConfig: {
+      draftFormat: "snake",
+      numberOfRounds: 5,
+      pickTimeLimitSeconds: null,
+      poolSizeMultiplier: 2,
+      gameVersion: "emerald",
+    },
+  });
+  const fakePool = {
+    id: crypto.randomUUID(),
+    leagueId: fakeLeague.id,
+    name: "Pool",
+    createdAt: new Date(),
+  };
+  const storedItems = [createFakeStoredPoolItem(fakePool.id, 999)];
+
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve(createMemberPlayer(fakeLeague.id)),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    findByLeagueId: (_leagueId) => Promise.resolve(fakePool),
+    findItemsByPoolId: (_poolId) => Promise.resolve(storedItems),
+  });
+
+  const service = createDraftPoolService({
+    draftPoolRepo,
+    leagueRepo,
+    pokemonData: createFakePokemonData(5),
+    pokemonVersions: fakePokemonVersions,
+    regionalPokedexes: fakeRegionalPokedexes,
+    pokemonEncounters: fakeEncounters,
+    pokemonEvolutions: fakeEvolutions,
+  });
+
+  const result = await service.getByLeagueId("user-2", fakeLeague.id);
+  assertEquals(result.items[0].encounter, null);
+  assertEquals(result.items[0].evolution, null);
 });
 
 Deno.test("draftPoolService.generate: throws when all Pokemon are excluded by filters", async () => {

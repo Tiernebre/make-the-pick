@@ -1,8 +1,13 @@
 import type {
   DraftPoolItemMetadata,
   Pokemon,
+  PokemonEncountersData,
+  PokemonEvolution,
+  PokemonEvolutionsData,
   PokemonVersion,
   PoolItemAvailability,
+  PoolItemEffort,
+  PoolItemEncounter,
   RegionalPokedexEntry,
 } from "@make-the-pick/shared";
 import { TRPCError } from "@trpc/server";
@@ -38,6 +43,101 @@ interface AugmentedPoolItem {
   thumbnailUrl: string | null;
   metadata: DraftPoolItemMetadata | null;
   availability: PoolItemAvailability | null;
+  encounter: PoolItemEncounter | null;
+  effort: PoolItemEffort | null;
+  evolution: PokemonEvolution | null;
+}
+
+interface AugmentContext {
+  regionalDex: RegionalPokedexEntry[] | undefined;
+  gameVersionId: string | undefined;
+  encountersForVersion:
+    | Record<
+      string,
+      {
+        primary: { location: string; method: string } | null;
+        encounters: Array<
+          {
+            location: string;
+            method: string;
+            minLevel: number;
+            maxLevel: number;
+            chance: number;
+          }
+        >;
+      }
+    >
+    | undefined;
+  evolutions: PokemonEvolutionsData | undefined;
+  tradeEvolutionIds: Set<number>;
+}
+
+function isSimpleLevelUpTrigger(
+  t: PokemonEvolution["triggers"][number],
+): boolean {
+  return t.trigger === "level-up" &&
+    t.minLevel !== null &&
+    t.item === null &&
+    t.heldItem === null &&
+    t.knownMove === null &&
+    t.minHappiness === null &&
+    t.timeOfDay === null &&
+    !t.needsOverworldRain &&
+    t.location === null &&
+    t.tradeSpecies === null;
+}
+
+export function computeEffort(deps: {
+  captureRate: number | null;
+  encounter: PoolItemEncounter | null;
+  evolution: PokemonEvolution | null;
+  isTradeEvolution: boolean;
+}): PoolItemEffort {
+  const reasons: string[] = [];
+  let score = 1;
+
+  const bestChance = deps.encounter?.all.length
+    ? Math.max(...deps.encounter.all.map((e) => e.chance))
+    : null;
+  if (bestChance !== null && bestChance > 0 && bestChance < 10) {
+    reasons.push(`Rare encounter (${bestChance}% best chance)`);
+    score += 1;
+  }
+
+  if (!deps.encounter || deps.encounter.all.length === 0) {
+    reasons.push("No wild encounters in this version");
+    score += 1;
+  }
+
+  if (deps.isTradeEvolution) {
+    reasons.push("Trade evolution required");
+    score += 1;
+  }
+
+  if (deps.evolution && deps.evolution.triggers.length > 0) {
+    const hasComplex = deps.evolution.triggers.some(
+      (t) => !isSimpleLevelUpTrigger(t),
+    );
+    if (hasComplex) {
+      reasons.push("Complex evolution requirement");
+      score += 1;
+    } else {
+      const highestLevel = Math.max(
+        ...deps.evolution.triggers.map((t) => t.minLevel ?? 0),
+        0,
+      );
+      if (highestLevel >= 36) {
+        reasons.push(`Evolves at level ${highestLevel}`);
+        score += 1;
+      }
+    }
+  }
+
+  if (reasons.length === 0) {
+    reasons.push("Easy to obtain and field");
+  }
+
+  return { score: Math.min(score, 5), reasons };
 }
 
 export function computeAvailabilityBucket(
@@ -51,20 +151,22 @@ export function computeAvailabilityBucket(
   return "late";
 }
 
-function augmentItemsWithAvailability(
+function augmentItems(
   items: StoredPoolItem[],
-  regionalDex: RegionalPokedexEntry[] | undefined,
+  ctx: AugmentContext,
+  pokemonById: Map<number, Pokemon>,
 ): AugmentedPoolItem[] {
   const dexByPokemonId = new Map<number, number>();
-  const dexSize = regionalDex?.length ?? 0;
-  if (regionalDex) {
-    for (const entry of regionalDex) {
+  const dexSize = ctx.regionalDex?.length ?? 0;
+  if (ctx.regionalDex) {
+    for (const entry of ctx.regionalDex) {
       dexByPokemonId.set(entry.pokemonId, entry.dexNumber);
     }
   }
 
   return items.map((item) => {
     const metadata = item.metadata as DraftPoolItemMetadata | null;
+
     let availability: PoolItemAvailability | null = null;
     if (metadata && dexSize > 0) {
       const dexNumber = dexByPokemonId.get(metadata.pokemonId);
@@ -72,6 +174,31 @@ function augmentItemsWithAvailability(
         availability = computeAvailabilityBucket(dexNumber, dexSize);
       }
     }
+
+    let encounter: PoolItemEncounter | null = null;
+    if (metadata && ctx.encountersForVersion) {
+      const entry = ctx.encountersForVersion[String(metadata.pokemonId)];
+      if (entry) {
+        encounter = { primary: entry.primary, all: entry.encounters };
+      }
+    }
+
+    let evolution: PokemonEvolution | null = null;
+    if (metadata && ctx.evolutions) {
+      evolution = ctx.evolutions[String(metadata.pokemonId)] ?? null;
+    }
+
+    let effort: PoolItemEffort | null = null;
+    if (metadata) {
+      const pokemon = pokemonById.get(metadata.pokemonId);
+      effort = computeEffort({
+        captureRate: pokemon?.captureRate ?? null,
+        encounter,
+        evolution,
+        isTradeEvolution: ctx.tradeEvolutionIds.has(metadata.pokemonId),
+      });
+    }
+
     return {
       id: item.id,
       draftPoolId: item.draftPoolId,
@@ -79,6 +206,9 @@ function augmentItemsWithAvailability(
       thumbnailUrl: item.thumbnailUrl,
       metadata,
       availability,
+      encounter,
+      effort,
+      evolution,
     };
   });
 }
@@ -117,7 +247,37 @@ export function createDraftPoolService(deps: {
   legendaryPokemonIds?: number[];
   starterPokemonIds?: number[];
   tradeEvolutionPokemonIds?: number[];
+  pokemonEncounters?: PokemonEncountersData;
+  pokemonEvolutions?: PokemonEvolutionsData;
 }) {
+  const pokemonById = new Map<number, Pokemon>(
+    deps.pokemonData.map((p) => [p.id, p]),
+  );
+  const tradeEvolutionIdSet = new Set<number>(
+    deps.tradeEvolutionPokemonIds ?? [],
+  );
+
+  function buildAugmentContext(
+    rulesConfig: RulesConfig | null,
+  ): AugmentContext {
+    const regionalDex = resolveRegionalDexForLeague(
+      rulesConfig,
+      deps.pokemonVersions,
+      deps.regionalPokedexes,
+    );
+    const gameVersionId = rulesConfig?.gameVersion;
+    const encountersForVersion = gameVersionId
+      ? deps.pokemonEncounters?.[gameVersionId]
+      : undefined;
+    return {
+      regionalDex,
+      gameVersionId,
+      encountersForVersion,
+      evolutions: deps.pokemonEvolutions,
+      tradeEvolutionIds: tradeEvolutionIdSet,
+    };
+  }
+
   return {
     async generate(userId: string, input: { leagueId: string }) {
       log.debug(
@@ -283,12 +443,11 @@ export function createDraftPoolService(deps: {
         "draft pool generated",
       );
 
-      const regionalDex = resolveRegionalDexForLeague(
-        rulesConfig,
-        deps.pokemonVersions,
-        deps.regionalPokedexes,
+      const augmentedItems = augmentItems(
+        items,
+        buildAugmentContext(rulesConfig),
+        pokemonById,
       );
-      const augmentedItems = augmentItemsWithAvailability(items, regionalDex);
 
       return { ...pool, items: augmentedItems };
     },
@@ -319,12 +478,11 @@ export function createDraftPoolService(deps: {
 
       const items = await deps.draftPoolRepo.findItemsByPoolId(pool.id);
 
-      const regionalDex = resolveRegionalDexForLeague(
-        league.rulesConfig as RulesConfig | null,
-        deps.pokemonVersions,
-        deps.regionalPokedexes,
+      const augmentedItems = augmentItems(
+        items,
+        buildAugmentContext(league.rulesConfig as RulesConfig | null),
+        pokemonById,
       );
-      const augmentedItems = augmentItemsWithAvailability(items, regionalDex);
 
       return { ...pool, items: augmentedItems };
     },

@@ -6,15 +6,25 @@ import {
   Container,
   Grid,
   Group,
+  HoverCard,
+  List,
   LoadingOverlay,
+  Popover,
+  Stack,
+  Table,
+  Text,
   Title,
+  UnstyledButton,
 } from "@mantine/core";
 import { WatchlistPanel } from "./WatchlistPanel";
 import { PoolItemNoteIcon } from "./PoolItemNoteIcon";
 import { IconStar, IconStarFilled } from "@tabler/icons-react";
 import type {
   DraftPoolItem,
+  PokemonEncounterSummary,
+  PokemonEvolution,
   PoolItemAvailability,
+  PoolItemEffort,
 } from "@make-the-pick/shared";
 import { Link, useParams } from "wouter";
 import { useLeague } from "../league/use-leagues";
@@ -83,6 +93,187 @@ const AVAILABILITY_FILTER_OPTIONS = (
   value,
   label: AVAILABILITY_META[value].label,
 }));
+
+function EffortMeter({ effort }: { effort: PoolItemEffort | null }) {
+  if (!effort) return <span style={{ color: "#999" }}>—</span>;
+  const score = effort.score;
+  const color = score <= 2 ? "teal" : score <= 3 ? "yellow" : "red";
+  return (
+    <HoverCard width={260} position="top" withArrow>
+      <HoverCard.Target>
+        <UnstyledButton aria-label={`Effort ${score} of 5`}>
+          <Group gap={3}>
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div
+                key={i}
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: 2,
+                  backgroundColor: i <= score
+                    ? `var(--mantine-color-${color}-6)`
+                    : "var(--mantine-color-gray-3)",
+                }}
+              />
+            ))}
+          </Group>
+        </UnstyledButton>
+      </HoverCard.Target>
+      <HoverCard.Dropdown>
+        <Text size="sm" fw={600} mb="xs">
+          Effort to field: {score}/5
+        </Text>
+        <List size="xs" spacing={2}>
+          {effort.reasons.map((reason) => (
+            <List.Item key={reason}>{reason}</List.Item>
+          ))}
+        </List>
+      </HoverCard.Dropdown>
+    </HoverCard>
+  );
+}
+
+function LocationCell(
+  { encounter }: {
+    encounter:
+      | {
+        primary: { location: string; method: string } | null;
+        all: PokemonEncounterSummary[];
+      }
+      | null;
+  },
+) {
+  if (!encounter || !encounter.primary || encounter.all.length === 0) {
+    return <span style={{ color: "#999" }}>—</span>;
+  }
+  const primary = encounter.primary;
+  return (
+    <Popover width={340} position="right" withArrow shadow="md">
+      <Popover.Target>
+        <UnstyledButton
+          style={{
+            fontSize: 13,
+            textAlign: "left",
+            cursor: "pointer",
+            color: "var(--mantine-color-blue-7)",
+          }}
+        >
+          <Text span size="sm" fw={500} lh={1.2}>
+            {primary.location}
+          </Text>
+          <br />
+          <Text span size="xs" c="dimmed">
+            {primary.method}
+          </Text>
+        </UnstyledButton>
+      </Popover.Target>
+      <Popover.Dropdown>
+        <Text size="sm" fw={600} mb="xs">
+          All encounters
+        </Text>
+        <Table fz="xs" verticalSpacing={4} highlightOnHover>
+          <Table.Thead>
+            <Table.Tr>
+              <Table.Th>Location</Table.Th>
+              <Table.Th>Method</Table.Th>
+              <Table.Th>Level</Table.Th>
+              <Table.Th>%</Table.Th>
+            </Table.Tr>
+          </Table.Thead>
+          <Table.Tbody>
+            {encounter.all.map((e, i) => (
+              <Table.Tr key={`${e.location}-${e.method}-${i}`}>
+                <Table.Td>{e.location}</Table.Td>
+                <Table.Td>{e.method}</Table.Td>
+                <Table.Td>
+                  {e.minLevel === e.maxLevel
+                    ? e.minLevel
+                    : `${e.minLevel}-${e.maxLevel}`}
+                </Table.Td>
+                <Table.Td>{e.chance}%</Table.Td>
+              </Table.Tr>
+            ))}
+          </Table.Tbody>
+        </Table>
+      </Popover.Dropdown>
+    </Popover>
+  );
+}
+
+function formatEvolutionTrigger(
+  trigger: PokemonEvolution["triggers"][number],
+): string {
+  if (trigger.trigger === "level-up") {
+    const parts: string[] = [];
+    if (trigger.minLevel !== null) parts.push(`Level ${trigger.minLevel}`);
+    if (trigger.minHappiness !== null) {
+      parts.push(`happiness ≥ ${trigger.minHappiness}`);
+    }
+    if (trigger.timeOfDay) parts.push(`at ${trigger.timeOfDay}`);
+    if (trigger.knownMove) parts.push(`knowing ${trigger.knownMove}`);
+    if (trigger.location) parts.push(`at ${trigger.location}`);
+    if (trigger.heldItem) parts.push(`holding ${trigger.heldItem}`);
+    if (trigger.needsOverworldRain) parts.push("during rain");
+    return parts.length > 0 ? parts.join(", ") : "Level up";
+  }
+  if (trigger.trigger === "trade") {
+    if (trigger.heldItem) return `Trade holding ${trigger.heldItem}`;
+    if (trigger.tradeSpecies) {
+      return `Trade for ${trigger.tradeSpecies}`;
+    }
+    return "Trade";
+  }
+  if (trigger.trigger === "use-item" && trigger.item) {
+    return `Use ${trigger.item}`;
+  }
+  return trigger.trigger.replace(/-/g, " ");
+}
+
+function EvolutionCell({
+  evolution,
+}: {
+  evolution: PokemonEvolution | null;
+}) {
+  if (!evolution) return <span style={{ color: "#999" }}>—</span>;
+  const isStandalone = evolution.evolvesFromId === null &&
+    evolution.triggers.length === 0;
+  if (isStandalone) {
+    return <Text size="xs" c="dimmed">None</Text>;
+  }
+  return (
+    <HoverCard width={280} position="left" withArrow>
+      <HoverCard.Target>
+        <UnstyledButton
+          style={{
+            fontSize: 12,
+            color: "var(--mantine-color-blue-7)",
+          }}
+        >
+          {evolution.evolvesFromId ? "Evolves" : "Base form"}
+        </UnstyledButton>
+      </HoverCard.Target>
+      <HoverCard.Dropdown>
+        <Stack gap={6}>
+          <Text size="sm" fw={600}>Evolution</Text>
+          {evolution.evolvesFromId && (
+            <Text size="xs">Evolves from #{evolution.evolvesFromId}</Text>
+          )}
+          {evolution.triggers.length > 0
+            ? (
+              <List size="xs" spacing={2}>
+                {evolution.triggers.map((trigger, idx) => (
+                  <List.Item key={idx}>
+                    {formatEvolutionTrigger(trigger)}
+                  </List.Item>
+                ))}
+              </List>
+            )
+            : <Text size="xs" c="dimmed">Does not evolve further.</Text>}
+        </Stack>
+      </HoverCard.Dropdown>
+    </HoverCard>
+  );
+}
 
 export function DraftPoolPage() {
   const { id } = useParams<{ id: string }>();
@@ -257,6 +448,34 @@ export function DraftPoolPage() {
             </Badge>
           );
         },
+      },
+      {
+        id: "location",
+        accessorFn: (row) => row.encounter?.primary?.location ?? null,
+        header: "Found At",
+        enableSorting: true,
+        enableColumnFilter: false,
+        size: 160,
+        Cell: ({ row }) => <LocationCell encounter={row.original.encounter} />,
+      },
+      {
+        id: "effort",
+        accessorFn: (row) => row.effort?.score ?? null,
+        header: "Effort",
+        grow: false,
+        size: 90,
+        filterVariant: "range",
+        Cell: ({ row }) => <EffortMeter effort={row.original.effort} />,
+      },
+      {
+        id: "evolution",
+        accessorFn: (row) => row.evolution?.evolvesFromId ?? null,
+        header: "Evo",
+        enableSorting: false,
+        enableColumnFilter: false,
+        grow: false,
+        size: 100,
+        Cell: ({ row }) => <EvolutionCell evolution={row.original.evolution} />,
       },
       {
         accessorFn: (row) => row.metadata?.baseStats?.hp ?? null,

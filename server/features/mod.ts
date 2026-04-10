@@ -1,5 +1,7 @@
 import type {
   Pokemon,
+  PokemonEncountersData,
+  PokemonEvolutionsData,
   PokemonVersion,
   RegionalPokedexEntry,
 } from "@make-the-pick/shared";
@@ -19,6 +21,12 @@ import starterPokemonJson from "../../packages/shared/data/starter-pokemon.json"
   type: "json",
 };
 import tradeEvolutionPokemonJson from "../../packages/shared/data/trade-evolution-pokemon.json" with {
+  type: "json",
+};
+import pokemonEncountersJson from "../../packages/shared/data/pokemon-encounters.json" with {
+  type: "json",
+};
+import pokemonEvolutionsJson from "../../packages/shared/data/pokemon-evolutions.json" with {
   type: "json",
 };
 import type { Hono } from "hono";
@@ -78,6 +86,8 @@ export function createFeatureRouters(db: Database) {
     legendaryPokemonIds: legendaryPokemonJson as number[],
     starterPokemonIds: starterPokemonJson as number[],
     tradeEvolutionPokemonIds: tradeEvolutionPokemonJson as number[],
+    pokemonEncounters: pokemonEncountersJson as PokemonEncountersData,
+    pokemonEvolutions: pokemonEvolutionsJson as PokemonEvolutionsData,
   });
   const draftPoolRouter = createDraftPoolRouter(draftPoolService);
 
