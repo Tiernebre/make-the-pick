@@ -4,8 +4,11 @@ export function useDraftPool(leagueId: string) {
   return trpc.draftPool.getByLeagueId.useQuery({ leagueId });
 }
 
-export function useDraft(leagueId: string) {
-  return trpc.draft.getState.useQuery({ leagueId });
+export function useDraft(
+  leagueId: string,
+  options?: { enabled?: boolean },
+) {
+  return trpc.draft.getState.useQuery({ leagueId }, options);
 }
 
 export function useMakePick(leagueId: string) {

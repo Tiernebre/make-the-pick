@@ -12,6 +12,7 @@ const {
   mockAdvanceMutate,
   mockUseAddNpcPlayer,
   mockAddNpcMutate,
+  mockUseDraft,
 } = vi.hoisted(
   () => ({
     mockUseLeague: vi.fn(),
@@ -22,6 +23,7 @@ const {
     mockAdvanceMutate: vi.fn(),
     mockUseAddNpcPlayer: vi.fn(),
     mockAddNpcMutate: vi.fn(),
+    mockUseDraft: vi.fn(),
   }),
 );
 
@@ -31,6 +33,10 @@ vi.mock("./use-leagues", () => ({
   useDeleteLeague: mockUseDeleteLeague,
   useAdvanceLeagueStatus: mockUseAdvanceLeagueStatus,
   useAddNpcPlayer: mockUseAddNpcPlayer,
+}));
+
+vi.mock("../draft/use-draft", () => ({
+  useDraft: mockUseDraft,
 }));
 
 vi.mock("../../auth", () => ({
@@ -80,6 +86,7 @@ describe("LeagueDetailPage", () => {
       mutate: mockAddNpcMutate,
       isPending: false,
     });
+    mockUseDraft.mockReturnValue({ data: undefined, isLoading: false });
   });
 
   afterEach(() => {
@@ -477,6 +484,122 @@ describe("LeagueDetailPage", () => {
     expect(screen.getByText(/legendaries/i)).toBeInTheDocument();
     expect(screen.getByText(/trade evolutions/i)).toBeInTheDocument();
     expect(screen.queryByText(/^starters$/i)).not.toBeInTheDocument();
+  });
+
+  it("renders rosters for each player when league is competing", () => {
+    mockUseLeague.mockReturnValue({
+      data: {
+        ...mockLeague,
+        status: "competing",
+        sportType: "pokemon",
+        maxPlayers: 8,
+        rulesConfig: {
+          draftFormat: "snake",
+          numberOfRounds: 2,
+          pickTimeLimitSeconds: null,
+        },
+      },
+      isLoading: false,
+    });
+    mockUseLeaguePlayers.mockReturnValue({
+      data: [
+        {
+          id: "p1",
+          userId: "user-1",
+          name: "Alice",
+          image: null,
+          role: "commissioner",
+          joinedAt: "2026-01-01T00:00:00Z",
+        },
+        {
+          id: "p2",
+          userId: "user-2",
+          name: "Bob",
+          image: null,
+          role: "member",
+          joinedAt: "2026-01-01T00:00:00Z",
+        },
+      ],
+      isLoading: false,
+    });
+    mockUseDraft.mockReturnValue({
+      data: {
+        draft: {
+          id: "d1",
+          leagueId: "league-1",
+          status: "completed",
+          currentPick: 4,
+          pickOrder: ["p1", "p2"],
+        },
+        players: [
+          {
+            id: "p1",
+            userId: "user-1",
+            name: "Alice",
+            image: null,
+            isNpc: false,
+            role: "commissioner",
+            joinedAt: "2026-01-01T00:00:00Z",
+          },
+          {
+            id: "p2",
+            userId: "user-2",
+            name: "Bob",
+            image: null,
+            isNpc: false,
+            role: "member",
+            joinedAt: "2026-01-01T00:00:00Z",
+          },
+        ],
+        picks: [
+          {
+            id: "pk1",
+            draftId: "d1",
+            leaguePlayerId: "p1",
+            poolItemId: "pi1",
+            pickNumber: 1,
+            pickedAt: "2026-01-01T00:00:00Z",
+            autoPicked: false,
+          },
+          {
+            id: "pk2",
+            draftId: "d1",
+            leaguePlayerId: "p2",
+            poolItemId: "pi2",
+            pickNumber: 2,
+            pickedAt: "2026-01-01T00:00:00Z",
+            autoPicked: false,
+          },
+        ],
+        poolItems: [
+          {
+            id: "pi1",
+            name: "pikachu",
+            thumbnailUrl: null,
+            metadata: { types: ["electric"] },
+          },
+          {
+            id: "pi2",
+            name: "charizard",
+            thumbnailUrl: null,
+            metadata: { types: ["fire", "flying"] },
+          },
+        ],
+        availableItemIds: [],
+      },
+      isLoading: false,
+    });
+    renderPage();
+    expect(screen.getByRole("heading", { name: /^rosters$/i }))
+      .toBeInTheDocument();
+    expect(screen.getByText(/pikachu/i)).toBeInTheDocument();
+    expect(screen.getByText(/charizard/i)).toBeInTheDocument();
+  });
+
+  it("does not fetch draft state when league is in setup", () => {
+    mockUseLeague.mockReturnValue({ data: mockLeague, isLoading: false });
+    renderPage();
+    expect(mockUseDraft).toHaveBeenCalledWith("league-1", { enabled: false });
   });
 
   it("does not render a Save Settings button", () => {
