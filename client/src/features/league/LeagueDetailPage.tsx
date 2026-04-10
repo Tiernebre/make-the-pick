@@ -109,17 +109,7 @@ export function LeagueDetailPage() {
 
       {league.data && (
         <>
-          {/* Hero strip */}
-          <Paper
-            withBorder
-            radius="md"
-            p="lg"
-            mb="lg"
-            style={{
-              background:
-                "linear-gradient(135deg, var(--mantine-color-mint-green-0), var(--mantine-color-body))",
-            }}
-          >
+          <Paper withBorder radius="md" p="lg" mb="lg">
             <Group justify="space-between" align="flex-start" wrap="wrap">
               <Stack gap="xs" style={{ flex: 1, minWidth: 260 }}>
                 <Title order={1}>{league.data.name}</Title>
