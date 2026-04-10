@@ -769,6 +769,87 @@ Deno.test("leagueService.advanceStatus: advances from setup to drafting and gene
   assertEquals(generateCalledWith?.leagueId, fakeLeague.id);
 });
 
+Deno.test("leagueService.advanceStatus: starts the draft after advancing from setup to drafting", async () => {
+  const fakeLeague = createFakeLeague({
+    status: "setup",
+    sportType: "pokemon",
+    maxPlayers: 8,
+    rulesConfig: {
+      draftFormat: "snake",
+      numberOfRounds: 10,
+      pickTimeLimitSeconds: null,
+      poolSizeMultiplier: 2,
+    },
+  });
+  const repo = createFakeRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve({
+        id: crypto.randomUUID(),
+        leagueId: fakeLeague.id,
+        userId: "user-1",
+        role: "commissioner" as const,
+        joinedAt: new Date(),
+      }),
+    updateStatus: (_id, status) =>
+      Promise.resolve(createFakeLeague({ status: status as "drafting" })),
+  });
+  let startDraftCalledWith:
+    | { userId: string; leagueId: string }
+    | undefined;
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo: createFakeDraftRepo(),
+    draftPoolService: createFakeDraftPoolService(),
+    startDraft: (input) => {
+      startDraftCalledWith = input;
+      return Promise.resolve();
+    },
+  });
+
+  await service.advanceStatus("user-1", { leagueId: fakeLeague.id });
+
+  assertEquals(startDraftCalledWith?.userId, "user-1");
+  assertEquals(startDraftCalledWith?.leagueId, fakeLeague.id);
+});
+
+Deno.test("leagueService.advanceStatus: does not start the draft when advancing from drafting to competing", async () => {
+  const fakeLeague = createFakeLeague({ status: "drafting" });
+  const repo = createFakeRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve({
+        id: crypto.randomUUID(),
+        leagueId: fakeLeague.id,
+        userId: "user-1",
+        role: "commissioner" as const,
+        joinedAt: new Date(),
+      }),
+    updateStatus: (_id, status) =>
+      Promise.resolve(createFakeLeague({ status: status as "competing" })),
+  });
+  const draftRepo = createFakeDraftRepo({
+    findByLeagueId: (_leagueId) =>
+      Promise.resolve(
+        createFakeDraft({ leagueId: fakeLeague.id, status: "complete" }),
+      ),
+  });
+  let startDraftCalled = false;
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo,
+    draftPoolService: createFakeDraftPoolService(),
+    startDraft: () => {
+      startDraftCalled = true;
+      return Promise.resolve();
+    },
+  });
+
+  await service.advanceStatus("user-1", { leagueId: fakeLeague.id });
+
+  assertEquals(startDraftCalled, false);
+});
+
 Deno.test("leagueService.advanceStatus: does not advance from setup if draft pool generation fails", async () => {
   const fakeLeague = createFakeLeague({
     status: "setup",
