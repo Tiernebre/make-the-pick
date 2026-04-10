@@ -53,4 +53,17 @@ describe("DraftHeader", () => {
     renderHeader({ draftState, totalRounds: 6, currentTurnPlayerName: "Bob" });
     expect(screen.getByText(/in_progress|in progress/i)).toBeInTheDocument();
   });
+
+  it("shows a pick timer when the draft state has a current turn deadline", () => {
+    const future = new Date(Date.now() + 60_000).toISOString();
+    const draftState = makeDraftState({ currentTurnDeadline: future });
+    renderHeader({ draftState, totalRounds: 6, currentTurnPlayerName: "Bob" });
+    expect(screen.getByTestId("pick-timer")).toBeInTheDocument();
+  });
+
+  it("does not show a pick timer when the draft state has no deadline", () => {
+    const draftState = makeDraftState({ currentTurnDeadline: null });
+    renderHeader({ draftState, totalRounds: 6, currentTurnPlayerName: "Bob" });
+    expect(screen.queryByTestId("pick-timer")).toBeNull();
+  });
 });
