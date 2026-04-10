@@ -7,6 +7,7 @@ import {
   Grid,
   LoadingOverlay,
   Stack,
+  Tabs,
   Text,
   Title,
 } from "@mantine/core";
@@ -14,12 +15,13 @@ import { useMemo } from "react";
 import { Link, useParams } from "wouter";
 import { useSession } from "../../auth";
 import { useLeague, useLeaguePlayers } from "../league/use-leagues";
+import { AllRostersPanel } from "./AllRostersPanel";
+import { AvailablePoolTable } from "./AvailablePoolTable";
 import { CommissionerControls } from "./CommissionerControls";
 import { DraftBoard } from "./DraftBoard";
 import { DraftHeader } from "./DraftHeader";
 import { PausedOverlay } from "./PausedOverlay";
-import { PickPanel } from "./PickPanel";
-import { RosterStrip } from "./RosterStrip";
+import { WatchlistPanel } from "./WatchlistPanel";
 import { useDraft, useMakePick, useStartDraft } from "./use-draft";
 import { useDraftEvents } from "./use-draft-events";
 import { leaguePlayerForPick } from "./snake.ts";
@@ -48,11 +50,6 @@ export function DraftPage() {
 
   const draftState = draft.data;
 
-  // Subscribe to live SSE updates for the draft room. The subscription is
-  // only active once a draft snapshot has loaded — before that there's
-  // nothing to keep in sync, and for pending drafts there are no live
-  // events yet. The hook's query invalidation keeps `useDraft` reactive
-  // without the page needing to handle individual events itself.
   const isDraftLive = !!draftState &&
     (draftState.draft.status === "in_progress" ||
       draftState.draft.status === "paused");
@@ -78,14 +75,6 @@ export function DraftPage() {
     }
     return map;
   }, [draftState]);
-
-  const myPicks = useMemo(
-    () =>
-      draftState?.picks.filter(
-        (p) => p.leaguePlayerId === myLeaguePlayer?.id,
-      ) ?? [],
-    [draftState, myLeaguePlayer?.id],
-  );
 
   async function handlePick(poolItemId: string): Promise<void> {
     await new Promise<void>((resolve, reject) => {
@@ -114,7 +103,7 @@ export function DraftPage() {
   );
 
   return (
-    <Container size="xl" py="xl" pos="relative">
+    <Container size={1800} py="xl" pos="relative">
       <LoadingOverlay visible={isLoading} />
       {draftState && (
         <PausedOverlay
@@ -185,24 +174,41 @@ export function DraftPage() {
             />
           )}
           <Grid>
-            <Grid.Col span={{ base: 12, md: 8 }}>
-              <DraftBoard
+            <Grid.Col span={{ base: 12, lg: 9 }}>
+              <AvailablePoolTable
+                leagueId={leagueId}
                 draftState={draftState}
-                totalRounds={totalRounds}
-                poolItemsById={poolItemsById}
-              />
-            </Grid.Col>
-            <Grid.Col span={{ base: 12, md: 4 }}>
-              <PickPanel
-                draftState={draftState}
-                poolItems={draftState.poolItems}
                 isMyTurn={isMyTurn}
                 onPick={handlePick}
                 isPicking={makePick.isPending}
               />
             </Grid.Col>
+            <Grid.Col span={{ base: 12, lg: 3 }}>
+              <WatchlistPanel
+                leagueId={leagueId}
+                poolItems={draftState.poolItems}
+              />
+            </Grid.Col>
           </Grid>
-          <RosterStrip picks={myPicks} poolItemsById={poolItemsById} />
+
+          <Tabs defaultValue="results" keepMounted={false}>
+            <Tabs.List>
+              <Tabs.Tab value="results">Draft Results</Tabs.Tab>
+            </Tabs.List>
+            <Tabs.Panel value="results" pt="md">
+              <Stack gap="md">
+                <DraftBoard
+                  draftState={draftState}
+                  totalRounds={totalRounds}
+                  poolItemsById={poolItemsById}
+                />
+                <AllRostersPanel
+                  draftState={draftState}
+                  poolItemsById={poolItemsById}
+                />
+              </Stack>
+            </Tabs.Panel>
+          </Tabs>
         </Stack>
       )}
     </Container>
