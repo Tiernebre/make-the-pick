@@ -1,9 +1,14 @@
-import { Avatar, Card, Group, ScrollArea, Stack, Text } from "@mantine/core";
-import type {
-  DraftPick,
-  DraftPoolItem,
-  DraftState,
-} from "@make-the-pick/shared";
+import {
+  Avatar,
+  Badge,
+  Card,
+  Group,
+  ScrollArea,
+  Stack,
+  Text,
+} from "@mantine/core";
+import type { DraftPoolItem } from "@make-the-pick/shared";
+import type { DraftPick, DraftState } from "./draft-types.ts";
 import { useMemo } from "react";
 
 export interface DraftBoardProps {
@@ -115,6 +120,7 @@ export function DraftBoard(
                 const item = cell.pick
                   ? poolItemsById[cell.pick.poolItemId]
                   : undefined;
+                const isAutoPicked = cell.pick?.autoPicked === true;
                 return (
                   <Card
                     key={`${roundIdx}-${cell.columnIndex}`}
@@ -123,6 +129,7 @@ export function DraftBoard(
                     radius="sm"
                     data-cell
                     data-current-pick={isCurrent ? "true" : undefined}
+                    data-auto-picked={isAutoPicked ? "true" : undefined}
                     style={{
                       flex: 1,
                       minWidth: 140,
@@ -145,9 +152,21 @@ export function DraftBoard(
                             radius="sm"
                           />
                           <Stack gap={0} style={{ minWidth: 0 }}>
-                            <Text size="xs" c="dimmed">
-                              Pick {cell.pickNumber + 1}
-                            </Text>
+                            <Group gap={4} wrap="nowrap">
+                              <Text size="xs" c="dimmed">
+                                Pick {cell.pickNumber + 1}
+                              </Text>
+                              {isAutoPicked && (
+                                <Badge
+                                  size="xs"
+                                  color="orange"
+                                  variant="light"
+                                  title="Auto-picked when the timer expired"
+                                >
+                                  AUTO
+                                </Badge>
+                              )}
+                            </Group>
                             <Text size="sm" fw={500} tt="capitalize" truncate>
                               {item.name}
                             </Text>

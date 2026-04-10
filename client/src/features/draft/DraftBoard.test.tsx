@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { MantineProvider } from "@mantine/core";
 import { DraftBoard } from "./DraftBoard";
 import { makeDraftState, makePlayer, makePoolItem } from "./fixtures";
-import type { DraftPick } from "@make-the-pick/shared";
+import type { DraftPick } from "./draft-types.ts";
 
 function renderBoard(props: Parameters<typeof DraftBoard>[0]) {
   return render(
@@ -18,6 +18,7 @@ function pick(
   poolItemId: string,
   leaguePlayerId: string,
   pickNumber: number,
+  autoPicked = false,
 ): DraftPick {
   return {
     id,
@@ -26,6 +27,7 @@ function pick(
     poolItemId,
     pickNumber,
     pickedAt: "2026-01-01T00:00:00Z",
+    autoPicked,
   };
 }
 
@@ -102,6 +104,38 @@ describe("DraftBoard", () => {
     // Alice appears as column header AND in at least one empty cell.
     const aliceHits = screen.getAllByText("Alice");
     expect(aliceHits.length).toBeGreaterThan(1);
+  });
+
+  it("shows an AUTO badge on cells for auto-picked picks", () => {
+    const picks = [
+      pick("pk-1", "item-1", "p1", 0, true), // auto-picked
+      pick("pk-2", "item-2", "p2", 1, false), // normal
+    ];
+    const draftState = makeDraftState({
+      players,
+      currentPick: 2,
+      picks,
+    });
+    const { container } = renderBoard({
+      draftState,
+      totalRounds: 2,
+      poolItemsById,
+    });
+
+    const autoCell = container.querySelector(
+      '[data-cell][data-auto-picked="true"]',
+    );
+    expect(autoCell).not.toBeNull();
+    expect(within(autoCell as HTMLElement).getByText(/auto/i))
+      .toBeInTheDocument();
+
+    // Normal pick cell should not have the badge.
+    const normalCells = container.querySelectorAll(
+      '[data-cell]:not([data-auto-picked="true"])',
+    );
+    for (const cell of Array.from(normalCells)) {
+      expect(within(cell as HTMLElement).queryByText(/^auto$/i)).toBeNull();
+    }
   });
 
   it("reverses slot order on odd rounds (snake)", () => {
