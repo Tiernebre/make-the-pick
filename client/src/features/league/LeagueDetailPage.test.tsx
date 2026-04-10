@@ -122,6 +122,15 @@ describe("LeagueDetailPage", () => {
     expect(screen.getByText("ABC123XY")).toBeInTheDocument();
   });
 
+  it("shows a shareable invite link pointing at the join flow", () => {
+    mockUseLeague.mockReturnValue({ data: mockLeague, isLoading: false });
+    renderPage();
+    expect(screen.getByText(/\/join\/ABC123XY/)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /copy invite link/i }),
+    ).toBeInTheDocument();
+  });
+
   it("has a back link to the leagues list", () => {
     mockUseLeague.mockReturnValue({ data: mockLeague, isLoading: false });
     renderPage();

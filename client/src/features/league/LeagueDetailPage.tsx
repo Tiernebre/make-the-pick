@@ -315,6 +315,40 @@ export function LeagueDetailPage() {
                         </CopyButton>
                       </Group>
                     </Group>
+                    <Stack gap={4}>
+                      <Text size="sm" fw={500}>Share link</Text>
+                      <Group gap={4} wrap="nowrap">
+                        <Text
+                          ff="monospace"
+                          size="xs"
+                          c="dimmed"
+                          style={{
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {`${globalThis.location.origin}/join/${league.data.inviteCode}`}
+                        </Text>
+                        <CopyButton
+                          value={`${globalThis.location.origin}/join/${league.data.inviteCode}`}
+                        >
+                          {({ copied, copy }) => (
+                            <Tooltip label={copied ? "Copied" : "Copy"}>
+                              <ActionIcon
+                                variant="subtle"
+                                size="sm"
+                                color={copied ? "teal" : "gray"}
+                                onClick={copy}
+                                aria-label="Copy invite link"
+                              >
+                                {copied ? "✓" : "⎘"}
+                              </ActionIcon>
+                            </Tooltip>
+                          )}
+                        </CopyButton>
+                      </Group>
+                    </Stack>
                     <Group justify="space-between">
                       <Text size="sm" fw={500}>Created</Text>
                       <Text size="sm" c="dimmed">
