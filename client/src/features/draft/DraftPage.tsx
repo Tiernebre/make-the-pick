@@ -14,8 +14,10 @@ import { useMemo } from "react";
 import { Link, useParams } from "wouter";
 import { useSession } from "../../auth";
 import { useLeague, useLeaguePlayers } from "../league/use-leagues";
+import { CommissionerControls } from "./CommissionerControls";
 import { DraftBoard } from "./DraftBoard";
 import { DraftHeader } from "./DraftHeader";
+import { PausedOverlay } from "./PausedOverlay";
 import { PickPanel } from "./PickPanel";
 import { RosterStrip } from "./RosterStrip";
 import { useDraft, useMakePick, useStartDraft } from "./use-draft";
@@ -51,7 +53,9 @@ export function DraftPage() {
   // nothing to keep in sync, and for pending drafts there are no live
   // events yet. The hook's query invalidation keeps `useDraft` reactive
   // without the page needing to handle individual events itself.
-  const isDraftLive = !!draftState && draftState.draft.status === "in_progress";
+  const isDraftLive = !!draftState &&
+    (draftState.draft.status === "in_progress" ||
+      draftState.draft.status === "paused");
   useDraftEvents(leagueId, { enabled: isDraftLive });
 
   const currentTurnPlayerId = draftState
@@ -100,9 +104,25 @@ export function DraftPage() {
   const draftStatus = draftState?.draft.status;
   const isPending = draftStatus === "pending";
 
+  const commissionerPlayerList = useMemo(
+    () =>
+      (draftState?.players ?? []).map((p) => ({
+        leaguePlayerId: p.id,
+        name: p.name,
+      })),
+    [draftState],
+  );
+
   return (
     <Container size="xl" py="xl" pos="relative">
       <LoadingOverlay visible={isLoading} />
+      {draftState && (
+        <PausedOverlay
+          status={draftState.draft.status}
+          isCommissioner={isCommissioner}
+          leagueId={leagueId}
+        />
+      )}
 
       <Anchor
         component={Link}
@@ -156,6 +176,14 @@ export function DraftPage() {
             totalRounds={totalRounds}
             currentTurnPlayerName={currentTurnPlayer?.name ?? null}
           />
+          {isCommissioner && (
+            <CommissionerControls
+              draftState={draftState}
+              leagueId={leagueId}
+              players={commissionerPlayerList}
+              poolItemsById={poolItemsById}
+            />
+          )}
           <Grid>
             <Grid.Col span={{ base: 12, md: 8 }}>
               <DraftBoard
