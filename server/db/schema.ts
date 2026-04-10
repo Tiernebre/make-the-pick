@@ -116,6 +116,9 @@ export const draft = pgTable("draft", {
   currentPick: integer("current_pick").notNull().default(0),
   startedAt: timestamp("started_at", { withTimezone: true }),
   completedAt: timestamp("completed_at", { withTimezone: true }),
+  currentTurnDeadline: timestamp("current_turn_deadline", {
+    withTimezone: true,
+  }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow()
     .notNull(),
 });
@@ -169,6 +172,7 @@ export const draftPick = pgTable("draft_pick", {
   pickNumber: integer("pick_number").notNull(),
   pickedAt: timestamp("picked_at", { withTimezone: true }).defaultNow()
     .notNull(),
+  autoPicked: boolean("auto_picked").notNull().default(false),
 }, (table) => [
   unique("draft_pick_position_unique").on(table.draftId, table.pickNumber),
   unique("draft_pick_item_unique").on(table.draftId, table.poolItemId),

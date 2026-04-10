@@ -20,6 +20,7 @@ function createFakeState(leagueId: string): DraftState {
       currentPick: 0,
       startedAt: null,
       completedAt: null,
+      currentTurnDeadline: null,
     },
     picks: [],
     players: [],
@@ -145,6 +146,7 @@ Deno.test("draft SSE: streams initial state and forwards published events, unsub
       currentLeaguePlayerId: crypto.randomUUID(),
       pickNumber: 1,
       round: 0,
+      turnDeadline: null,
     },
   };
   publisher.publish(leagueId, event);

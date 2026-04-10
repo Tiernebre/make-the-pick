@@ -92,6 +92,13 @@
       "when": 1775779981722,
       "tag": "0012_hot_chronomancer",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1775810796810,
+      "tag": "0013_draft_pick_timer",
+      "breakpoints": true
     }
   ]
 }

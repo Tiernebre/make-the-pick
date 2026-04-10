@@ -1,5 +1,9 @@
-import type { DraftPoolItem, LeaguePlayer } from "@make-the-pick/shared";
-import type { DraftPick, DraftState } from "./draft-types.ts";
+import type {
+  DraftPick,
+  DraftPoolItem,
+  DraftState,
+  LeaguePlayer,
+} from "@make-the-pick/shared";
 
 export function makePlayer(
   id: string,

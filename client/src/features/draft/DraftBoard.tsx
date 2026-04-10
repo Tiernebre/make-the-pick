@@ -7,8 +7,11 @@ import {
   Stack,
   Text,
 } from "@mantine/core";
-import type { DraftPoolItem } from "@make-the-pick/shared";
-import type { DraftPick, DraftState } from "./draft-types.ts";
+import type {
+  DraftPick,
+  DraftPoolItem,
+  DraftState,
+} from "@make-the-pick/shared";
 import { useMemo } from "react";
 
 export interface DraftBoardProps {

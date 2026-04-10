@@ -16,5 +16,15 @@ export type {
   DraftEventPublisher,
 } from "./draft.events.ts";
 export { registerDraftSseRoute } from "./draft.sse.ts";
-export { buildDraftBoard, resolveSnakeTurn } from "./draft-utils.ts";
+export {
+  buildDraftBoard,
+  computeTurnDeadline,
+  resolveSnakeTurn,
+} from "./draft-utils.ts";
 export type { BoardPick, SnakeTurnResult } from "./draft-utils.ts";
+export { createDraftTimerScheduler } from "./draft.timers.ts";
+export type {
+  AutoPickHandler,
+  Clock,
+  DraftTimerScheduler,
+} from "./draft.timers.ts";

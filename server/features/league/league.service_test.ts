@@ -40,6 +40,7 @@ function createFakeDraft(
     currentPick: 0,
     startedAt: null,
     completedAt: null,
+    currentTurnDeadline: null,
     createdAt: new Date(),
     ...overrides,
   };
@@ -92,8 +93,11 @@ function createFakeDraftRepo(
         poolItemId: input.poolItemId,
         pickNumber: input.pickNumber,
         pickedAt: new Date(),
+        autoPicked: false,
       }),
     findPickByPoolItem: (_draftId, _poolItemId) => Promise.resolve(null),
+    updateTurnDeadline: (_id, _deadline) => Promise.resolve(),
+    listActiveDraftsWithDeadlines: () => Promise.resolve([]),
     ...overrides,
   };
 }

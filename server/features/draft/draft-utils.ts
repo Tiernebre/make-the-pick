@@ -1,3 +1,24 @@
+/**
+ * Returns the ISO timestamp for when the current turn expires, or null if
+ * the league has no pick time limit configured.
+ *
+ * Pure helper so both the service and the timer scheduler can share the same
+ * deadline math in tests.
+ */
+export function computeTurnDeadline(
+  now: Date,
+  pickTimeLimitSeconds: number | null | undefined,
+): Date | null {
+  if (
+    pickTimeLimitSeconds === null ||
+    pickTimeLimitSeconds === undefined ||
+    pickTimeLimitSeconds <= 0
+  ) {
+    return null;
+  }
+  return new Date(now.getTime() + pickTimeLimitSeconds * 1000);
+}
+
 export interface SnakeTurnResult {
   leaguePlayerId: string;
   round: number;
