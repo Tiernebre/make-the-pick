@@ -11,6 +11,7 @@ import { computeTurnDeadline, resolveSnakeTurn } from "./draft-utils.ts";
 import type { DraftEventPublisher } from "./draft.events.ts";
 import type { Clock, DraftTimerScheduler } from "./draft.timers.ts";
 import { type NpcScheduler, randomNpcPickDelayMs } from "./npc-scheduler.ts";
+import { pickWithStrategy } from "./npc-strategies.ts";
 
 const noopPublisher: DraftEventPublisher = {
   subscribe: () => () => {},
@@ -81,19 +82,6 @@ interface PoolItemWithMetadata {
  * the strongest-on-paper option so auto-picks never hand out obviously bad
  * Pokémon to absent drafters.
  */
-/**
- * Random pool-item selector used by NPC auto-picks. Dev-only: real auto-picks
- * on deadline expiry use the deterministic `selectAutoPickItem` above.
- */
-export function selectRandomPoolItem<T>(
-  availableItems: T[],
-  randomFn: () => number = Math.random,
-): T | null {
-  if (availableItems.length === 0) return null;
-  const index = Math.floor(randomFn() * availableItems.length);
-  return availableItems[index];
-}
-
 export function selectAutoPickItem<T extends PoolItemWithMetadata>(
   availableItems: T[],
 ): T | null {
@@ -182,6 +170,8 @@ function toStateShape(args: {
       name: player.name,
       image: player.image,
       isNpc: (player as { isNpc?: boolean }).isNpc ?? false,
+      npcStrategy: (player as { npcStrategy?: string | null }).npcStrategy ??
+        null,
       role: player.role,
       joinedAt: player.joinedAt instanceof Date
         ? player.joinedAt.toISOString()
@@ -686,11 +676,12 @@ export function createDraftService(deps: {
     },
 
     /**
-     * Dev-only: auto-pick driven by the NPC scheduler when an NPC player is
-     * on the clock. Unlike `runAutoPick`, this does NOT check the turn
-     * deadline — it fires after a short "thinking" delay regardless of the
-     * configured pick time limit. Picks a random pool item so a single
-     * developer can exercise full draft flows without recruiting humans.
+     * Auto-pick driven by the NPC scheduler when an NPC player is on the
+     * clock. Unlike `runAutoPick`, this does NOT check the turn deadline —
+     * it fires after a short "thinking" delay regardless of the configured
+     * pick time limit. Selection is delegated to `pickWithStrategy`, which
+     * reads the NPC user's configured strategy (best-available,
+     * type-specialist, balanced, chaos).
      */
     async runNpcPick(
       { leagueId }: { leagueId: string },
@@ -713,7 +704,20 @@ export function createDraftService(deps: {
       const picks = await deps.draftRepo.listPicks(draftRow.id);
       const pickedItemIds = new Set(picks.map((p) => p.poolItemId));
       const available = poolItems.filter((item) => !pickedItemIds.has(item.id));
-      const chosen = selectRandomPoolItem(available, randomFn);
+      const myPickIds = new Set(
+        picks
+          .filter((p) => p.leaguePlayerId === currentPlayer.id)
+          .map((p) => p.poolItemId),
+      );
+      const myPicks = poolItems.filter((item) => myPickIds.has(item.id));
+      const rawStrategy =
+        (currentPlayer as { npcStrategy?: string | null }).npcStrategy ?? null;
+      const chosen = pickWithStrategy({
+        rawStrategy,
+        availableItems: available,
+        myPicks,
+        randomFn,
+      });
       if (!chosen) return;
 
       let createdPickRow: Awaited<

@@ -11,17 +11,6 @@ const log = logger.child({ module: "cli.seed.dev" });
 const DEV_USER_ID = "dev-tiernebre";
 const DEV_USER_EMAIL = "tiernebre@gmail.com";
 
-const NPC_NAMES = [
-  "Professor Oak",
-  "Professor Elm",
-  "Professor Birch",
-  "Professor Rowan",
-  "Professor Juniper",
-  "Professor Sycamore",
-  "Professor Kukui",
-  "Professor Magnolia",
-];
-
 const LEAGUE_STATUSES = ["setup", "drafting", "competing", "complete"] as const;
 
 interface DevLeagueSpec {
@@ -96,25 +85,6 @@ async function ensureDevUser(db: Db) {
 
   log.info({ email: DEV_USER_EMAIL }, "dev user created");
   return user;
-}
-
-async function ensureNpcUsers(db: Db) {
-  const now = new Date();
-  for (const name of NPC_NAMES) {
-    const id = `npc-${name.toLowerCase().replace(/\s+/g, "-")}`;
-    const email = `${id}@npc.local`;
-    await db.insert(schema.user).values({
-      id,
-      name,
-      email,
-      emailVerified: true,
-      image: null,
-      isNpc: true,
-      createdAt: now,
-      updatedAt: now,
-    }).onConflictDoNothing();
-  }
-  log.info({ count: NPC_NAMES.length }, "NPC users ensured");
 }
 
 async function ensureFakePlayers(db: Db, count: number) {
@@ -377,7 +347,6 @@ export async function seedDev() {
 
   try {
     const devUser = await ensureDevUser(db);
-    await ensureNpcUsers(db);
 
     const existingDevLeagues = await db.select().from(schema.league).where(
       eq(schema.league.createdBy, devUser.id),

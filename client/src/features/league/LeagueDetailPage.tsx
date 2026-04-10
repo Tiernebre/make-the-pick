@@ -21,6 +21,7 @@ import {
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconSettings, IconSparkles } from "@tabler/icons-react";
+import { parseNpcStrategy } from "@make-the-pick/shared";
 import { useMemo } from "react";
 import { Link, useLocation, useParams } from "wouter";
 import { useSession } from "../../auth";
@@ -35,8 +36,6 @@ import {
   useLeague,
   useLeaguePlayers,
 } from "./use-leagues";
-
-const IS_DEV = import.meta.env.DEV;
 
 const NEXT_STATUS: Record<string, string | null> = {
   setup: "drafting",
@@ -234,51 +233,64 @@ export function LeagueDetailPage() {
                     )}
                   </Group>
                   <Stack gap="sm">
-                    {players.data?.map((player) => (
-                      <Group key={player.id} justify="space-between">
-                        <Group gap="sm">
-                          <Avatar
-                            src={player.image}
-                            alt={player.name}
-                            radius="xl"
-                            size="sm"
-                            color="mint-green"
-                          >
-                            {player.name
-                              .split(" ")
-                              .map((n) =>
-                                n[0]
-                              )
-                              .join("")
-                              .toUpperCase()
-                              .slice(0, 2)}
-                          </Avatar>
-                          <Text size="sm">{player.name}</Text>
-                          {player.isNpc && (
-                            <Badge variant="light" color="grape" size="xs">
-                              NPC
-                            </Badge>
-                          )}
+                    {players.data?.map((player) => {
+                      const strategy = parseNpcStrategy(
+                        player.npcStrategy ?? null,
+                      );
+                      return (
+                        <Group key={player.id} justify="space-between">
+                          <Group gap="sm">
+                            <Avatar
+                              src={player.image}
+                              alt={player.name}
+                              radius="xl"
+                              size="sm"
+                              color="mint-green"
+                            >
+                              {player.name
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")
+                                .toUpperCase()
+                                .slice(0, 2)}
+                            </Avatar>
+                            <Text size="sm">{player.name}</Text>
+                            {player.isNpc && (
+                              <Badge variant="light" color="grape" size="xs">
+                                NPC
+                              </Badge>
+                            )}
+                            {strategy && (
+                              <Tooltip label={strategy.description}>
+                                <Badge
+                                  variant="outline"
+                                  color="grape"
+                                  size="xs"
+                                >
+                                  {strategy.label}
+                                </Badge>
+                              </Tooltip>
+                            )}
+                          </Group>
+                          <Badge variant="light" size="sm" tt="capitalize">
+                            {player.role}
+                          </Badge>
                         </Group>
-                        <Badge variant="light" size="sm" tt="capitalize">
-                          {player.role}
-                        </Badge>
-                      </Group>
-                    ))}
+                      );
+                    })}
                     {(!players.data || players.data.length === 0) && (
                       <Text c="dimmed" size="sm">
                         No players yet.
                       </Text>
                     )}
-                    {IS_DEV && isCommissioner &&
-                      league.data.status === "setup" && (
+                    {isCommissioner && league.data.status === "setup" && (
                       <Button
                         variant="light"
                         size="xs"
                         loading={addNpcPlayer.isPending}
                         onClick={() => addNpcPlayer.mutate({ leagueId: id! })}
                       >
-                        + Add NPC (dev)
+                        + Add NPC trainer
                       </Button>
                     )}
                   </Stack>

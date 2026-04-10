@@ -119,13 +119,15 @@ function createLeaguePlayerRow(
   userId: string,
   role: "commissioner" | "member" = "member",
   isNpc = false,
+  npcStrategy: string | null = null,
 ) {
   return {
     id: crypto.randomUUID(),
     userId,
     name: userId,
-    image: null,
+    image: null as string | null,
     isNpc,
+    npcStrategy,
     role,
     joinedAt: new Date(),
   };

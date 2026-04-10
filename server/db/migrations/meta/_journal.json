@@ -113,6 +113,13 @@
       "when": 1775851375195,
       "tag": "0015_dry_stick",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1775854031389,
+      "tag": "0016_flaky_invaders",
+      "breakpoints": true
     }
   ]
 }

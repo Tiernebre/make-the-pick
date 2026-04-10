@@ -124,6 +124,7 @@ export function createLeagueRepository(db: Database) {
           name: user.name,
           image: user.image,
           isNpc: user.isNpc,
+          npcStrategy: user.npcStrategy,
           role: leaguePlayer.role,
           joinedAt: leaguePlayer.joinedAt,
         })

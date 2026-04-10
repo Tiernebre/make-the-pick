@@ -130,6 +130,7 @@ export const leaguePlayerSchema: z.ZodObject<{
   name: z.ZodString;
   image: z.ZodNullable<z.ZodString>;
   isNpc: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
+  npcStrategy: z.ZodOptional<z.ZodNullable<z.ZodString>>;
   role: typeof leaguePlayerRoleSchema;
   joinedAt: z.ZodString;
 }> = object({
@@ -138,6 +139,7 @@ export const leaguePlayerSchema: z.ZodObject<{
   name: string(),
   image: string().nullable(),
   isNpc: boolean().optional().default(false),
+  npcStrategy: string().nullable().optional(),
   role: leaguePlayerRoleSchema,
   joinedAt: string(),
 });
