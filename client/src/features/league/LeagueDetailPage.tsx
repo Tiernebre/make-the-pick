@@ -21,8 +21,11 @@ import {
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconSettings, IconSparkles } from "@tabler/icons-react";
+import { useMemo } from "react";
 import { Link, useLocation, useParams } from "wouter";
 import { useSession } from "../../auth";
+import { AllRostersPanel } from "../draft/AllRostersPanel";
+import { useDraft } from "../draft/use-draft";
 import { LifecycleStepper } from "./LifecycleStepper";
 import { TrainerCard } from "./TrainerCard";
 import {
@@ -50,6 +53,9 @@ export function LeagueDetailPage() {
   const { id } = useParams<{ id: string }>();
   const league = useLeague(id!);
   const players = useLeaguePlayers(id!);
+  const draft = useDraft(id!, {
+    enabled: league.data?.status === "competing",
+  });
   const { data: session } = useSession();
   const deleteLeague = useDeleteLeague();
   const advanceStatus = useAdvanceLeagueStatus();
@@ -98,6 +104,17 @@ export function LeagueDetailPage() {
   const currentUserPlayer = players.data?.find(
     (p) => p.userId === session?.user?.id,
   );
+
+  const poolItemsById = useMemo(() => {
+    const map: Record<
+      string,
+      NonNullable<typeof draft.data>["poolItems"][number]
+    > = {};
+    for (const item of draft.data?.poolItems ?? []) {
+      map[item.id] = item;
+    }
+    return map;
+  }, [draft.data]);
 
   return (
     <Container size="lg" py="xl" pos="relative">
@@ -409,6 +426,15 @@ export function LeagueDetailPage() {
               </Stack>
             </Grid.Col>
           </Grid>
+
+          {league.data.status === "competing" && draft.data && (
+            <Card shadow="sm" padding="lg" radius="md" withBorder mt="lg">
+              <AllRostersPanel
+                draftState={draft.data}
+                poolItemsById={poolItemsById}
+              />
+            </Card>
+          )}
 
           {isCommissioner && (
             <Group justify="flex-end" mt="xl">
