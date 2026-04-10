@@ -3,16 +3,15 @@ import {
   Button,
   Card,
   Container,
-  Grid,
   Group,
   Paper,
-  ScrollArea,
   Stack,
+  Table,
   Text,
   Title,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconCircleCheck, IconPlus, IconTicket } from "@tabler/icons-react";
+import { IconPlus, IconTicket } from "@tabler/icons-react";
 import { useMemo } from "react";
 import { Link } from "wouter";
 import { useSession } from "../../auth";
@@ -41,7 +40,7 @@ export function HomeDashboard() {
       </Group>
 
       <Group justify="space-between" mb="sm">
-        <Title order={3}>Your active leagues</Title>
+        <Title order={3}>Your leagues</Title>
         <Button
           component={Link}
           href="/leagues"
@@ -61,27 +60,35 @@ export function HomeDashboard() {
           </Paper>
         )
         : (
-          <ScrollArea type="auto" mb="xl" data-testid="active-leagues-strip">
-            <Group gap="md" wrap="nowrap" pb="sm">
-              {data.map((league) => (
-                <Card
-                  key={league.id}
-                  component={Link}
-                  href={`/leagues/${league.id}`}
-                  shadow="sm"
-                  padding="lg"
-                  radius="md"
-                  withBorder
-                  miw={260}
-                  style={{
-                    textDecoration: "none",
-                    color: "inherit",
-                    cursor: "pointer",
-                  }}
-                >
-                  <Stack gap="xs">
-                    <Group justify="space-between">
-                      <Text fw={600} truncate>{league.name}</Text>
+          <Paper withBorder radius="md" mb="xl">
+            <Table
+              aria-label="Your leagues"
+              highlightOnHover
+              verticalSpacing="sm"
+              horizontalSpacing="md"
+            >
+              <Table.Thead>
+                <Table.Tr>
+                  <Table.Th>League</Table.Th>
+                  <Table.Th>Status</Table.Th>
+                  <Table.Th>Role</Table.Th>
+                  <Table.Th>Players</Table.Th>
+                </Table.Tr>
+              </Table.Thead>
+              <Table.Tbody>
+                {data.map((league) => (
+                  <Table.Tr key={league.id}>
+                    <Table.Td>
+                      <Text
+                        component={Link}
+                        href={`/leagues/${league.id}`}
+                        fw={600}
+                        style={{ textDecoration: "none", color: "inherit" }}
+                      >
+                        {league.name}
+                      </Text>
+                    </Table.Td>
+                    <Table.Td>
                       <Badge
                         size="sm"
                         variant="light"
@@ -90,62 +97,43 @@ export function HomeDashboard() {
                       >
                         {league.status}
                       </Badge>
-                    </Group>
-                    <Text size="xs" c="dimmed" tt="capitalize">
-                      {league.userRole ?? "member"} ·{" "}
-                      {league.playerCount ?? 0}/{league.maxPlayers ?? "—"}{" "}
-                      players
-                    </Text>
-                  </Stack>
-                </Card>
-              ))}
-            </Group>
-          </ScrollArea>
+                    </Table.Td>
+                    <Table.Td>
+                      <Text size="sm" tt="capitalize">
+                        {league.userRole ?? "member"}
+                      </Text>
+                    </Table.Td>
+                    <Table.Td>
+                      <Text size="sm" c="dimmed">
+                        {league.playerCount ?? 0}/{league.maxPlayers ?? "—"}
+                      </Text>
+                    </Table.Td>
+                  </Table.Tr>
+                ))}
+              </Table.Tbody>
+            </Table>
+          </Paper>
         )}
 
-      <Grid gutter="lg">
-        <Grid.Col span={{ base: 12, md: 7 }}>
-          <Card shadow="sm" padding="lg" radius="md" withBorder>
-            <Title order={4} mb="sm">Recent activity</Title>
-            <Stack gap="xs">
-              <Group gap="xs">
-                <IconCircleCheck
-                  size={16}
-                  color="var(--mantine-color-mint-green-6)"
-                />
-                <Text size="sm" c="dimmed">
-                  Activity feed will light up here once your leagues get
-                  rolling.
-                </Text>
-              </Group>
-            </Stack>
-          </Card>
-        </Grid.Col>
-
-        <Grid.Col span={{ base: 12, md: 5 }}>
-          <Card shadow="sm" padding="lg" radius="md" withBorder>
-            <Title order={4} mb="sm">Quick actions</Title>
-            <Stack gap="sm">
-              <Button
-                component={Link}
-                href="/leagues/new"
-                leftSection={<IconPlus size={16} />}
-                fullWidth
-              >
-                Create League
-              </Button>
-              <Button
-                variant="outline"
-                leftSection={<IconTicket size={16} />}
-                onClick={joinHandlers.open}
-                fullWidth
-              >
-                Join by invite code
-              </Button>
-            </Stack>
-          </Card>
-        </Grid.Col>
-      </Grid>
+      <Card shadow="sm" padding="lg" radius="md" withBorder>
+        <Title order={4} mb="sm">Quick actions</Title>
+        <Stack gap="sm">
+          <Button
+            component={Link}
+            href="/leagues/new"
+            leftSection={<IconPlus size={16} />}
+          >
+            Create League
+          </Button>
+          <Button
+            variant="outline"
+            leftSection={<IconTicket size={16} />}
+            onClick={joinHandlers.open}
+          >
+            Join by invite code
+          </Button>
+        </Stack>
+      </Card>
 
       <JoinLeagueModal opened={joinOpened} onClose={joinHandlers.close} />
     </Container>
