@@ -110,30 +110,11 @@ export function AppLayout({ children }: AppLayoutProps) {
           <ScrollArea style={{ flex: 1 }}>
             {currentLeagueId
               ? (
-                <Stack gap={0} py={0}>
-                  <LeagueSidebar
-                    leagueId={currentLeagueId}
-                    location={location}
-                    collapsed={collapsed}
-                  />
-                  <Divider />
-                  <Stack gap={2} py="xs">
-                    <SidebarLink
-                      to="/"
-                      label="Home"
-                      icon={<IconHome size={20} />}
-                      active={false}
-                      collapsed={collapsed}
-                    />
-                    <SidebarLink
-                      to="/leagues"
-                      label="Leagues"
-                      icon={<IconTrophy size={20} />}
-                      active={false}
-                      collapsed={collapsed}
-                    />
-                  </Stack>
-                </Stack>
+                <LeagueSidebar
+                  leagueId={currentLeagueId}
+                  location={location}
+                  collapsed={collapsed}
+                />
               )
               : (
                 <Stack gap={2} py="xs">

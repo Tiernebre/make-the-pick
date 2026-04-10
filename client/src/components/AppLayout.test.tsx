@@ -219,7 +219,7 @@ describe("AppLayout league mode", () => {
       .toHaveAttribute("href", "/leagues/L1/draft");
   });
 
-  it("keeps Home reachable from league mode", () => {
+  it("omits Home and Leagues nav links in league mode (redundant with All leagues)", () => {
     setupMocks({
       location: "/leagues/L1",
       currentLeague: { id: "L1", name: "Johto", status: "drafting" },
@@ -227,8 +227,10 @@ describe("AppLayout league mode", () => {
     });
     renderLayout();
     const nav = screen.getByRole("navigation");
-    const home = within(nav).getByRole("link", { name: /home/i });
-    expect(home).toHaveAttribute("href", "/");
+    expect(within(nav).queryByRole("link", { name: /^home$/i })).toBeNull();
+    expect(within(nav).queryByRole("link", { name: /^leagues$/i })).toBeNull();
+    expect(within(nav).getByRole("link", { name: /all leagues/i }))
+      .toHaveAttribute("href", "/leagues");
   });
 
   it("does not enter league mode on /leagues list route", () => {
