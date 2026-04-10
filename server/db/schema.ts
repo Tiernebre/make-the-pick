@@ -157,6 +157,23 @@ export const leaguePlayer = pgTable("league_player", {
   unique("league_player_unique").on(table.leagueId, table.userId),
 ]);
 
+export const draftPick = pgTable("draft_pick", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  draftId: uuid("draft_id").notNull().references(() => draft.id, {
+    onDelete: "cascade",
+  }),
+  leaguePlayerId: uuid("league_player_id").notNull().references(
+    () => leaguePlayer.id,
+  ),
+  poolItemId: uuid("pool_item_id").notNull().references(() => draftPoolItem.id),
+  pickNumber: integer("pick_number").notNull(),
+  pickedAt: timestamp("picked_at", { withTimezone: true }).defaultNow()
+    .notNull(),
+}, (table) => [
+  unique("draft_pick_position_unique").on(table.draftId, table.pickNumber),
+  unique("draft_pick_item_unique").on(table.draftId, table.poolItemId),
+]);
+
 export const watchlistItem = pgTable("watchlist_item", {
   id: uuid("id").primaryKey().defaultRandom(),
   leaguePlayerId: uuid("league_player_id").notNull().references(

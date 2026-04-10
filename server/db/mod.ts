@@ -3,6 +3,7 @@ export {
   account,
   draft,
   draftFormatEnum,
+  draftPick,
   draftPool,
   draftPoolItem,
   draftStatusEnum,

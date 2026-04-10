@@ -85,6 +85,13 @@
       "when": 1775778563543,
       "tag": "0011_nasty_spectrum",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1775779981722,
+      "tag": "0012_hot_chronomancer",
+      "breakpoints": true
     }
   ]
 }
