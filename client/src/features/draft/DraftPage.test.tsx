@@ -166,6 +166,27 @@ describe("DraftPage", () => {
     expect(screen.getByText(/available pool/i)).toBeInTheDocument();
   });
 
+  it("shows the pick timer in the header when the draft state has a deadline", () => {
+    mockUseDraft.mockReturnValue({
+      data: makeDraftState({
+        players: [
+          makePlayer("p1", "Alice", {
+            userId: "user-p1",
+            role: "commissioner",
+          }),
+          makePlayer("p2", "Bob", { userId: "user-p2" }),
+        ],
+        currentPick: 0,
+        currentTurnDeadline: new Date(Date.now() + 45_000).toISOString(),
+      }),
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+    renderPage();
+    expect(screen.getByTestId("pick-timer")).toBeInTheDocument();
+  });
+
   it("shows waiting message when draft status is pending", () => {
     mockUseDraft.mockReturnValue({
       data: makeDraftState({

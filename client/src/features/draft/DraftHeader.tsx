@@ -1,5 +1,6 @@
 import { Badge, Card, Group, Stack, Text, Title } from "@mantine/core";
-import type { DraftState } from "@make-the-pick/shared";
+import type { DraftState } from "./draft-types.ts";
+import { PickTimer } from "./PickTimer.tsx";
 import { roundForPick } from "./snake.ts";
 
 export interface DraftHeaderProps {
@@ -19,6 +20,7 @@ export function DraftHeader(
   const displayPick = Math.min(currentPick + 1, totalPicks);
   const format = draftState.draft.format;
   const status = draftState.draft.status;
+  const deadline = draftState.draft.currentTurnDeadline ?? null;
 
   return (
     <Card withBorder shadow="sm" padding="md" radius="md">
@@ -53,6 +55,7 @@ export function DraftHeader(
             {currentTurnPlayerName ?? "—"}
           </Title>
         </Stack>
+        <PickTimer deadline={deadline} />
         <Stack gap={2}>
           <Text size="xs" c="dimmed" tt="uppercase">
             Status
