@@ -17,6 +17,7 @@ export const auth = betterAuth({
     google: {
       clientId: Deno.env.get("GOOGLE_CLIENT_ID") ?? "",
       clientSecret: Deno.env.get("GOOGLE_CLIENT_SECRET") ?? "",
+      errorCallbackURL: "/login?error=oauth",
     },
   },
   secret: Deno.env.get("BETTER_AUTH_SECRET"),

@@ -1,4 +1,5 @@
-import { Center, Stack, Title, UnstyledButton } from "@mantine/core";
+import { Alert, Center, Stack, Title, UnstyledButton } from "@mantine/core";
+import { useSearch } from "wouter";
 import { signIn } from "../auth";
 
 const googleLogoSvg =
@@ -10,10 +11,18 @@ const googleLogoSvg =
 </svg>`;
 
 export function LoginPage() {
+  const search = useSearch();
+  const hasOAuthError = new URLSearchParams(search).get("error") === "oauth";
+
   return (
     <Center h="100vh">
       <Stack align="center" gap="md">
         <Title order={1}>Make The Pick</Title>
+        {hasOAuthError && (
+          <Alert color="red" role="alert">
+            Sign-in was cancelled. Please try again to continue.
+          </Alert>
+        )}
         <UnstyledButton
           onClick={() =>
             signIn.social({ provider: "google", callbackURL: "/" })}
