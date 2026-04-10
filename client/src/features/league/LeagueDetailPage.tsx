@@ -28,6 +28,7 @@ import {
 import { Link, useLocation, useParams } from "wouter";
 import { useSession } from "../../auth";
 import { LifecycleStepper } from "./LifecycleStepper";
+import { TrainerCard } from "./TrainerCard";
 import {
   useAdvanceLeagueStatus,
   useDeleteLeague,
@@ -174,51 +175,40 @@ export function LeagueDetailPage() {
             <Grid.Col span={{ base: 12, md: 8 }}>
               <Stack gap="lg">
                 {/* Your team panel */}
-                <Card shadow="sm" padding="lg" radius="md" withBorder>
-                  <Group justify="space-between" mb="sm">
-                    <Group gap="xs">
-                      <IconSparkles
-                        size={18}
-                        color="var(--mantine-color-mint-green-6)"
-                      />
-                      <Title order={3}>Your team</Title>
-                    </Group>
+                <Stack gap="xs">
+                  <Group gap="xs">
+                    <IconSparkles
+                      size={18}
+                      color="var(--mantine-color-mint-green-6)"
+                    />
+                    <Title order={3}>Your team</Title>
                   </Group>
                   {currentUserPlayer
                     ? (
-                      <Group gap="md">
-                        <Avatar
-                          src={currentUserPlayer.image}
-                          alt={currentUserPlayer.name}
-                          radius="xl"
-                          size="lg"
-                          color="mint-green"
-                        >
-                          {currentUserPlayer.name
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")
-                            .toUpperCase()
-                            .slice(0, 2)}
-                        </Avatar>
-                        <Stack gap={2}>
-                          <Text fw={600}>{currentUserPlayer.name}</Text>
-                          <Text size="sm" c="dimmed" tt="capitalize">
-                            {currentUserPlayer.role}
-                          </Text>
-                        </Stack>
-                      </Group>
+                      <TrainerCard
+                        name={currentUserPlayer.name}
+                        image={currentUserPlayer.image}
+                        role={currentUserPlayer.role}
+                        subtitle={league.data.name}
+                      />
                     )
                     : (
-                      <Text c="dimmed" size="sm">
-                        Join this league to see your trainer card here.
-                      </Text>
+                      <Card
+                        shadow="sm"
+                        padding="lg"
+                        radius="md"
+                        withBorder
+                      >
+                        <Text c="dimmed" size="sm">
+                          Join this league to see your trainer card here.
+                        </Text>
+                      </Card>
                     )}
-                  <Text c="dimmed" size="sm" mt="md">
-                    No picks yet. Your roster will appear here once the draft
+                  <Text c="dimmed" size="xs" pl={4}>
+                    No picks yet. Your roster will slide in once the draft
                     begins.
                   </Text>
-                </Card>
+                </Stack>
 
                 {/* Players / who's in */}
                 <Card shadow="sm" padding="lg" radius="md" withBorder>
