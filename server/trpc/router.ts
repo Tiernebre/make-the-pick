@@ -13,6 +13,7 @@ const healthRouter = router({
   }),
 });
 
+export const features = createFeatureRouters(db);
 const {
   leagueRouter,
   userRouter,
@@ -21,7 +22,7 @@ const {
   pokemonVersionRouter,
   watchlistRouter,
   poolItemNoteRouter,
-} = createFeatureRouters(db);
+} = features;
 
 export const appRouter = router({
   health: healthRouter,

@@ -3,8 +3,9 @@ import { serveStatic } from "hono/deno";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import type { HealthResponse } from "@make-the-pick/shared";
 import { db, healthChecks } from "./db/mod.ts";
-import { appRouter } from "./trpc/router.ts";
+import { appRouter, features } from "./trpc/router.ts";
 import { createContext } from "./trpc/context.ts";
+import { registerFeatureRoutes } from "./features/mod.ts";
 import { registerEchoWebSocket } from "./ws/echo.ts";
 import { auth } from "./auth/mod.ts";
 import { renderTrpcPanel } from "trpc-ui";
@@ -16,6 +17,10 @@ export const app: Hono = new Hono();
 app.use(loggerMiddleware(logger));
 
 registerEchoWebSocket(app);
+registerFeatureRoutes(app, {
+  draftEventPublisher: features.draftEventPublisher,
+  draftService: features.draftService,
+});
 
 // Auth routes — must come before tRPC
 app.on(["GET", "POST"], "/api/auth/**", (c) => {

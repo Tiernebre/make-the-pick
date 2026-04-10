@@ -21,11 +21,17 @@ import starterPokemonJson from "../../packages/shared/data/starter-pokemon.json"
 import tradeEvolutionPokemonJson from "../../packages/shared/data/trade-evolution-pokemon.json" with {
   type: "json",
 };
+import type { Hono } from "hono";
 import {
+  createDraftEventPublisher,
   createDraftRepository,
   createDraftRouter,
   createDraftService,
+  type DraftEventPublisher,
+  type DraftService,
+  registerDraftSseRoute,
 } from "./draft/mod.ts";
+import { auth } from "../auth/mod.ts";
 import {
   createDraftPoolRepository,
   createDraftPoolRouter,
@@ -80,10 +86,12 @@ export function createFeatureRouters(db: Database) {
   });
   const leagueRouter = createLeagueRouter(leagueService);
 
+  const draftEventPublisher = createDraftEventPublisher();
   const draftService = createDraftService({
     draftRepo,
     leagueRepo,
     draftPoolRepo,
+    draftEventPublisher,
   });
   const draftRouter = createDraftRouter(draftService);
 
@@ -117,5 +125,30 @@ export function createFeatureRouters(db: Database) {
     pokemonVersionRouter,
     watchlistRouter,
     poolItemNoteRouter,
+    draftEventPublisher,
+    draftService,
   };
+}
+
+/**
+ * Registers non-tRPC HTTP routes that depend on feature services — currently
+ * the draft SSE stream. Called from `main.ts` after `createFeatureRouters`
+ * so the publisher singleton is shared with the tRPC-facing draft service.
+ */
+export function registerFeatureRoutes(
+  app: Hono,
+  deps: {
+    draftEventPublisher: DraftEventPublisher;
+    draftService: DraftService;
+  },
+): void {
+  registerDraftSseRoute(app, {
+    draftService: deps.draftService,
+    draftEventPublisher: deps.draftEventPublisher,
+    sessionResolver: async (req) => {
+      const sessionData = await auth.api.getSession({ headers: req.headers });
+      if (!sessionData?.user?.id) return null;
+      return { userId: sessionData.user.id };
+    },
+  });
 }

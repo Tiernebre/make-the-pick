@@ -1,4 +1,5 @@
 import { TRPCError } from "@trpc/server";
+import type { DraftEvent, DraftState } from "@make-the-pick/shared";
 import { logger } from "../../logger.ts";
 import type { DraftPoolRepository } from "../draft-pool/draft-pool.repository.ts";
 import type { LeagueRepository } from "../league/league.repository.ts";
@@ -7,6 +8,13 @@ import {
   type DraftRepository,
 } from "./draft.repository.ts";
 import { resolveSnakeTurn } from "./draft-utils.ts";
+import type { DraftEventPublisher } from "./draft.events.ts";
+
+const noopPublisher: DraftEventPublisher = {
+  subscribe: () => () => {},
+  publish: () => {},
+  subscriberCount: () => 0,
+};
 
 const log = logger.child({ module: "draft.service" });
 
@@ -109,7 +117,27 @@ export function createDraftService(deps: {
   draftRepo: DraftRepository;
   leagueRepo: LeagueRepository;
   draftPoolRepo: DraftPoolRepository;
+  draftEventPublisher?: DraftEventPublisher;
 }) {
+  const publisher = deps.draftEventPublisher ?? noopPublisher;
+
+  function publishTurnChange(
+    leagueId: string,
+    pickOrder: string[],
+    nextPickNumber: number,
+  ) {
+    const turn = resolveSnakeTurn(pickOrder, nextPickNumber);
+    const event: DraftEvent = {
+      type: "draft:turn_change",
+      data: {
+        currentLeaguePlayerId: turn.leaguePlayerId,
+        pickNumber: nextPickNumber,
+        round: turn.round,
+      },
+    };
+    publisher.publish(leagueId, event);
+  }
+
   async function loadDraftContext(leagueId: string) {
     const league = await deps.leagueRepo.findById(leagueId);
     if (!league) {
@@ -193,7 +221,24 @@ export function createDraftService(deps: {
       );
 
       const picks = await deps.draftRepo.listPicks(updated.id);
-      return toStateShape({ draft: updated, picks, players, poolItems });
+      const state = toStateShape({
+        draft: updated,
+        picks,
+        players,
+        poolItems,
+      });
+
+      publisher.publish(leagueId, {
+        type: "draft:started",
+        data: state as DraftState,
+      });
+      publishTurnChange(
+        leagueId,
+        state.draft.pickOrder,
+        state.draft.currentPick,
+      );
+
+      return state;
     },
 
     async getState(
@@ -290,8 +335,11 @@ export function createDraftService(deps: {
         });
       }
 
+      let createdPickRow: Awaited<
+        ReturnType<DraftRepository["createPick"]>
+      >;
       try {
-        await deps.draftRepo.createPick({
+        createdPickRow = await deps.draftRepo.createPick({
           draftId: draftRow.id,
           leaguePlayerId: callerLeaguePlayer.id,
           poolItemId,
@@ -312,7 +360,8 @@ export function createDraftService(deps: {
       const numberOfRounds = getNumberOfRounds(league);
       const totalPicks = numberOfRounds * pickOrder.length;
       let finalDraft = { ...draftRow, currentPick: nextPick };
-      if (nextPick >= totalPicks) {
+      const isFinalPick = nextPick >= totalPicks;
+      if (isFinalPick) {
         finalDraft = await deps.draftRepo.updateStatus(
           draftRow.id,
           "complete",
@@ -321,12 +370,46 @@ export function createDraftService(deps: {
       }
 
       const picks = await deps.draftRepo.listPicks(draftRow.id);
-      return toStateShape({
+      const state = toStateShape({
         draft: finalDraft,
         picks,
         players,
         poolItems,
       });
+
+      const pickRound = resolveSnakeTurn(pickOrder, createdPickRow.pickNumber)
+        .round;
+      publisher.publish(leagueId, {
+        type: "draft:pick_made",
+        data: {
+          id: createdPickRow.id,
+          draftId: createdPickRow.draftId,
+          leaguePlayerId: createdPickRow.leaguePlayerId,
+          poolItemId: createdPickRow.poolItemId,
+          pickNumber: createdPickRow.pickNumber,
+          pickedAt: createdPickRow.pickedAt instanceof Date
+            ? createdPickRow.pickedAt.toISOString()
+            : String(createdPickRow.pickedAt),
+          playerName: callerLeaguePlayer.name,
+          itemName: poolItem.name,
+          round: pickRound,
+        },
+      });
+
+      if (isFinalPick) {
+        publisher.publish(leagueId, {
+          type: "draft:completed",
+          data: {
+            completedAt: finalDraft.completedAt instanceof Date
+              ? finalDraft.completedAt.toISOString()
+              : (finalDraft.completedAt ?? new Date().toISOString()),
+          },
+        });
+      } else {
+        publishTurnChange(leagueId, pickOrder, nextPick);
+      }
+
+      return state;
     },
 
     async validatePick(
