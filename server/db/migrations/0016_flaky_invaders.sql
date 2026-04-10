@@ -1,0 +1,36 @@
+ALTER TABLE "user" ADD COLUMN "npc_strategy" text;
+--> statement-breakpoint
+INSERT INTO "user" (id, name, email, email_verified, is_npc, npc_strategy, created_at, updated_at) VALUES
+  ('npc-professor-oak', 'Professor Oak', 'npc-professor-oak@npc.local', true, true, 'balanced', now(), now()),
+  ('npc-professor-elm', 'Professor Elm', 'npc-professor-elm@npc.local', true, true, 'balanced', now(), now()),
+  ('npc-professor-birch', 'Professor Birch', 'npc-professor-birch@npc.local', true, true, 'balanced', now(), now()),
+  ('npc-professor-rowan', 'Professor Rowan', 'npc-professor-rowan@npc.local', true, true, 'balanced', now(), now()),
+  ('npc-professor-juniper', 'Professor Juniper', 'npc-professor-juniper@npc.local', true, true, 'balanced', now(), now()),
+  ('npc-professor-sycamore', 'Professor Sycamore', 'npc-professor-sycamore@npc.local', true, true, 'balanced', now(), now()),
+  ('npc-professor-kukui', 'Professor Kukui', 'npc-professor-kukui@npc.local', true, true, 'balanced', now(), now()),
+  ('npc-professor-magnolia', 'Professor Magnolia', 'npc-professor-magnolia@npc.local', true, true, 'balanced', now(), now()),
+  ('npc-red', 'Red', 'npc-red@npc.local', true, true, 'best-available', now(), now()),
+  ('npc-blue', 'Blue', 'npc-blue@npc.local', true, true, 'best-available', now(), now()),
+  ('npc-silver', 'Silver', 'npc-silver@npc.local', true, true, 'best-available', now(), now()),
+  ('npc-hau', 'Hau', 'npc-hau@npc.local', true, true, 'best-available', now(), now()),
+  ('npc-gladion', 'Gladion', 'npc-gladion@npc.local', true, true, 'best-available', now(), now()),
+  ('npc-brock', 'Brock', 'npc-brock@npc.local', true, true, 'type-specialist:rock', now(), now()),
+  ('npc-misty', 'Misty', 'npc-misty@npc.local', true, true, 'type-specialist:water', now(), now()),
+  ('npc-lt-surge', 'Lt. Surge', 'npc-lt-surge@npc.local', true, true, 'type-specialist:electric', now(), now()),
+  ('npc-erika', 'Erika', 'npc-erika@npc.local', true, true, 'type-specialist:grass', now(), now()),
+  ('npc-sabrina', 'Sabrina', 'npc-sabrina@npc.local', true, true, 'type-specialist:psychic', now(), now()),
+  ('npc-lance', 'Lance', 'npc-lance@npc.local', true, true, 'type-specialist:dragon', now(), now()),
+  ('npc-agatha', 'Agatha', 'npc-agatha@npc.local', true, true, 'type-specialist:ghost', now(), now()),
+  ('npc-bruno', 'Bruno', 'npc-bruno@npc.local', true, true, 'type-specialist:fighting', now(), now()),
+  ('npc-cynthia', 'Cynthia', 'npc-cynthia@npc.local', true, true, 'type-specialist:ground', now(), now()),
+  ('npc-steven', 'Steven Stone', 'npc-steven@npc.local', true, true, 'type-specialist:steel', now(), now()),
+  ('npc-jessie', 'Jessie', 'npc-jessie@npc.local', true, true, 'chaos', now(), now()),
+  ('npc-james', 'James', 'npc-james@npc.local', true, true, 'chaos', now(), now()),
+  ('npc-giovanni', 'Giovanni', 'npc-giovanni@npc.local', true, true, 'chaos', now(), now()),
+  ('npc-archer', 'Archer', 'npc-archer@npc.local', true, true, 'chaos', now(), now()),
+  ('npc-cyrus', 'Cyrus', 'npc-cyrus@npc.local', true, true, 'chaos', now(), now())
+ON CONFLICT (email) DO UPDATE SET
+  name = EXCLUDED.name,
+  is_npc = EXCLUDED.is_npc,
+  npc_strategy = EXCLUDED.npc_strategy,
+  updated_at = now();

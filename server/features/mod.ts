@@ -98,12 +98,7 @@ export function createFeatureRouters(db: Database) {
   // exists. This breaks the scheduler <-> service circular dependency
   // without resorting to `any` casts or module-level globals.
   const draftTimerScheduler = createDraftTimerScheduler({ draftRepo });
-  // Dev-only NPC scheduler — only wired outside production. When null, the
-  // draft service treats every player as human and skips the NPC auto-pick
-  // code path entirely.
-  const npcScheduler = Deno.env.get("DENO_ENV") !== "production"
-    ? createNpcScheduler()
-    : undefined;
+  const npcScheduler = createNpcScheduler();
   const draftService = createDraftService({
     draftRepo,
     leagueRepo,
@@ -115,7 +110,7 @@ export function createFeatureRouters(db: Database) {
   draftTimerScheduler.setAutoPickHandler(({ leagueId }) =>
     draftService.runAutoPick({ leagueId })
   );
-  npcScheduler?.setHandler(({ leagueId }) =>
+  npcScheduler.setHandler(({ leagueId }) =>
     draftService.runNpcPick({ leagueId })
   );
   const draftRouter = createDraftRouter(draftService);

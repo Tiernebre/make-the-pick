@@ -3,19 +3,9 @@ import {
   createLeagueSchema,
   updateLeagueSettingsSchema,
 } from "@make-the-pick/shared";
-import { TRPCError } from "@trpc/server";
 import { object, string } from "zod";
 import { protectedProcedure, router } from "../../trpc/trpc.ts";
 import type { LeagueService } from "./league.service.ts";
-
-function assertDevMode() {
-  if (Deno.env.get("DENO_ENV") === "production") {
-    throw new TRPCError({
-      code: "NOT_FOUND",
-      message: "Not available in production",
-    });
-  }
-}
 
 export function createLeagueRouter(leagueService: LeagueService) {
   return router({
@@ -69,7 +59,6 @@ export function createLeagueRouter(leagueService: LeagueService) {
     addNpcPlayer: protectedProcedure
       .input(object({ leagueId: string().uuid() }))
       .mutation(({ ctx, input }) => {
-        assertDevMode();
         return leagueService.addNpcPlayer(ctx.user.id, input);
       }),
 

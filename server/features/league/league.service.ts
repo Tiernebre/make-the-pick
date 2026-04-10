@@ -295,8 +295,7 @@ export function createLeagueService(
       if (available.length === 0) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message:
-            "No NPC users available — run `deno task seed:dev` to seed the NPC pool",
+          message: "No NPC trainers available — all have already joined",
         });
       }
       const npc = available[0];

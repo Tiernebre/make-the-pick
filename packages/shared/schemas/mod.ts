@@ -44,6 +44,12 @@ export {
 
 export { type HealthResponse, healthResponseSchema } from "./health.ts";
 export {
+  NPC_STRATEGY_KINDS,
+  type NpcStrategyInfo,
+  type NpcStrategyKind,
+  parseNpcStrategy,
+} from "./npc.ts";
+export {
   type AdvanceLeagueStatusInput,
   advanceLeagueStatusSchema,
   type CreateLeagueInput,

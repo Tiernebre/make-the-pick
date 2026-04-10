@@ -8,7 +8,11 @@ import {
   Text,
   Title,
 } from "@mantine/core";
-import type { DraftPoolItem, DraftState } from "@make-the-pick/shared";
+import {
+  type DraftPoolItem,
+  type DraftState,
+  parseNpcStrategy,
+} from "@make-the-pick/shared";
 import { useMemo } from "react";
 
 export interface AllRostersPanelProps {
@@ -41,11 +45,24 @@ export function AllRostersPanel({
       <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
         {draftState.players.map((player) => {
           const picks = picksByPlayer.get(player.id) ?? [];
+          const strategy = parseNpcStrategy(player.npcStrategy ?? null);
           return (
             <Card key={player.id} withBorder padding="md" radius="md">
               <Stack gap="sm">
                 <Group justify="space-between">
-                  <Text fw={600}>{player.name}</Text>
+                  <Group gap="xs">
+                    <Text fw={600}>{player.name}</Text>
+                    {strategy && (
+                      <Badge
+                        variant="outline"
+                        color="grape"
+                        size="xs"
+                        title={strategy.description}
+                      >
+                        {strategy.label}
+                      </Badge>
+                    )}
+                  </Group>
                   <Text size="xs" c="dimmed">
                     {picks.length} pick{picks.length === 1 ? "" : "s"}
                   </Text>
