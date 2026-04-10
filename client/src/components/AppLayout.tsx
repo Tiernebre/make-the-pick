@@ -29,6 +29,7 @@ import type { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { signOut, useSession } from "../auth";
 import { useLeagues } from "../features/league/use-leagues";
+import { LeagueSidebar, parseLeagueId } from "../features/league/LeagueSidebar";
 import { trpc } from "../trpc";
 
 interface AppLayoutProps {
@@ -67,6 +68,7 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   const isLeaguesActive = location.startsWith("/leagues");
   const leagueItems = leagues.data ?? [];
+  const currentLeagueId = parseLeagueId(location);
 
   return (
     <AppShell
@@ -106,74 +108,103 @@ export function AppLayout({ children }: AppLayoutProps) {
           <Divider />
 
           <ScrollArea style={{ flex: 1 }}>
-            <Stack gap={2} py="xs">
-              <SidebarLink
-                to="/"
-                label="Home"
-                icon={<IconHome size={20} />}
-                active={location === "/"}
-                collapsed={collapsed}
-              />
-
-              {collapsed
-                ? (
-                  <Tooltip label="Leagues" position="right">
-                    <div>
-                      <SidebarLink
-                        to="/leagues"
-                        label="Leagues"
-                        icon={<IconTrophy size={20} />}
-                        active={isLeaguesActive}
-                        collapsed
-                      />
-                    </div>
-                  </Tooltip>
-                )
-                : (
-                  <NavLink
-                    label="Leagues"
-                    leftSection={<IconTrophy size={20} />}
-                    childrenOffset={28}
-                    opened={leaguesOpened}
-                    onClick={toggleLeagues}
-                    active={isLeaguesActive}
-                    variant="filled"
-                  >
-                    {leagueItems.map((league) => (
-                      <NavLink
-                        key={league.id}
-                        component={Link}
-                        href={`/leagues/${league.id}`}
-                        label={league.name}
-                        active={location === `/leagues/${league.id}`}
-                        variant="light"
-                      />
-                    ))}
-                    <NavLink
-                      component={Link}
-                      href="/leagues"
-                      label="Browse all"
-                      c="dimmed"
+            {currentLeagueId
+              ? (
+                <Stack gap={0} py={0}>
+                  <LeagueSidebar
+                    leagueId={currentLeagueId}
+                    location={location}
+                    collapsed={collapsed}
+                  />
+                  <Divider />
+                  <Stack gap={2} py="xs">
+                    <SidebarLink
+                      to="/"
+                      label="Home"
+                      icon={<IconHome size={20} />}
+                      active={false}
+                      collapsed={collapsed}
                     />
-                  </NavLink>
-                )}
+                    <SidebarLink
+                      to="/leagues"
+                      label="Leagues"
+                      icon={<IconTrophy size={20} />}
+                      active={false}
+                      collapsed={collapsed}
+                    />
+                  </Stack>
+                </Stack>
+              )
+              : (
+                <Stack gap={2} py="xs">
+                  <SidebarLink
+                    to="/"
+                    label="Home"
+                    icon={<IconHome size={20} />}
+                    active={location === "/"}
+                    collapsed={collapsed}
+                  />
 
-              <SidebarLink
-                label="Research"
-                icon={<IconBinoculars size={20} />}
-                collapsed={collapsed}
-                disabled
-                badge="Soon"
-              />
+                  {collapsed
+                    ? (
+                      <Tooltip label="Leagues" position="right">
+                        <div>
+                          <SidebarLink
+                            to="/leagues"
+                            label="Leagues"
+                            icon={<IconTrophy size={20} />}
+                            active={isLeaguesActive}
+                            collapsed
+                          />
+                        </div>
+                      </Tooltip>
+                    )
+                    : (
+                      <NavLink
+                        label="Leagues"
+                        leftSection={<IconTrophy size={20} />}
+                        childrenOffset={28}
+                        opened={leaguesOpened}
+                        onClick={toggleLeagues}
+                        active={isLeaguesActive}
+                        variant="filled"
+                      >
+                        {leagueItems.map((league) => (
+                          <NavLink
+                            key={league.id}
+                            component={Link}
+                            href={`/leagues/${league.id}`}
+                            label={league.name}
+                            active={location === `/leagues/${league.id}`}
+                            variant="light"
+                          />
+                        ))}
+                        <NavLink
+                          component={Link}
+                          href="/leagues"
+                          label="Browse all"
+                          c="dimmed"
+                        />
+                      </NavLink>
+                    )}
 
-              <SidebarLink
-                label="Profile"
-                icon={<IconUser size={20} />}
-                collapsed={collapsed}
-                disabled
-                badge="Soon"
-              />
-            </Stack>
+                  <SidebarLink
+                    label="Research"
+                    icon={<IconBinoculars size={20} />}
+                    collapsed={collapsed}
+                    disabled
+                    badge="Soon"
+                  />
+
+                  <SidebarLink
+                    label="Profile"
+                    icon={<IconUser size={20} />}
+                    collapsed={collapsed}
+                    disabled
+                    badge="Soon"
+                  />
+                </Stack>
+              )}
           </ScrollArea>
 
           <Divider />
