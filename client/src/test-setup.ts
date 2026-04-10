@@ -1,14 +1,4 @@
 import "@testing-library/jest-dom/vitest";
-import { vi } from "vitest";
-
-// Stub react-remove-scroll — Deno's npm module store on Linux doesn't
-// resolve its nested CJS require chain correctly, and tests don't need
-// scroll-lock behavior.
-vi.mock("react-remove-scroll", () => {
-  const RemoveScroll = ({ children }: { children?: unknown }) => children;
-  RemoveScroll.classNames = { fullWidth: "", zeroRight: "" };
-  return { RemoveScroll, default: RemoveScroll };
-});
 
 if (!globalThis.WebSocket) {
   globalThis.WebSocket = class MockWebSocket extends EventTarget {
