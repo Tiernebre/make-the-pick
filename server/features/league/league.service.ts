@@ -1,4 +1,8 @@
-import { LEAGUE_STATUS_TRANSITIONS } from "@make-the-pick/shared";
+import {
+  type CreateLeagueInput,
+  LEAGUE_STATUS_TRANSITIONS,
+  rulesConfigSchema,
+} from "@make-the-pick/shared";
 import { TRPCError } from "@trpc/server";
 import type { DraftRepository } from "../draft/draft.repository.ts";
 import type { DraftPoolService } from "../draft-pool/draft-pool.service.ts";
@@ -27,7 +31,7 @@ export function createLeagueService(
   },
 ) {
   return {
-    create(userId: string, input: { name: string }) {
+    create(userId: string, input: CreateLeagueInput) {
       const inviteCode = generateInviteCode();
       log.debug({ userId, name: input.name, inviteCode }, "creating league");
       return deps.leagueRepo.createWithCommissioner(userId, {
@@ -164,11 +168,15 @@ export function createLeagueService(
         });
       }
       if (league.status === "setup") {
-        if (!league.sportType || !league.rulesConfig) {
+        const rulesParsed = rulesConfigSchema.safeParse(league.rulesConfig);
+        if (
+          !league.sportType || !league.maxPlayers || league.maxPlayers < 2 ||
+          !rulesParsed.success
+        ) {
           throw new TRPCError({
             code: "BAD_REQUEST",
             message:
-              "League settings must be configured before advancing from setup",
+              "League settings must be fully configured before advancing from setup",
           });
         }
         await deps.draftPoolService.generate(userId, {

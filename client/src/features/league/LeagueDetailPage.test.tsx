@@ -178,6 +178,7 @@ describe("LeagueDetailPage", () => {
       data: {
         ...mockLeague,
         sportType: "pokemon",
+        maxPlayers: 8,
         rulesConfig: {
           draftFormat: "snake",
           numberOfRounds: 10,
@@ -335,6 +336,74 @@ describe("LeagueDetailPage", () => {
     renderPage();
     expect(
       screen.queryByRole("button", { name: /advance to/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("does not show advance button when maxPlayers is missing", () => {
+    mockUseLeague.mockReturnValue({
+      data: {
+        ...mockLeague,
+        status: "setup",
+        sportType: "pokemon",
+        maxPlayers: null,
+        rulesConfig: {
+          draftFormat: "snake",
+          numberOfRounds: 10,
+          pickTimeLimitSeconds: null,
+        },
+      },
+      isLoading: false,
+    });
+    mockUseLeaguePlayers.mockReturnValue({
+      data: [
+        {
+          id: "p1",
+          userId: "user-1",
+          name: "Alice",
+          image: null,
+          role: "commissioner",
+          joinedAt: "2026-01-01T00:00:00Z",
+        },
+      ],
+      isLoading: false,
+    });
+    renderPage();
+    expect(
+      screen.queryByRole("button", { name: /advance to/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("does not render a Save Settings button", () => {
+    mockUseLeague.mockReturnValue({
+      data: {
+        ...mockLeague,
+        sportType: "pokemon",
+        maxPlayers: 8,
+        rulesConfig: {
+          draftFormat: "snake",
+          numberOfRounds: 10,
+          pickTimeLimitSeconds: null,
+          poolSizeMultiplier: 2,
+        },
+      },
+      isLoading: false,
+    });
+    mockUseLeaguePlayers.mockReturnValue({
+      data: [
+        {
+          id: "p1",
+          userId: "user-1",
+          name: "Alice",
+          image: null,
+          role: "commissioner",
+          joinedAt: "2026-01-01T00:00:00Z",
+        },
+      ],
+      isLoading: false,
+    });
+    renderPage();
+    expect(
+      screen.queryByRole("button", { name: /save settings/i }),
     ).not.toBeInTheDocument();
   });
 });

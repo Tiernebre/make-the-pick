@@ -16,6 +16,17 @@ function createTestDb() {
   return { db, client };
 }
 
+const defaultSettings = {
+  sportType: "pokemon" as const,
+  maxPlayers: 8,
+  rulesConfig: {
+    draftFormat: "snake",
+    numberOfRounds: 6,
+    pickTimeLimitSeconds: null,
+    poolSizeMultiplier: 2,
+  },
+};
+
 async function createTestUser(
   db: ReturnType<typeof drizzle<typeof schema>>,
   id: string,
@@ -47,12 +58,16 @@ Deno.test({
       const result = await repo.createWithCommissioner(userId, {
         name: "Test League",
         inviteCode: "TESTCODE",
+        ...defaultSettings,
       });
 
       assertEquals(result.name, "Test League");
       assertEquals(result.inviteCode, "TESTCODE");
       assertEquals(result.createdBy, userId);
       assertEquals(result.status, "setup");
+      assertEquals(result.sportType, "pokemon");
+      assertEquals(result.maxPlayers, 8);
+      assertEquals(result.rulesConfig, defaultSettings.rulesConfig);
 
       const players = await db.select().from(leaguePlayer).where(
         eq(leaguePlayer.leagueId, result.id),
@@ -83,6 +98,7 @@ Deno.test({
       const created = await repo.createWithCommissioner(userId, {
         name: "Find Me",
         inviteCode: "FINDME01",
+        ...defaultSettings,
       });
 
       const found = await repo.findById(created.id);
@@ -128,6 +144,7 @@ Deno.test({
       const created = await repo.createWithCommissioner(userId, {
         name: "Invite League",
         inviteCode: "INVITE01",
+        ...defaultSettings,
       });
 
       const found = await repo.findByInviteCode("INVITE01");
@@ -157,6 +174,7 @@ Deno.test({
       const created = await repo.createWithCommissioner(creatorId, {
         name: "Join League",
         inviteCode: "JOIN0001",
+        ...defaultSettings,
       });
 
       const player = await repo.addPlayer(created.id, memberId);
@@ -187,6 +205,7 @@ Deno.test({
       const created = await repo.createWithCommissioner(userId, {
         name: "Player League",
         inviteCode: "PLAYER01",
+        ...defaultSettings,
       });
 
       const player = await repo.findPlayer(created.id, userId);
@@ -215,6 +234,7 @@ Deno.test({
       const created = await repo.createWithCommissioner(userId, {
         name: "No Member League",
         inviteCode: "NOMEMB01",
+        ...defaultSettings,
       });
 
       const player = await repo.findPlayer(created.id, crypto.randomUUID());
@@ -242,6 +262,7 @@ Deno.test({
       const created = await repo.createWithCommissioner(userId, {
         name: "Delete Me",
         inviteCode: "DELETE01",
+        ...defaultSettings,
       });
 
       await repo.deleteById(created.id);
@@ -287,6 +308,7 @@ Deno.test({
       const created = await repo.createWithCommissioner(creatorId, {
         name: "Players League",
         inviteCode: "PLAYERS1",
+        ...defaultSettings,
       });
       await repo.addPlayer(created.id, memberId);
 
@@ -332,6 +354,7 @@ Deno.test({
       const created = await repo.createWithCommissioner(userId, {
         name: "Settings League",
         inviteCode: "STTNG001",
+        ...defaultSettings,
       });
 
       const rulesConfig = {
@@ -381,6 +404,7 @@ Deno.test({
       const created = await repo.createWithCommissioner(creatorId, {
         name: "Count League",
         inviteCode: "COUNT001",
+        ...defaultSettings,
       });
 
       // Commissioner is already one player
@@ -416,6 +440,7 @@ Deno.test({
       const created = await repo.createWithCommissioner(creatorId, {
         name: "Remove Player League",
         inviteCode: "REMOVE01",
+        ...defaultSettings,
       });
       await repo.addPlayer(created.id, memberId);
 
@@ -454,10 +479,12 @@ Deno.test({
       await repo.createWithCommissioner(userId, {
         name: "League A",
         inviteCode: "USRLGA01",
+        ...defaultSettings,
       });
       await repo.createWithCommissioner(userId, {
         name: "League B",
         inviteCode: "USRLGB01",
+        ...defaultSettings,
       });
 
       const leagues = await repo.findAllByUserId(userId);

@@ -9,15 +9,13 @@ import {
   Title,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useLeagues } from "./use-leagues";
-import { CreateLeagueModal } from "./CreateLeagueModal";
 import { JoinLeagueModal } from "./JoinLeagueModal";
 
 export function LeagueListPage() {
   const leagues = useLeagues();
   const [, navigate] = useLocation();
-  const [createOpened, createHandlers] = useDisclosure(false);
   const [joinOpened, joinHandlers] = useDisclosure(false);
 
   return (
@@ -26,7 +24,7 @@ export function LeagueListPage() {
       <Group justify="space-between" mb="lg">
         <Title order={1}>My Leagues</Title>
         <Group>
-          <Button onClick={createHandlers.open}>Create League</Button>
+          <Button component={Link} href="/leagues/new">Create League</Button>
           <Button variant="outline" onClick={joinHandlers.open}>
             Join League
           </Button>
@@ -58,10 +56,6 @@ export function LeagueListPage() {
         ))}
       </Stack>
 
-      <CreateLeagueModal
-        opened={createOpened}
-        onClose={createHandlers.close}
-      />
       <JoinLeagueModal opened={joinOpened} onClose={joinHandlers.close} />
     </Container>
   );

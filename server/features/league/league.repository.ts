@@ -14,7 +14,13 @@ export function createLeagueRepository(db: Database) {
   return {
     createWithCommissioner(
       userId: string,
-      data: { name: string; inviteCode: string },
+      data: {
+        name: string;
+        inviteCode: string;
+        sportType: "pokemon";
+        maxPlayers: number;
+        rulesConfig: unknown;
+      },
     ): Promise<LeagueRow> {
       log.debug(
         { userId, name: data.name },
@@ -24,6 +30,9 @@ export function createLeagueRepository(db: Database) {
         const [newLeague] = await tx.insert(league).values({
           name: data.name,
           inviteCode: data.inviteCode,
+          sportType: data.sportType,
+          maxPlayers: data.maxPlayers,
+          rulesConfig: data.rulesConfig,
           createdBy: userId,
         }).returning();
         log.debug({ leagueId: newLeague.id }, "league row inserted");
