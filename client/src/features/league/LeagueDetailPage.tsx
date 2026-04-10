@@ -60,7 +60,6 @@ export function LeagueDetailPage() {
   const [excludeLegendaries, setExcludeLegendaries] = useState(false);
   const [excludeStarters, setExcludeStarters] = useState(false);
   const [excludeTradeEvolutions, setExcludeTradeEvolutions] = useState(false);
-  const [settingsSaved, setSettingsSaved] = useState(false);
   const pokemonVersions = usePokemonVersions();
 
   useEffect(() => {
@@ -100,38 +99,59 @@ export function LeagueDetailPage() {
     (p) => p.userId === session?.user?.id && p.role === "commissioner",
   );
 
-  const handleSaveSettings = () => {
-    if (
-      !sportType || !draftFormat || !numberOfRounds || !maxPlayers
-    ) {
-      return;
-    }
-    setSettingsSaved(false);
-    updateSettings.mutate(
-      {
-        leagueId: id!,
-        sportType: sportType as "pokemon",
-        maxPlayers: Number(maxPlayers),
-        rulesConfig: {
-          draftFormat: draftFormat as "snake" | "linear",
-          numberOfRounds: Number(numberOfRounds),
-          pickTimeLimitSeconds: pickTimeLimitSeconds
-            ? Number(pickTimeLimitSeconds)
-            : null,
-          poolSizeMultiplier: Number(poolSizeMultiplier),
-          ...(gameVersion ? { gameVersion } : {}),
-          excludeLegendaries,
-          excludeStarters,
-          excludeTradeEvolutions,
-        },
-      },
-      {
-        onSuccess: () => {
-          setSettingsSaved(true);
-        },
-      },
-    );
+  type SettingsState = {
+    sportType: string | null;
+    draftFormat: string | null;
+    numberOfRounds: number | string;
+    pickTimeLimitSeconds: number | string;
+    maxPlayers: number | string;
+    poolSizeMultiplier: number | string;
+    gameVersion: string | null;
+    excludeLegendaries: boolean;
+    excludeStarters: boolean;
+    excludeTradeEvolutions: boolean;
   };
+
+  const currentSettings: SettingsState = {
+    sportType,
+    draftFormat,
+    numberOfRounds,
+    pickTimeLimitSeconds,
+    maxPlayers,
+    poolSizeMultiplier,
+    gameVersion,
+    excludeLegendaries,
+    excludeStarters,
+    excludeTradeEvolutions,
+  };
+
+  const isSettingsStateValid = (s: SettingsState) =>
+    !!s.sportType && !!s.draftFormat &&
+    Number(s.numberOfRounds) >= 1 && Number(s.maxPlayers) >= 2 &&
+    Number(s.poolSizeMultiplier) >= 1.5 && Number(s.poolSizeMultiplier) <= 3;
+
+  const saveSettings = (s: SettingsState) => {
+    if (!isSettingsStateValid(s)) return;
+    updateSettings.mutate({
+      leagueId: id!,
+      sportType: s.sportType as "pokemon",
+      maxPlayers: Number(s.maxPlayers),
+      rulesConfig: {
+        draftFormat: s.draftFormat as "snake" | "linear",
+        numberOfRounds: Number(s.numberOfRounds),
+        pickTimeLimitSeconds: s.pickTimeLimitSeconds
+          ? Number(s.pickTimeLimitSeconds)
+          : null,
+        poolSizeMultiplier: Number(s.poolSizeMultiplier),
+        ...(s.gameVersion ? { gameVersion: s.gameVersion } : {}),
+        excludeLegendaries: s.excludeLegendaries,
+        excludeStarters: s.excludeStarters,
+        excludeTradeEvolutions: s.excludeTradeEvolutions,
+      },
+    });
+  };
+
+  const saveCurrentSettings = () => saveSettings(currentSettings);
 
   const handleDelete = () => {
     deleteLeague.mutate(
@@ -153,8 +173,19 @@ export function LeagueDetailPage() {
 
   const nextStatus = league.data ? NEXT_STATUS[league.data.status] : null;
 
+  const persistedSettingsValid = (() => {
+    if (!league.data?.sportType || !league.data?.rulesConfig) return false;
+    if (!league.data.maxPlayers || league.data.maxPlayers < 2) return false;
+    const rules = league.data.rulesConfig as {
+      draftFormat?: string;
+      numberOfRounds?: number;
+    };
+    return !!rules.draftFormat && !!rules.numberOfRounds &&
+      rules.numberOfRounds >= 1;
+  })();
+
   const setupPrerequisitesMet = league.data?.status !== "setup" ||
-    (!!league.data?.sportType && !!league.data?.rulesConfig);
+    persistedSettingsValid;
 
   const handleAdvance = () => {
     advanceStatus.mutate(
@@ -222,7 +253,10 @@ export function LeagueDetailPage() {
                     label="Sport Type"
                     data={[{ value: "pokemon", label: "Pokemon" }]}
                     value={sportType}
-                    onChange={setSportType}
+                    onChange={(value) => {
+                      setSportType(value);
+                      saveSettings({ ...currentSettings, sportType: value });
+                    }}
                     required
                   />
                   {sportType === "pokemon" && (
@@ -248,7 +282,13 @@ export function LeagueDetailPage() {
                           }, {}),
                         ).map(([group, items]) => ({ group, items }))}
                         value={gameVersion}
-                        onChange={setGameVersion}
+                        onChange={(value) => {
+                          setGameVersion(value);
+                          saveSettings({
+                            ...currentSettings,
+                            gameVersion: value,
+                          });
+                        }}
                         clearable
                         searchable
                       />
@@ -256,24 +296,40 @@ export function LeagueDetailPage() {
                         label="Exclude Legendaries"
                         description="Remove legendary and mythical Pokemon from the draft pool"
                         checked={excludeLegendaries}
-                        onChange={(event) =>
-                          setExcludeLegendaries(event.currentTarget.checked)}
+                        onChange={(event) => {
+                          const next = event.currentTarget.checked;
+                          setExcludeLegendaries(next);
+                          saveSettings({
+                            ...currentSettings,
+                            excludeLegendaries: next,
+                          });
+                        }}
                       />
                       <Switch
                         label="Exclude Starters"
                         description="Remove starter Pokemon and their evolutions from the draft pool"
                         checked={excludeStarters}
-                        onChange={(event) =>
-                          setExcludeStarters(event.currentTarget.checked)}
+                        onChange={(event) => {
+                          const next = event.currentTarget.checked;
+                          setExcludeStarters(next);
+                          saveSettings({
+                            ...currentSettings,
+                            excludeStarters: next,
+                          });
+                        }}
                       />
                       <Switch
                         label="Exclude Trade Evolutions"
                         description="Remove Pokemon that can only be obtained through trade evolution (e.g. Golem, Gengar, Alakazam)"
                         checked={excludeTradeEvolutions}
-                        onChange={(event) =>
-                          setExcludeTradeEvolutions(
-                            event.currentTarget.checked,
-                          )}
+                        onChange={(event) => {
+                          const next = event.currentTarget.checked;
+                          setExcludeTradeEvolutions(next);
+                          saveSettings({
+                            ...currentSettings,
+                            excludeTradeEvolutions: next,
+                          });
+                        }}
                       />
                     </>
                   )}
@@ -284,7 +340,10 @@ export function LeagueDetailPage() {
                       { value: "linear", label: "Linear" },
                     ]}
                     value={draftFormat}
-                    onChange={setDraftFormat}
+                    onChange={(value) => {
+                      setDraftFormat(value);
+                      saveSettings({ ...currentSettings, draftFormat: value });
+                    }}
                     required
                   />
                   <NumberInput
@@ -292,6 +351,7 @@ export function LeagueDetailPage() {
                     min={1}
                     value={numberOfRounds}
                     onChange={setNumberOfRounds}
+                    onBlur={saveCurrentSettings}
                     required
                   />
                   <NumberInput
@@ -300,6 +360,7 @@ export function LeagueDetailPage() {
                     min={1}
                     value={pickTimeLimitSeconds}
                     onChange={setPickTimeLimitSeconds}
+                    onBlur={saveCurrentSettings}
                   />
                   <NumberInput
                     label="Draft Pool Size Multiplier"
@@ -310,6 +371,7 @@ export function LeagueDetailPage() {
                     decimalScale={1}
                     value={poolSizeMultiplier}
                     onChange={setPoolSizeMultiplier}
+                    onBlur={saveCurrentSettings}
                     required
                   />
                   <NumberInput
@@ -317,19 +379,17 @@ export function LeagueDetailPage() {
                     min={2}
                     value={maxPlayers}
                     onChange={setMaxPlayers}
+                    onBlur={saveCurrentSettings}
                     required
                   />
-                  <Group>
-                    <Button
-                      onClick={handleSaveSettings}
-                      loading={updateSettings.isPending}
-                    >
-                      Save Settings
-                    </Button>
-                    {settingsSaved && (
-                      <Text c="teal" size="sm">Settings saved</Text>
-                    )}
-                  </Group>
+                  {updateSettings.isPending && (
+                    <Text c="dimmed" size="sm">Saving...</Text>
+                  )}
+                  {updateSettings.isError && (
+                    <Text c="red" size="sm">
+                      Failed to save: {updateSettings.error.message}
+                    </Text>
+                  )}
                 </Stack>
               </Card>
             </>

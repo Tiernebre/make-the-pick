@@ -3,10 +3,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { MantineProvider } from "@mantine/core";
 import { LeagueListPage } from "./LeagueListPage";
 
-const { mockUseLeagues, mockUseCreateLeague, mockUseJoinLeague } = vi.hoisted(
+const { mockUseLeagues, mockUseJoinLeague } = vi.hoisted(
   () => ({
     mockUseLeagues: vi.fn(),
-    mockUseCreateLeague: vi.fn(),
     mockUseJoinLeague: vi.fn(),
   }),
 );
@@ -17,7 +16,6 @@ const { mockNavigate } = vi.hoisted(() => ({
 
 vi.mock("./use-leagues", () => ({
   useLeagues: mockUseLeagues,
-  useCreateLeague: mockUseCreateLeague,
   useJoinLeague: mockUseJoinLeague,
 }));
 
@@ -64,10 +62,6 @@ function setupMocks(
     data: overrides.data ?? [],
     isLoading: overrides.isLoading ?? false,
   });
-  mockUseCreateLeague.mockReturnValue({
-    mutate: vi.fn(),
-    isPending: false,
-  });
   mockUseJoinLeague.mockReturnValue({
     mutate: vi.fn(),
     isPending: false,
@@ -111,12 +105,12 @@ describe("LeagueListPage", () => {
     expect(screen.getByText("League Two")).toBeInTheDocument();
   });
 
-  it("has a Create League button", () => {
+  it("has a Create League link pointing to /leagues/new", () => {
     setupMocks();
     renderPage();
-    expect(
-      screen.getByRole("button", { name: /create league/i }),
-    ).toBeInTheDocument();
+    const link = screen.getByRole("link", { name: /create league/i });
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute("href", "/leagues/new");
   });
 
   it("has a Join League button", () => {
@@ -125,13 +119,6 @@ describe("LeagueListPage", () => {
     expect(
       screen.getByRole("button", { name: /join league/i }),
     ).toBeInTheDocument();
-  });
-
-  it("clicking Create League button locks scroll (opens modal)", () => {
-    setupMocks();
-    renderPage();
-    fireEvent.click(screen.getByRole("button", { name: /create league/i }));
-    expect(document.body).toHaveAttribute("data-scroll-locked");
   });
 
   it("clicking Join League button locks scroll (opens modal)", () => {

@@ -33,6 +33,7 @@ import { AuthGuard } from "./components/AuthGuard";
 import { AppLayout } from "./components/AppLayout";
 import { LoginPage } from "./pages/LoginPage";
 import {
+  CreateLeaguePage,
   JoinLeaguePage,
   LeagueDetailPage,
   LeagueListPage,
@@ -49,6 +50,13 @@ export function App() {
             <Route path="/join/:inviteCode">
               <AuthGuard>
                 <JoinLeaguePage />
+              </AuthGuard>
+            </Route>
+            <Route path="/leagues/new">
+              <AuthGuard>
+                <AppLayout>
+                  <CreateLeaguePage />
+                </AppLayout>
               </AuthGuard>
             </Route>
             <Route path="/leagues/:id/draft/pool">

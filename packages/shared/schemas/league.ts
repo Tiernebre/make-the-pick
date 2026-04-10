@@ -76,8 +76,14 @@ export type UpdateLeagueSettingsInput = z.infer<
 
 export const createLeagueSchema: z.ZodObject<{
   name: z.ZodString;
+  sportType: typeof sportTypeSchema;
+  maxPlayers: z.ZodNumber;
+  rulesConfig: typeof rulesConfigSchema;
 }> = object({
   name: string().min(1).max(100),
+  sportType: sportTypeSchema,
+  maxPlayers: number().int().min(2),
+  rulesConfig: rulesConfigSchema,
 });
 
 export type CreateLeagueInput = z.infer<typeof createLeagueSchema>;

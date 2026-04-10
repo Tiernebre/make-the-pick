@@ -122,13 +122,39 @@ function createFakeDraftPoolService(
   };
 }
 
-Deno.test("leagueService.create: creates a league with generated invite code", async () => {
-  let capturedData: { name: string; inviteCode: string } | undefined;
+const validCreateInput = {
+  name: "My League",
+  sportType: "pokemon" as const,
+  maxPlayers: 8,
+  rulesConfig: {
+    draftFormat: "snake" as const,
+    numberOfRounds: 6,
+    pickTimeLimitSeconds: 60,
+    poolSizeMultiplier: 2,
+  },
+};
+
+Deno.test("leagueService.create: creates a league with settings and generated invite code", async () => {
+  let capturedData:
+    | {
+      name: string;
+      inviteCode: string;
+      sportType: "pokemon";
+      maxPlayers: number;
+      rulesConfig: unknown;
+    }
+    | undefined;
   const repo = createFakeRepo({
     createWithCommissioner: (_userId, data) => {
-      capturedData = data as { name: string; inviteCode: string };
+      capturedData = data as typeof capturedData;
       return Promise.resolve(
-        createFakeLeague({ name: data.name, inviteCode: data.inviteCode }),
+        createFakeLeague({
+          name: data.name,
+          inviteCode: data.inviteCode,
+          sportType: data.sportType,
+          maxPlayers: data.maxPlayers,
+          rulesConfig: data.rulesConfig,
+        }),
       );
     },
   });
@@ -138,11 +164,16 @@ Deno.test("leagueService.create: creates a league with generated invite code", a
     draftRepo: createFakeDraftRepo(),
     draftPoolService: createFakeDraftPoolService(),
   });
-  const result = await service.create("user-1", { name: "My League" });
+  const result = await service.create("user-1", validCreateInput);
 
   assertEquals(result.name, "My League");
+  assertEquals(result.sportType, "pokemon");
+  assertEquals(result.maxPlayers, 8);
   assertEquals(capturedData?.inviteCode.length, 8);
   assertEquals(/^[A-Z2-9]+$/.test(capturedData!.inviteCode), true);
+  assertEquals(capturedData?.sportType, "pokemon");
+  assertEquals(capturedData?.maxPlayers, 8);
+  assertEquals(capturedData?.rulesConfig, validCreateInput.rulesConfig);
 });
 
 Deno.test("leagueService.getById: returns league when found", async () => {
@@ -681,10 +712,12 @@ Deno.test("leagueService.advanceStatus: advances from setup to drafting and gene
   const fakeLeague = createFakeLeague({
     status: "setup",
     sportType: "pokemon",
+    maxPlayers: 8,
     rulesConfig: {
       draftFormat: "snake",
       numberOfRounds: 10,
       pickTimeLimitSeconds: null,
+      poolSizeMultiplier: 2,
     },
   });
   let capturedStatus: string | undefined;
@@ -736,10 +769,12 @@ Deno.test("leagueService.advanceStatus: does not advance from setup if draft poo
   const fakeLeague = createFakeLeague({
     status: "setup",
     sportType: "pokemon",
+    maxPlayers: 8,
     rulesConfig: {
       draftFormat: "snake",
       numberOfRounds: 10,
       pickTimeLimitSeconds: null,
+      poolSizeMultiplier: 2,
     },
   });
   let statusUpdated = false;
