@@ -37,6 +37,7 @@ import {
   JoinLeaguePage,
   LeagueDetailPage,
   LeagueListPage,
+  LeagueSettingsPage,
 } from "./features/league/mod";
 import { DraftPage, DraftPoolPage } from "./features/draft/mod";
 
@@ -70,6 +71,13 @@ export function App() {
               <AuthGuard>
                 <AppLayout>
                   <DraftPage />
+                </AppLayout>
+              </AuthGuard>
+            </Route>
+            <Route path="/leagues/:id/settings">
+              <AuthGuard>
+                <AppLayout>
+                  <LeagueSettingsPage />
                 </AppLayout>
               </AuthGuard>
             </Route>
