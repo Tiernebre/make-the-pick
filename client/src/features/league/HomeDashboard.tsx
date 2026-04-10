@@ -1,5 +1,4 @@
 import {
-  Badge,
   Box,
   Button,
   Card,
@@ -7,17 +6,18 @@ import {
   Grid,
   Group,
   Paper,
-  ScrollArea,
   Stack,
   Text,
   Title,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
+  IconChevronRight,
   IconCircleCheck,
   IconPlus,
   IconSparkles,
   IconTicket,
+  IconTrophy,
 } from "@tabler/icons-react";
 import { useMemo } from "react";
 import { Link } from "wouter";
@@ -78,13 +78,6 @@ function computeNextAction(
   };
 }
 
-const STATUS_COLOR: Record<string, string> = {
-  setup: "gray",
-  drafting: "mint-green",
-  competing: "blue",
-  complete: "grape",
-};
-
 export function HomeDashboard() {
   const { data: session } = useSession();
   const leagues = useLeagues();
@@ -137,68 +130,35 @@ export function HomeDashboard() {
         </Group>
       </Paper>
 
-      <Group justify="space-between" mb="sm">
-        <Title order={3}>Your active leagues</Title>
-        <Button
-          component={Link}
-          href="/leagues"
-          variant="subtle"
-          size="xs"
-        >
-          Browse all leagues
-        </Button>
-      </Group>
-
-      {data.length === 0
-        ? (
-          <Paper withBorder radius="md" p="lg" mb="xl">
-            <Text c="dimmed" ta="center">
-              You haven't joined any leagues yet.
-            </Text>
-          </Paper>
-        )
-        : (
-          <ScrollArea type="auto" mb="xl" data-testid="active-leagues-strip">
-            <Group gap="md" wrap="nowrap" pb="sm">
-              {data.map((league) => (
-                <Card
-                  key={league.id}
-                  component={Link}
-                  href={`/leagues/${league.id}`}
-                  shadow="sm"
-                  padding="lg"
-                  radius="md"
-                  withBorder
-                  miw={260}
-                  style={{
-                    textDecoration: "none",
-                    color: "inherit",
-                    cursor: "pointer",
-                  }}
-                >
-                  <Stack gap="xs">
-                    <Group justify="space-between">
-                      <Text fw={600} truncate>{league.name}</Text>
-                      <Badge
-                        size="sm"
-                        variant="light"
-                        color={STATUS_COLOR[league.status] ?? "gray"}
-                        tt="capitalize"
-                      >
-                        {league.status}
-                      </Badge>
-                    </Group>
-                    <Text size="xs" c="dimmed" tt="capitalize">
-                      {league.userRole ?? "member"} ·{" "}
-                      {league.playerCount ?? 0}/{league.maxPlayers ?? "—"}{" "}
-                      players
-                    </Text>
-                  </Stack>
-                </Card>
-              ))}
-            </Group>
-          </ScrollArea>
-        )}
+      <Paper
+        component={Link}
+        href="/leagues"
+        data-testid="leagues-banner"
+        withBorder
+        radius="md"
+        p="lg"
+        mb="xl"
+        style={{
+          textDecoration: "none",
+          color: "inherit",
+          display: "block",
+        }}
+      >
+        <Group justify="space-between" wrap="nowrap" align="center">
+          <Group gap="md" wrap="nowrap" align="center">
+            <Box c="mint-green">
+              <IconTrophy size={28} />
+            </Box>
+            <Stack gap={2}>
+              <Title order={3}>Your leagues</Title>
+              <Text c="dimmed" size="sm">
+                Browse every league you've joined or commissioned.
+              </Text>
+            </Stack>
+          </Group>
+          <IconChevronRight size={24} />
+        </Group>
+      </Paper>
 
       <Grid gutter="lg">
         <Grid.Col span={{ base: 12, md: 7 }}>
