@@ -13,7 +13,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: denoland/setup-deno@v2
         with:
-          deno-version: v2.x
+          # Pinned to 2.7.11: Deno 2.7.12 regressed npm package extraction for
+          # react-remove-scroll-bar (transitive @mantine/core dep), causing
+          # "Cannot find module .../react-remove-scroll-bar/dist/es5/constants.js"
+          # on Linux. Unpin once a fixed Deno release ships.
+          deno-version: v2.7.11
       - run: deno lint
 
   format:
@@ -23,16 +27,16 @@ jobs:
       - uses: actions/checkout@v4
       - uses: denoland/setup-deno@v2
         with:
-          deno-version: v2.x
+          # Pinned to 2.7.11: Deno 2.7.12 regressed npm package extraction for
+          # react-remove-scroll-bar (transitive @mantine/core dep), causing
+          # "Cannot find module .../react-remove-scroll-bar/dist/es5/constants.js"
+          # on Linux. Unpin once a fixed Deno release ships.
+          deno-version: v2.7.11
       - run: deno fmt --check
 
   test:
     name: Test
     runs-on: ubuntu-latest
-    # TODO: remove once the react-remove-scroll / Linux client test failure is bisected and fixed.
-    # Tolerate failures on main pushes so deploys aren't blocked, but keep PRs strict
-    # so bisect PRs still surface the real pass/fail signal.
-    continue-on-error: ${{ github.event_name != 'pull_request' }}
     services:
       postgres:
         image: postgres:17
@@ -51,7 +55,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: denoland/setup-deno@v2
         with:
-          deno-version: v2.x
+          # Pinned to 2.7.11: Deno 2.7.12 regressed npm package extraction for
+          # react-remove-scroll-bar (transitive @mantine/core dep), causing
+          # "Cannot find module .../react-remove-scroll-bar/dist/es5/constants.js"
+          # on Linux. Unpin once a fixed Deno release ships.
+          deno-version: v2.7.11
       - run: deno install
       - run: deno task db:migrate
       - run: deno task test
@@ -123,7 +131,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: denoland/setup-deno@v2
         with:
-          deno-version: v2.x
+          # Pinned to 2.7.11: Deno 2.7.12 regressed npm package extraction for
+          # react-remove-scroll-bar (transitive @mantine/core dep), causing
+          # "Cannot find module .../react-remove-scroll-bar/dist/es5/constants.js"
+          # on Linux. Unpin once a fixed Deno release ships.
+          deno-version: v2.7.11
       - run: deno install
       - name: Install Playwright browsers
         run: cd e2e && npx playwright install --with-deps chromium
