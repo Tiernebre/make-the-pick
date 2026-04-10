@@ -32,7 +32,12 @@ export {
   type UpdateLeagueSettingsInput,
   updateLeagueSettingsSchema,
 } from "./league.ts";
-export { type Pokemon, pokemonSchema } from "./pokemon.ts";
+export {
+  type Pokemon,
+  pokemonSchema,
+  type RegionalPokedexEntry,
+  regionalPokedexEntrySchema,
+} from "./pokemon.ts";
 export {
   type PokemonMovesEntry,
   pokemonMovesEntrySchema,

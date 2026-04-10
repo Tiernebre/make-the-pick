@@ -1,4 +1,8 @@
-import type { Pokemon, PokemonVersion } from "@make-the-pick/shared";
+import type {
+  Pokemon,
+  PokemonVersion,
+  RegionalPokedexEntry,
+} from "@make-the-pick/shared";
 import { TRPCError } from "@trpc/server";
 import { logger } from "../../logger.ts";
 import type { LeagueRepository } from "../league/league.repository.ts";
@@ -34,7 +38,7 @@ export function createDraftPoolService(deps: {
   leagueRepo: LeagueRepository;
   pokemonData: Pokemon[];
   pokemonVersions?: PokemonVersion[];
-  regionalPokedexes?: Record<string, number[]>;
+  regionalPokedexes?: Record<string, RegionalPokedexEntry[]>;
   legendaryPokemonIds?: number[];
   starterPokemonIds?: number[];
   tradeEvolutionPokemonIds?: number[];
@@ -109,7 +113,7 @@ export function createDraftPoolService(deps: {
           });
         }
 
-        const dexIdSet = new Set(regionalDexIds);
+        const dexIdSet = new Set(regionalDexIds.map((e) => e.pokemonId));
         eligiblePokemon = deps.pokemonData.filter((p) => dexIdSet.has(p.id));
 
         log.debug(

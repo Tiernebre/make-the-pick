@@ -1,6 +1,10 @@
 import { assertEquals, assertRejects } from "@std/assert";
 import { TRPCError } from "@trpc/server";
-import type { Pokemon, PokemonVersion } from "@make-the-pick/shared";
+import type {
+  Pokemon,
+  PokemonVersion,
+  RegionalPokedexEntry,
+} from "@make-the-pick/shared";
 import type { LeagueRepository } from "../league/league.repository.ts";
 import type { DraftPoolRepository } from "./draft-pool.repository.ts";
 import { createDraftPoolService } from "./draft-pool.service.ts";
@@ -649,9 +653,21 @@ const fakePokemonVersions: PokemonVersion[] = [
   },
 ];
 
-const fakeRegionalPokedexes: Record<string, number[]> = {
-  "firered-leafgreen": [1, 2, 3, 4, 5],
-  "emerald": [1, 3, 6, 7, 8],
+const fakeRegionalPokedexes: Record<string, RegionalPokedexEntry[]> = {
+  "firered-leafgreen": [
+    { pokemonId: 1, dexNumber: 1 },
+    { pokemonId: 2, dexNumber: 2 },
+    { pokemonId: 3, dexNumber: 3 },
+    { pokemonId: 4, dexNumber: 4 },
+    { pokemonId: 5, dexNumber: 5 },
+  ],
+  "emerald": [
+    { pokemonId: 1, dexNumber: 1 },
+    { pokemonId: 3, dexNumber: 2 },
+    { pokemonId: 6, dexNumber: 3 },
+    { pokemonId: 7, dexNumber: 4 },
+    { pokemonId: 8, dexNumber: 5 },
+  ],
 };
 
 Deno.test("draftPoolService.generate: filters Pokemon by regional dex when gameVersion is set", async () => {

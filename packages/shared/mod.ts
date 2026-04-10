@@ -32,7 +32,12 @@ export {
   type UpdateLeagueSettingsInput,
   updateLeagueSettingsSchema,
 } from "./schemas/mod.ts";
-export { type Pokemon, pokemonSchema } from "./schemas/mod.ts";
+export {
+  type Pokemon,
+  pokemonSchema,
+  type RegionalPokedexEntry,
+  regionalPokedexEntrySchema,
+} from "./schemas/mod.ts";
 export {
   type PokemonMovesEntry,
   pokemonMovesEntrySchema,

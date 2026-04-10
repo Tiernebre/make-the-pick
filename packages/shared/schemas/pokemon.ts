@@ -34,3 +34,13 @@ export const pokemonSchema: z.ZodObject<{
 });
 
 export type Pokemon = z.infer<typeof pokemonSchema>;
+
+export const regionalPokedexEntrySchema: z.ZodObject<{
+  pokemonId: z.ZodNumber;
+  dexNumber: z.ZodNumber;
+}> = object({
+  pokemonId: number(),
+  dexNumber: number(),
+});
+
+export type RegionalPokedexEntry = z.infer<typeof regionalPokedexEntrySchema>;

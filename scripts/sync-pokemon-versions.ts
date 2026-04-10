@@ -128,7 +128,10 @@ async function main() {
 
   // 3. Fetch regional pokedexes for each version group
   console.log("\nFetching regional pokedexes...");
-  const regionalPokedexes: Record<string, number[]> = {};
+  const regionalPokedexes: Record<
+    string,
+    Array<{ pokemonId: number; dexNumber: number }>
+  > = {};
 
   for (const [vgName, vg] of versionGroupCache) {
     if (vg.pokedexes.length === 0) {
@@ -136,7 +139,8 @@ async function main() {
       continue;
     }
 
-    const allSpeciesIds = new Set<number>();
+    // Track species -> lowest entry_number across multiple pokedexes
+    const speciesEntries = new Map<number, number>();
 
     for (const pokedexRef of vg.pokedexes) {
       const pokedexRes = await fetchWithRetry(pokedexRef.url);
@@ -144,7 +148,10 @@ async function main() {
 
       for (const entry of pokedex.pokemon_entries) {
         const speciesId = extractIdFromUrl(entry.pokemon_species.url);
-        allSpeciesIds.add(speciesId);
+        const existing = speciesEntries.get(speciesId);
+        if (existing === undefined || entry.entry_number < existing) {
+          speciesEntries.set(speciesId, entry.entry_number);
+        }
       }
 
       console.log(
@@ -152,9 +159,11 @@ async function main() {
       );
     }
 
-    regionalPokedexes[vgName] = [...allSpeciesIds].sort((a, b) => a - b);
+    regionalPokedexes[vgName] = [...speciesEntries.entries()]
+      .map(([pokemonId, dexNumber]) => ({ pokemonId, dexNumber }))
+      .sort((a, b) => a.dexNumber - b.dexNumber);
     console.log(
-      `  ${vgName} total unique species: ${allSpeciesIds.size}`,
+      `  ${vgName} total unique species: ${speciesEntries.size}`,
     );
   }
 

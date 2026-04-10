@@ -1,4 +1,8 @@
-import type { Pokemon, PokemonVersion } from "@make-the-pick/shared";
+import type {
+  Pokemon,
+  PokemonVersion,
+  RegionalPokedexEntry,
+} from "@make-the-pick/shared";
 import pokemonJson from "../../packages/shared/data/pokemon.json" with {
   type: "json",
 };
@@ -55,7 +59,10 @@ export function createFeatureRouters(db: Database) {
     leagueRepo,
     pokemonData: pokemonJson as Pokemon[],
     pokemonVersions: pokemonVersionsJson as PokemonVersion[],
-    regionalPokedexes: regionalPokedexesJson as Record<string, number[]>,
+    regionalPokedexes: regionalPokedexesJson as Record<
+      string,
+      RegionalPokedexEntry[]
+    >,
     legendaryPokemonIds: legendaryPokemonJson as number[],
     starterPokemonIds: starterPokemonJson as number[],
     tradeEvolutionPokemonIds: tradeEvolutionPokemonJson as number[],
