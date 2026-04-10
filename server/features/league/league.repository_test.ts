@@ -504,3 +504,57 @@ Deno.test({
     }
   },
 });
+
+Deno.test({
+  name:
+    "leagueRepository.findAllByUserId: includes playerCount and userRole for each league",
+  sanitizeResources: false,
+  sanitizeOps: false,
+  fn: async () => {
+    const { db, client } = createTestDb();
+    const repo = createLeagueRepository(db);
+    const commissionerId = crypto.randomUUID();
+    const memberId = crypto.randomUUID();
+
+    try {
+      await createTestUser(db, commissionerId);
+      await createTestUser(db, memberId);
+
+      // commissionerId owns "Owned League" — 2 players total after member joins
+      const owned = await repo.createWithCommissioner(commissionerId, {
+        name: "Owned League",
+        inviteCode: "OWNED001",
+        ...defaultSettings,
+      });
+      await repo.addPlayer(owned.id, memberId);
+
+      // memberId owns "Other League" on their own — 1 player total
+      const other = await repo.createWithCommissioner(memberId, {
+        name: "Other League",
+        inviteCode: "OTHER001",
+        ...defaultSettings,
+      });
+
+      const commissionerLeagues = await repo.findAllByUserId(commissionerId);
+      assertEquals(commissionerLeagues.length, 1);
+      assertEquals(commissionerLeagues[0].id, owned.id);
+      assertEquals(commissionerLeagues[0].playerCount, 2);
+      assertEquals(commissionerLeagues[0].userRole, "commissioner");
+
+      const memberLeagues = await repo.findAllByUserId(memberId);
+      assertEquals(memberLeagues.length, 2);
+      const ownedFromMember = memberLeagues.find((l) => l.id === owned.id);
+      const otherFromMember = memberLeagues.find((l) => l.id === other.id);
+      assertEquals(ownedFromMember?.playerCount, 2);
+      assertEquals(ownedFromMember?.userRole, "member");
+      assertEquals(otherFromMember?.playerCount, 1);
+      assertEquals(otherFromMember?.userRole, "commissioner");
+    } finally {
+      await db.delete(leaguePlayer);
+      await db.delete(league);
+      await db.delete(user).where(eq(user.id, commissionerId));
+      await db.delete(user).where(eq(user.id, memberId));
+      await client.end();
+    }
+  },
+});

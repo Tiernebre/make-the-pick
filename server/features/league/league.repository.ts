@@ -1,4 +1,4 @@
-import { and, count, eq } from "drizzle-orm";
+import { and, count, eq, sql } from "drizzle-orm";
 import type { db } from "../../db/mod.ts";
 import { league, leaguePlayer, user } from "../../db/mod.ts";
 import { logger } from "../../logger.ts";
@@ -9,6 +9,11 @@ const log = logger.child({ module: "league.repository" });
 
 type LeagueRow = typeof league.$inferSelect;
 type LeaguePlayerRow = typeof leaguePlayer.$inferSelect;
+
+export type LeagueListRow = LeagueRow & {
+  playerCount: number;
+  userRole: "commissioner" | "member";
+};
 
 export function createLeagueRepository(db: Database) {
   return {
@@ -67,15 +72,27 @@ export function createLeagueRepository(db: Database) {
       return result ?? null;
     },
 
-    async findAllByUserId(userId: string): Promise<LeagueRow[]> {
+    async findAllByUserId(userId: string): Promise<LeagueListRow[]> {
       log.debug({ userId }, "finding all leagues for user");
+      const playerCountSql = sql<number>`(
+        SELECT COUNT(*)::int FROM ${leaguePlayer} lp
+        WHERE lp.league_id = ${league.id}
+      )`.as("player_count");
       const rows = await db
-        .select({ league })
+        .select({
+          league,
+          userRole: leaguePlayer.role,
+          playerCount: playerCountSql,
+        })
         .from(league)
         .innerJoin(leaguePlayer, eq(league.id, leaguePlayer.leagueId))
         .where(eq(leaguePlayer.userId, userId));
       log.debug({ userId, count: rows.length }, "findAllByUserId result");
-      return rows.map((row) => row.league);
+      return rows.map((row) => ({
+        ...row.league,
+        userRole: row.userRole as "commissioner" | "member",
+        playerCount: Number(row.playerCount),
+      }));
     },
 
     async addPlayer(
