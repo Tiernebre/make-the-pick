@@ -149,6 +149,14 @@ export function createDraftPoolService(deps: {
         );
       }
 
+      if (eligiblePokemon.length === 0) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            "No eligible Pokemon remain after applying the league's filter rules",
+        });
+      }
+
       const multiplier = rulesConfig.poolSizeMultiplier ??
         DEFAULT_POOL_SIZE_MULTIPLIER;
       const rawPoolSize = Math.floor(

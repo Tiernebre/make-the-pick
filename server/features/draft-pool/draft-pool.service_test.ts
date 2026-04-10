@@ -81,6 +81,7 @@ function createFakePokemonData(count: number): Pokemon[] {
     generation: "generation-i",
     captureRate: 45,
     spriteUrl: `https://example.com/sprite-${i + 1}.png`,
+    captureRate: 45,
   }));
 }
 
@@ -426,6 +427,7 @@ Deno.test("draftPoolService.generate: maps Pokemon metadata correctly", async ()
     generation: "generation-i",
     captureRate: 190,
     spriteUrl: "https://example.com/pikachu.png",
+    captureRate: 190,
   }, {
     id: 6,
     name: "charizard",
@@ -441,6 +443,7 @@ Deno.test("draftPoolService.generate: maps Pokemon metadata correctly", async ()
     generation: "generation-i",
     captureRate: 45,
     spriteUrl: "https://example.com/charizard.png",
+    captureRate: 45,
   }];
 
   let capturedItems: unknown[] = [];
@@ -1120,6 +1123,42 @@ Deno.test("draftPoolService.generate: throws BAD_REQUEST for invalid gameVersion
     pokemonData,
     pokemonVersions: fakePokemonVersions,
     regionalPokedexes: fakeRegionalPokedexes,
+  });
+
+  const error = await assertRejects(
+    () => service.generate("user-1", { leagueId: fakeLeague.id }),
+    TRPCError,
+  );
+  assertEquals(error.code, "BAD_REQUEST");
+});
+
+Deno.test("draftPoolService.generate: throws when all Pokemon are excluded by filters", async () => {
+  const fakeLeague = createFakeLeague({
+    rulesConfig: {
+      draftFormat: "snake",
+      numberOfRounds: 5,
+      pickTimeLimitSeconds: null,
+      poolSizeMultiplier: 2,
+      excludeLegendaries: true,
+    },
+  });
+  // All Pokemon are legendary, so all will be excluded
+  const pokemonData = createFakePokemonData(10);
+  const allPokemonIds = pokemonData.map((p) => p.id);
+
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve(createCommissionerPlayer(fakeLeague.id)),
+    countPlayers: (_leagueId) => Promise.resolve(3),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo();
+
+  const service = createDraftPoolService({
+    draftPoolRepo,
+    leagueRepo,
+    pokemonData,
+    legendaryPokemonIds: allPokemonIds,
   });
 
   const error = await assertRejects(
