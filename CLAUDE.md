@@ -58,6 +58,28 @@
 - Always work in a git worktree when making code changes. Use the
   `EnterWorktree` tool before starting implementation to avoid conflicts with
   parallel sessions.
-- After every successful change, commit and push directly to `main`. Keep
-  commits small and frequent — one logical change per commit. From a worktree,
-  use: `git push origin HEAD:main`.
+- **Never push directly to `main`.** Every change — even one-line fixes — goes
+  through a pull request so CI runs against it _before_ it can affect the deploy
+  pipeline. Why: we got burned once (see
+  [`docs/incidents/001-deno-2.7.12-npm-extraction-regression.md`](./docs/incidents/001-deno-2.7.12-npm-extraction-regression.md))
+  when multiple untested commits stacked up on a broken `main` and had to be
+  bisected out. A PR gate prevents that entire failure mode.
+- Keep PRs small and frequent — one logical change per PR. This preserves the
+  "small commits" habit while still giving every change a CI gate.
+- Standard PR flow for each change:
+  1. In the worktree, create a feature branch and push it:
+     `git push -u origin HEAD:<branch-name>`.
+  2. Open the PR against `main` with `gh pr create`.
+  3. Enable auto-merge immediately: `gh pr merge --auto --squash` (or `--merge`
+     if a linear history is preferred for that change). Auto-merge will merge
+     the PR the moment required checks pass, without requiring another
+     round-trip.
+  4. Watch CI with `gh run watch` / `gh pr checks --watch`. If checks fail, fix
+     on the same branch and push again — do not merge manually to bypass.
+  5. After the PR merges, run `git fetch origin main:main` locally so the
+     worktree's `main` ref catches up.
+- The only acceptable exception to the PR rule is an **incident-response change
+  that unblocks a broken deploy pipeline** (e.g. pinning a regressed toolchain
+  version). In that case it is still preferable to use a PR with auto-merge, but
+  a direct push is permitted if CI on `main` is the only way to validate the
+  fix. Document the exception in the commit body.
