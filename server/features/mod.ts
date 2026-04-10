@@ -21,7 +21,11 @@ import starterPokemonJson from "../../packages/shared/data/starter-pokemon.json"
 import tradeEvolutionPokemonJson from "../../packages/shared/data/trade-evolution-pokemon.json" with {
   type: "json",
 };
-import { createDraftRepository } from "./draft/mod.ts";
+import {
+  createDraftRepository,
+  createDraftRouter,
+  createDraftService,
+} from "./draft/mod.ts";
 import {
   createDraftPoolRepository,
   createDraftPoolRouter,
@@ -76,6 +80,13 @@ export function createFeatureRouters(db: Database) {
   });
   const leagueRouter = createLeagueRouter(leagueService);
 
+  const draftService = createDraftService({
+    draftRepo,
+    leagueRepo,
+    draftPoolRepo,
+  });
+  const draftRouter = createDraftRouter(draftService);
+
   const userRepo = createUserRepository(db);
   const userService = createUserService({ userRepo });
   const userRouter = createUserRouter(userService);
@@ -102,6 +113,7 @@ export function createFeatureRouters(db: Database) {
     leagueRouter,
     userRouter,
     draftPoolRouter,
+    draftRouter,
     pokemonVersionRouter,
     watchlistRouter,
     poolItemNoteRouter,

@@ -78,6 +78,22 @@ function createFakeDraftRepo(
 ): DraftRepository {
   return {
     findByLeagueId: (_leagueId) => Promise.resolve(null as FakeDraft),
+    findById: (_id) => Promise.resolve(null as FakeDraft),
+    create: (_input) => Promise.resolve(createFakeDraft()),
+    updateStatus: (_id, _status, _timestamps) =>
+      Promise.resolve(createFakeDraft()),
+    incrementCurrentPick: (_id) => Promise.resolve(0),
+    listPicks: (_draftId) => Promise.resolve([]),
+    createPick: (input) =>
+      Promise.resolve({
+        id: crypto.randomUUID(),
+        draftId: input.draftId,
+        leaguePlayerId: input.leaguePlayerId,
+        poolItemId: input.poolItemId,
+        pickNumber: input.pickNumber,
+        pickedAt: new Date(),
+      }),
+    findPickByPoolItem: (_draftId, _poolItemId) => Promise.resolve(null),
     ...overrides,
   };
 }
