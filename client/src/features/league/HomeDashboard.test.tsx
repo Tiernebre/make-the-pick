@@ -64,7 +64,7 @@ describe("HomeDashboard", () => {
     expect(screen.getByText(/welcome back, ash/i)).toBeInTheDocument();
   });
 
-  it("renders an active leagues strip with one card per league", () => {
+  it("renders a leagues table with one row per league", () => {
     setupMocks({
       leagues: [
         {
@@ -86,9 +86,17 @@ describe("HomeDashboard", () => {
       ],
     });
     renderPage();
-    const strip = screen.getByTestId("active-leagues-strip");
-    expect(within(strip).getByText("Kanto Rumble")).toBeInTheDocument();
-    expect(within(strip).getByText("Johto Classic")).toBeInTheDocument();
+    const table = screen.getByRole("table", { name: /your leagues/i });
+    expect(within(table).getByRole("link", { name: /kanto rumble/i }))
+      .toHaveAttribute("href", "/leagues/L1");
+    expect(within(table).getByRole("link", { name: /johto classic/i }))
+      .toHaveAttribute("href", "/leagues/L2");
+  });
+
+  it("does not render a recent activity section", () => {
+    setupMocks();
+    renderPage();
+    expect(screen.queryByText(/recent activity/i)).not.toBeInTheDocument();
   });
 
   it("has quick actions for Create League and Join by invite", () => {
