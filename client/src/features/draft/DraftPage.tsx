@@ -19,6 +19,7 @@ import { DraftHeader } from "./DraftHeader";
 import { PickPanel } from "./PickPanel";
 import { RosterStrip } from "./RosterStrip";
 import { useDraft, useMakePick, useStartDraft } from "./use-draft";
+import { useDraftEvents } from "./use-draft-events";
 import { leaguePlayerForPick } from "./snake.ts";
 
 export function DraftPage() {
@@ -44,6 +45,14 @@ export function DraftPage() {
   const totalRounds = rulesConfig?.numberOfRounds ?? 6;
 
   const draftState = draft.data;
+
+  // Subscribe to live SSE updates for the draft room. The subscription is
+  // only active once a draft snapshot has loaded — before that there's
+  // nothing to keep in sync, and for pending drafts there are no live
+  // events yet. The hook's query invalidation keeps `useDraft` reactive
+  // without the page needing to handle individual events itself.
+  const isDraftLive = !!draftState && draftState.draft.status === "in_progress";
+  useDraftEvents(leagueId, { enabled: isDraftLive });
 
   const currentTurnPlayerId = draftState
     ? leaguePlayerForPick(
