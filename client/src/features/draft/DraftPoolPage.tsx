@@ -14,11 +14,12 @@ import {
   Table,
   Text,
   Title,
+  Tooltip,
   UnstyledButton,
 } from "@mantine/core";
 import { WatchlistPanel } from "./WatchlistPanel";
 import { PoolItemNoteIcon } from "./PoolItemNoteIcon";
-import { IconStar, IconStarFilled } from "@tabler/icons-react";
+import { IconInfoCircle, IconStar, IconStarFilled } from "@tabler/icons-react";
 import type {
   DraftPoolItem,
   PokemonEncounterSummary,
@@ -469,6 +470,24 @@ export function DraftPoolPage() {
         grow: false,
         size: 90,
         filterVariant: "range",
+        Header: () => (
+          <Group gap={4} wrap="nowrap">
+            <span>Effort</span>
+            <Tooltip
+              label="How much work it takes to field this Pokémon — catching difficulty, how rare it is in the wild, and any evolution requirements (level, trade, items). 1 = easy, 5 = hard."
+              multiline
+              w={260}
+              withArrow
+              position="top"
+            >
+              <IconInfoCircle
+                size={14}
+                style={{ color: "var(--mantine-color-dimmed)" }}
+                aria-label="Effort column info"
+              />
+            </Tooltip>
+          </Group>
+        ),
         Cell: ({ row }) => <EffortMeter effort={row.original.effort} />,
       },
       {
