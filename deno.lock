@@ -3,7 +3,10 @@
   "specifiers": {
     "jsr:@hono/hono@4": "4.12.12",
     "jsr:@std/assert@1": "1.0.16",
+    "jsr:@std/async@^1.1.0": "1.2.0",
+    "jsr:@std/data-structures@^1.0.10": "1.0.10",
     "jsr:@std/internal@^1.0.12": "1.0.12",
+    "jsr:@std/testing@1": "1.0.17",
     "npm:@dnd-kit/core@^6.3.1": "6.3.1_react@19.2.4_react-dom@19.2.4__react@19.2.4",
     "npm:@dnd-kit/sortable@10": "10.0.0_@dnd-kit+core@6.3.1__react@19.2.4__react-dom@19.2.4___react@19.2.4_react@19.2.4_react-dom@19.2.4__react@19.2.4",
     "npm:@dnd-kit/utilities@^3.2.2": "3.2.2_react@19.2.4",
@@ -26,6 +29,7 @@
     "npm:concurrently@*": "9.2.1",
     "npm:concurrently@^9.2.1": "9.2.1",
     "npm:dayjs@>=1.11.0": "1.11.20",
+    "npm:drizzle-kit@*": "0.31.10",
     "npm:drizzle-kit@0.31": "0.31.10",
     "npm:drizzle-orm@0.44": "0.44.7_@opentelemetry+api@1.9.1_kysely@0.28.15_postgres@3.4.9",
     "npm:happy-dom@18": "18.0.1",
@@ -54,8 +58,21 @@
         "jsr:@std/internal"
       ]
     },
+    "@std/async@1.2.0": {
+      "integrity": "c059c6f6d95ca7cc012ae8e8d7164d1697113d54b0b679e4372b354b11c2dee5"
+    },
+    "@std/data-structures@1.0.10": {
+      "integrity": "f574f86b0e07c69b9edc555fcc814b57d29258bad39fd5a34ba8a80ecf033cfe"
+    },
     "@std/internal@1.0.12": {
       "integrity": "972a634fd5bc34b242024402972cd5143eac68d8dffaca5eaa4dba30ce17b027"
+    },
+    "@std/testing@1.0.17": {
+      "integrity": "87bdc2700fa98249d48a17cd72413352d3d3680dcfbdb64947fd0982d6bbf681",
+      "dependencies": [
+        "jsr:@std/async",
+        "jsr:@std/data-structures"
+      ]
     }
   },
   "npm": {
@@ -3465,6 +3482,7 @@
   "workspace": {
     "dependencies": [
       "jsr:@std/assert@1",
+      "jsr:@std/testing@1",
       "npm:concurrently@^9.2.1"
     ],
     "members": {

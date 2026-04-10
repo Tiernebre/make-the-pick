@@ -20,6 +20,7 @@ registerEchoWebSocket(app);
 registerFeatureRoutes(app, {
   draftEventPublisher: features.draftEventPublisher,
   draftService: features.draftService,
+  draftTimerScheduler: features.draftTimerScheduler,
 });
 
 // Auth routes — must come before tRPC

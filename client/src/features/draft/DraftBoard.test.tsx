@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { MantineProvider } from "@mantine/core";
 import { DraftBoard } from "./DraftBoard";
 import { makeDraftState, makePlayer, makePoolItem } from "./fixtures";
-import type { DraftPick } from "./draft-types.ts";
+import type { DraftPick } from "@make-the-pick/shared";
 
 function renderBoard(props: Parameters<typeof DraftBoard>[0]) {
   return render(

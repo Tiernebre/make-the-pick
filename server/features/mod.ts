@@ -27,8 +27,10 @@ import {
   createDraftRepository,
   createDraftRouter,
   createDraftService,
+  createDraftTimerScheduler,
   type DraftEventPublisher,
   type DraftService,
+  type DraftTimerScheduler,
   registerDraftSseRoute,
 } from "./draft/mod.ts";
 import { auth } from "../auth/mod.ts";
@@ -87,12 +89,21 @@ export function createFeatureRouters(db: Database) {
   const leagueRouter = createLeagueRouter(leagueService);
 
   const draftEventPublisher = createDraftEventPublisher();
+  // Create the scheduler up front so we can pass it into the service; then
+  // wire the auto-pick handler back into the scheduler after the service
+  // exists. This breaks the scheduler <-> service circular dependency
+  // without resorting to `any` casts or module-level globals.
+  const draftTimerScheduler = createDraftTimerScheduler({ draftRepo });
   const draftService = createDraftService({
     draftRepo,
     leagueRepo,
     draftPoolRepo,
     draftEventPublisher,
+    timerScheduler: draftTimerScheduler,
   });
+  draftTimerScheduler.setAutoPickHandler(({ leagueId }) =>
+    draftService.runAutoPick({ leagueId })
+  );
   const draftRouter = createDraftRouter(draftService);
 
   const userRepo = createUserRepository(db);
@@ -127,6 +138,7 @@ export function createFeatureRouters(db: Database) {
     poolItemNoteRouter,
     draftEventPublisher,
     draftService,
+    draftTimerScheduler,
   };
 }
 
@@ -140,6 +152,7 @@ export function registerFeatureRoutes(
   deps: {
     draftEventPublisher: DraftEventPublisher;
     draftService: DraftService;
+    draftTimerScheduler: DraftTimerScheduler;
   },
 ): void {
   registerDraftSseRoute(app, {
@@ -150,5 +163,13 @@ export function registerFeatureRoutes(
       if (!sessionData?.user?.id) return null;
       return { userId: sessionData.user.id };
     },
+  });
+  // Fire-and-forget boot recovery: on process restart, re-arm timers for
+  // drafts that were in-progress and catch up any whose deadline expired
+  // while we were down. Kept async-without-await so the HTTP listener is
+  // not blocked; recoverTimers processes sequentially internally to avoid
+  // stampeding the draft state.
+  deps.draftTimerScheduler.recoverTimers().catch(() => {
+    // errors are logged inside the scheduler
   });
 }

@@ -1,4 +1,4 @@
-import { asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, isNotNull, sql } from "drizzle-orm";
 import type { db } from "../../db/mod.ts";
 import { draft, draftPick } from "../../db/mod.ts";
 import { logger } from "../../logger.ts";
@@ -22,6 +22,7 @@ export interface CreatePickInput {
   leaguePlayerId: string;
   poolItemId: string;
   pickNumber: number;
+  autoPicked?: boolean;
 }
 
 export interface UpdateDraftStatusTimestamps {
@@ -93,6 +94,36 @@ export function createDraftRepository(db: Database) {
       return updated;
     },
 
+    async updateTurnDeadline(
+      id: string,
+      deadline: Date | null,
+    ): Promise<void> {
+      log.debug(
+        { draftId: id, deadline: deadline?.toISOString() ?? null },
+        "updating draft turn deadline",
+      );
+      await db.update(draft).set({ currentTurnDeadline: deadline }).where(
+        eq(draft.id, id),
+      );
+    },
+
+    async listActiveDraftsWithDeadlines(): Promise<
+      Array<Pick<DraftRow, "id" | "leagueId" | "currentTurnDeadline">>
+    > {
+      log.debug("listing active drafts with deadlines");
+      const rows = await db.select({
+        id: draft.id,
+        leagueId: draft.leagueId,
+        currentTurnDeadline: draft.currentTurnDeadline,
+      }).from(draft).where(
+        and(
+          eq(draft.status, "in_progress"),
+          isNotNull(draft.currentTurnDeadline),
+        ),
+      );
+      return rows;
+    },
+
     async incrementCurrentPick(id: string): Promise<number> {
       log.debug({ draftId: id }, "incrementing draft currentPick");
       const [updated] = await db.update(draft).set({
@@ -126,6 +157,7 @@ export function createDraftRepository(db: Database) {
           leaguePlayerId: input.leaguePlayerId,
           poolItemId: input.poolItemId,
           pickNumber: input.pickNumber,
+          autoPicked: input.autoPicked ?? false,
         }).returning();
         return row;
       } catch (err) {

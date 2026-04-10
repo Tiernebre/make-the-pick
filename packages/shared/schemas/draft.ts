@@ -1,5 +1,14 @@
 import type { z } from "zod";
-import { array, literal, nullable, number, object, string, union } from "zod";
+import {
+  array,
+  boolean,
+  literal,
+  nullable,
+  number,
+  object,
+  string,
+  union,
+} from "zod";
 import { draftPoolItemSchema } from "./draft-pool.ts";
 import { leaguePlayerSchema } from "./league.ts";
 
@@ -11,6 +20,7 @@ export const draftPickSchema: z.ZodObject<{
   poolItemId: z.ZodString;
   pickNumber: z.ZodNumber;
   pickedAt: z.ZodString;
+  autoPicked: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
 }> = object({
   id: string().uuid(),
   draftId: string().uuid(),
@@ -18,6 +28,7 @@ export const draftPickSchema: z.ZodObject<{
   poolItemId: string().uuid(),
   pickNumber: number().int().min(0),
   pickedAt: string(),
+  autoPicked: boolean().optional().default(false),
 });
 
 export type DraftPick = z.infer<typeof draftPickSchema>;
@@ -33,6 +44,7 @@ export const draftStateSchema: z.ZodObject<{
     currentPick: z.ZodNumber;
     startedAt: z.ZodNullable<z.ZodString>;
     completedAt: z.ZodNullable<z.ZodString>;
+    currentTurnDeadline: z.ZodNullable<z.ZodString>;
   }>;
   picks: z.ZodArray<typeof draftPickSchema>;
   players: z.ZodArray<typeof leaguePlayerSchema>;
@@ -48,6 +60,7 @@ export const draftStateSchema: z.ZodObject<{
     currentPick: number().int(),
     startedAt: nullable(string()),
     completedAt: nullable(string()),
+    currentTurnDeadline: nullable(string()),
   }),
   picks: array(draftPickSchema),
   players: array(leaguePlayerSchema),
@@ -102,6 +115,7 @@ export const draftPickMadeEventSchema: z.ZodObject<{
     poolItemId: z.ZodString;
     pickNumber: z.ZodNumber;
     pickedAt: z.ZodString;
+    autoPicked: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
     playerName: z.ZodString;
     itemName: z.ZodString;
     round: z.ZodNumber;
@@ -121,6 +135,7 @@ export const draftTurnChangeEventSchema: z.ZodObject<{
     currentLeaguePlayerId: z.ZodString;
     pickNumber: z.ZodNumber;
     round: z.ZodNumber;
+    turnDeadline: z.ZodNullable<z.ZodString>;
   }>;
 }> = object({
   type: literal("draft:turn_change"),
@@ -128,6 +143,7 @@ export const draftTurnChangeEventSchema: z.ZodObject<{
     currentLeaguePlayerId: string().uuid(),
     pickNumber: number().int(),
     round: number().int(),
+    turnDeadline: nullable(string()),
   }),
 });
 

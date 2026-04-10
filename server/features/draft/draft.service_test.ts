@@ -79,6 +79,7 @@ function createFakeDraft(
     currentPick: 0,
     startedAt: null,
     completedAt: null,
+    currentTurnDeadline: null,
     createdAt: new Date(),
     ...overrides,
   };
@@ -173,9 +174,12 @@ function createFakeDraftRepo(
         poolItemId: _input.poolItemId,
         pickNumber: _input.pickNumber,
         pickedAt: new Date(),
+        autoPicked: false,
       }),
     findPickByPoolItem: (_draftId, _poolItemId) =>
       Promise.resolve(null as FakeDraftPick | null),
+    updateTurnDeadline: (_id, _deadline) => Promise.resolve(),
+    listActiveDraftsWithDeadlines: () => Promise.resolve([]),
     ...overrides,
   };
 }
@@ -395,6 +399,7 @@ function setupMakePickFakes(opts: {
     poolItemId,
     pickNumber: i,
     pickedAt: new Date(),
+    autoPicked: false,
   }));
 
   return {
@@ -433,6 +438,7 @@ Deno.test("draftService.makePick: happy path creates a pick and increments curre
         poolItemId: input.poolItemId,
         pickNumber: input.pickNumber,
         pickedAt: new Date(),
+        autoPicked: false,
       });
     },
     incrementCurrentPick: (id) => {
@@ -517,6 +523,7 @@ Deno.test("draftService.makePick: pool item already picked → CONFLICT", async 
     poolItemId: alreadyPickedItem.id,
     pickNumber: 0,
     pickedAt: new Date(),
+    autoPicked: false,
   };
   const draftRepo = createFakeDraftRepo({
     findByLeagueId: (_id) => Promise.resolve({ ...fx.draft, currentPick: 1 }),
@@ -664,6 +671,7 @@ Deno.test("draftService.makePick: final pick transitions draft to complete with 
       poolItemId: fx.poolItems[0].id,
       pickNumber: 0,
       pickedAt: new Date(),
+      autoPicked: false,
     },
     {
       id: crypto.randomUUID(),
@@ -672,6 +680,7 @@ Deno.test("draftService.makePick: final pick transitions draft to complete with 
       poolItemId: fx.poolItems[1].id,
       pickNumber: 1,
       pickedAt: new Date(),
+      autoPicked: false,
     },
     {
       id: crypto.randomUUID(),
@@ -680,6 +689,7 @@ Deno.test("draftService.makePick: final pick transitions draft to complete with 
       poolItemId: fx.poolItems[2].id,
       pickNumber: 2,
       pickedAt: new Date(),
+      autoPicked: false,
     },
   ];
 
@@ -740,6 +750,7 @@ Deno.test("draftService.getState: returns draft + picks + availableItemIds", asy
     poolItemId: fx.poolItems[0].id,
     pickNumber: 0,
     pickedAt: new Date(),
+    autoPicked: false,
   };
   const draftRepo = createFakeDraftRepo({
     findByLeagueId: (_id) => Promise.resolve({ ...fx.draft, currentPick: 1 }),
@@ -902,6 +913,7 @@ Deno.test("draftService.makePick: non-final pick publishes pick_made then turn_c
         poolItemId: input.poolItemId,
         pickNumber: input.pickNumber,
         pickedAt: new Date(),
+        autoPicked: false,
       }),
     incrementCurrentPick: (_id) => Promise.resolve(1),
     findPickByPoolItem: (_d, _p) =>
@@ -963,6 +975,7 @@ Deno.test("draftService.makePick: final pick publishes pick_made then draft:comp
       poolItemId: fx.poolItems[0].id,
       pickNumber: 0,
       pickedAt: new Date(),
+      autoPicked: false,
     },
     {
       id: crypto.randomUUID(),
@@ -971,6 +984,7 @@ Deno.test("draftService.makePick: final pick publishes pick_made then draft:comp
       poolItemId: fx.poolItems[1].id,
       pickNumber: 1,
       pickedAt: new Date(),
+      autoPicked: false,
     },
     {
       id: crypto.randomUUID(),
@@ -979,6 +993,7 @@ Deno.test("draftService.makePick: final pick publishes pick_made then draft:comp
       poolItemId: fx.poolItems[2].id,
       pickNumber: 2,
       pickedAt: new Date(),
+      autoPicked: false,
     },
   ];
 
@@ -1059,4 +1074,621 @@ Deno.test("draftService.validatePick: returns valid=false when not caller's turn
   });
   assertEquals(result.valid, false);
   assertEquals(typeof result.reason, "string");
+});
+
+// --- pick timer & auto-pick ----------------------------------------------
+
+function createFixedClock(isoStart: string) {
+  let current = new Date(isoStart);
+  return {
+    now: () => current,
+    advance(ms: number) {
+      current = new Date(current.getTime() + ms);
+    },
+    set(date: Date) {
+      current = date;
+    },
+  };
+}
+
+interface RecordingScheduler {
+  scheduled: Array<
+    { draftId: string; leagueId: string; deadline: Date | null }
+  >;
+  cancelled: string[];
+  schedule(draftId: string, leagueId: string, deadline: Date | null): void;
+  cancel(draftId: string): void;
+  triggerNowForTest(draftId: string): Promise<void>;
+  setAutoPickHandler(): void;
+  recoverTimers(): Promise<void>;
+  activeTimerCount(): number;
+}
+
+function createRecordingScheduler(): RecordingScheduler {
+  return {
+    scheduled: [],
+    cancelled: [],
+    schedule(draftId, leagueId, deadline) {
+      this.scheduled.push({ draftId, leagueId, deadline });
+    },
+    cancel(draftId) {
+      this.cancelled.push(draftId);
+    },
+    triggerNowForTest: () => Promise.resolve(),
+    setAutoPickHandler: () => {},
+    recoverTimers: () => Promise.resolve(),
+    activeTimerCount: () => 0,
+  };
+}
+
+Deno.test("draftService.startDraft: with pickTimeLimitSeconds sets deadline, emits turn_change with deadline, schedules timer", async () => {
+  const league = createFakeLeague({
+    status: "drafting",
+    rulesConfig: {
+      draftFormat: "snake",
+      numberOfRounds: 2,
+      pickTimeLimitSeconds: 60,
+      poolSizeMultiplier: 2,
+    },
+  });
+  const pool = createFakePool(league.id);
+  const playerA = createLeaguePlayerRow(league.id, "user-1", "commissioner");
+  const playerB = createLeaguePlayerRow(league.id, "user-2", "member");
+
+  let persistedDeadline: Date | null | undefined;
+  let createdDraft: ReturnType<typeof createFakeDraft> | null = null;
+  const draftRepo = createFakeDraftRepo({
+    findByLeagueId: (_id) => Promise.resolve(null as FakeDraft),
+    create: (input) => {
+      createdDraft = createFakeDraft({
+        leagueId: input.leagueId,
+        poolId: input.poolId,
+        pickOrder: input.pickOrder,
+        format: input.format,
+      });
+      return Promise.resolve(createdDraft);
+    },
+    updateStatus: (id, status, timestamps) =>
+      Promise.resolve({
+        ...createdDraft!,
+        id,
+        status: status as "in_progress",
+        startedAt: timestamps.startedAt ?? null,
+      }),
+    updateTurnDeadline: (_id, deadline) => {
+      persistedDeadline = deadline;
+      return Promise.resolve();
+    },
+    listPicks: (_id) => Promise.resolve([]),
+  });
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(league),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve({ ...playerA, leagueId: league.id }),
+    findPlayersByLeagueId: (_id) => Promise.resolve([playerA, playerB]),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    findByLeagueId: (_id) => Promise.resolve(pool),
+    findItemsByPoolId: (poolId) =>
+      Promise.resolve([
+        createFakePoolItem(poolId),
+        createFakePoolItem(poolId),
+      ]),
+  });
+  const publisher = createRecordingPublisher();
+  const clock = createFixedClock("2026-04-10T00:00:00.000Z");
+  const scheduler = createRecordingScheduler();
+
+  const service = createDraftService({
+    draftRepo,
+    leagueRepo,
+    draftPoolRepo,
+    draftEventPublisher: publisher,
+    clock,
+    timerScheduler: scheduler,
+  });
+  const state = await service.startDraft({
+    userId: "user-1",
+    leagueId: league.id,
+  });
+
+  const expectedDeadline = new Date("2026-04-10T00:01:00.000Z");
+  assertEquals(
+    (persistedDeadline as Date | null | undefined)?.getTime(),
+    expectedDeadline.getTime(),
+  );
+  assertEquals(state.draft.currentTurnDeadline, expectedDeadline.toISOString());
+
+  const turnChange = publisher.published.find((p) =>
+    p.event.type === "draft:turn_change"
+  );
+  if (turnChange && turnChange.event.type === "draft:turn_change") {
+    assertEquals(
+      turnChange.event.data.turnDeadline,
+      expectedDeadline.toISOString(),
+    );
+  } else {
+    throw new Error("expected turn_change event");
+  }
+
+  assertEquals(scheduler.scheduled.length, 1);
+  assertEquals(
+    scheduler.scheduled[0].deadline?.getTime(),
+    expectedDeadline.getTime(),
+  );
+});
+
+Deno.test("draftService.startDraft: null pickTimeLimitSeconds persists null deadline", async () => {
+  const league = createFakeLeague({ status: "drafting" });
+  const pool = createFakePool(league.id);
+  const playerA = createLeaguePlayerRow(league.id, "user-1", "commissioner");
+  let persistedDeadline: Date | null | undefined = undefined;
+  let createdDraft: ReturnType<typeof createFakeDraft> | null = null;
+  const draftRepo = createFakeDraftRepo({
+    findByLeagueId: (_id) => Promise.resolve(null as FakeDraft),
+    create: (input) => {
+      createdDraft = createFakeDraft({
+        leagueId: input.leagueId,
+        poolId: input.poolId,
+        pickOrder: input.pickOrder,
+        format: input.format,
+      });
+      return Promise.resolve(createdDraft);
+    },
+    updateStatus: (id, status, _ts) =>
+      Promise.resolve({
+        ...createdDraft!,
+        id,
+        status: status as "in_progress",
+      }),
+    updateTurnDeadline: (_id, deadline) => {
+      persistedDeadline = deadline;
+      return Promise.resolve();
+    },
+    listPicks: () => Promise.resolve([]),
+  });
+  const leagueRepo = createFakeLeagueRepo({
+    findById: () => Promise.resolve(league),
+    findPlayer: () => Promise.resolve({ ...playerA, leagueId: league.id }),
+    findPlayersByLeagueId: () => Promise.resolve([playerA]),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    findByLeagueId: () => Promise.resolve(pool),
+    findItemsByPoolId: (poolId) =>
+      Promise.resolve([createFakePoolItem(poolId)]),
+  });
+  const publisher = createRecordingPublisher();
+  const service = createDraftService({
+    draftRepo,
+    leagueRepo,
+    draftPoolRepo,
+    draftEventPublisher: publisher,
+  });
+
+  await service.startDraft({ userId: "user-1", leagueId: league.id });
+
+  assertEquals(persistedDeadline, null);
+  const turnChange = publisher.published.find((p) =>
+    p.event.type === "draft:turn_change"
+  );
+  if (turnChange && turnChange.event.type === "draft:turn_change") {
+    assertEquals(turnChange.event.data.turnDeadline, null);
+  }
+});
+
+Deno.test("draftService.makePick: non-final reschedules deadline and includes it in turn_change", async () => {
+  const fx = setupMakePickFakes({ currentPick: 0 });
+  fx.league.rulesConfig = {
+    draftFormat: "snake",
+    numberOfRounds: 2,
+    pickTimeLimitSeconds: 30,
+    poolSizeMultiplier: 2,
+  };
+  let persistedDeadline: Date | null | undefined = undefined;
+  const draftRepo = createFakeDraftRepo({
+    findByLeagueId: () => Promise.resolve(fx.draft),
+    listPicks: () => Promise.resolve([]),
+    createPick: (input) =>
+      Promise.resolve({
+        id: crypto.randomUUID(),
+        draftId: input.draftId,
+        leaguePlayerId: input.leaguePlayerId,
+        poolItemId: input.poolItemId,
+        pickNumber: input.pickNumber,
+        pickedAt: new Date(),
+        autoPicked: false,
+      }),
+    incrementCurrentPick: () => Promise.resolve(1),
+    findPickByPoolItem: () => Promise.resolve(null as FakeDraftPick | null),
+    updateTurnDeadline: (_id, d) => {
+      persistedDeadline = d;
+      return Promise.resolve();
+    },
+  });
+  const leagueRepo = createFakeLeagueRepo({
+    findById: () => Promise.resolve(fx.league),
+    findPlayer: () =>
+      Promise.resolve({ ...fx.playerA, leagueId: fx.league.id }),
+    findPlayersByLeagueId: () => Promise.resolve([fx.playerA, fx.playerB]),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    findByLeagueId: () => Promise.resolve(fx.pool),
+    findItemsByPoolId: () => Promise.resolve(fx.poolItems),
+  });
+  const publisher = createRecordingPublisher();
+  const clock = createFixedClock("2026-04-10T12:00:00.000Z");
+  const scheduler = createRecordingScheduler();
+
+  const service = createDraftService({
+    draftRepo,
+    leagueRepo,
+    draftPoolRepo,
+    draftEventPublisher: publisher,
+    clock,
+    timerScheduler: scheduler,
+  });
+  await service.makePick({
+    userId: "user-1",
+    leagueId: fx.league.id,
+    poolItemId: fx.poolItems[0].id,
+  });
+
+  const expected = new Date("2026-04-10T12:00:30.000Z");
+  assertEquals(
+    (persistedDeadline as Date | null | undefined)?.getTime(),
+    expected.getTime(),
+  );
+  const turnChange = publisher.published.find((p) =>
+    p.event.type === "draft:turn_change"
+  );
+  if (turnChange && turnChange.event.type === "draft:turn_change") {
+    assertEquals(turnChange.event.data.turnDeadline, expected.toISOString());
+  } else {
+    throw new Error("expected turn_change event");
+  }
+  assertEquals(scheduler.scheduled.length, 1);
+});
+
+Deno.test("draftService.makePick: final pick clears deadline and cancels scheduler", async () => {
+  const fx = setupMakePickFakes({ currentPick: 3, numberOfRounds: 2 });
+  fx.league.rulesConfig = {
+    draftFormat: "snake",
+    numberOfRounds: 2,
+    pickTimeLimitSeconds: 30,
+    poolSizeMultiplier: 2,
+  };
+  const existingPicks: FakeDraftPick[] = [0, 1, 2].map((i) => ({
+    id: crypto.randomUUID(),
+    draftId: fx.draft.id,
+    leaguePlayerId: i === 0 ? fx.playerA.id : fx.playerB.id,
+    poolItemId: fx.poolItems[i].id,
+    pickNumber: i,
+    pickedAt: new Date(),
+    autoPicked: false,
+  }));
+  let deadlineCleared = false;
+  const draftRepo = createFakeDraftRepo({
+    findByLeagueId: () => Promise.resolve(fx.draft),
+    listPicks: () => Promise.resolve(existingPicks),
+    findPickByPoolItem: (_d, poolItemId) =>
+      Promise.resolve(
+        existingPicks.find((p) => p.poolItemId === poolItemId) ??
+          (null as FakeDraftPick | null),
+      ),
+    incrementCurrentPick: () => Promise.resolve(4),
+    updateStatus: (id, status, ts) =>
+      Promise.resolve({
+        ...fx.draft,
+        id,
+        status: status as "complete",
+        completedAt: ts.completedAt ?? null,
+        currentPick: 4,
+      }),
+    updateTurnDeadline: (_id, d) => {
+      if (d === null) deadlineCleared = true;
+      return Promise.resolve();
+    },
+  });
+  const leagueRepo = createFakeLeagueRepo({
+    findById: () => Promise.resolve(fx.league),
+    findPlayer: () =>
+      Promise.resolve({ ...fx.playerA, leagueId: fx.league.id }),
+    findPlayersByLeagueId: () => Promise.resolve([fx.playerA, fx.playerB]),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    findByLeagueId: () => Promise.resolve(fx.pool),
+    findItemsByPoolId: () => Promise.resolve(fx.poolItems),
+  });
+  const publisher = createRecordingPublisher();
+  const scheduler = createRecordingScheduler();
+  const service = createDraftService({
+    draftRepo,
+    leagueRepo,
+    draftPoolRepo,
+    draftEventPublisher: publisher,
+    timerScheduler: scheduler,
+  });
+
+  await service.makePick({
+    userId: "user-1",
+    leagueId: fx.league.id,
+    poolItemId: fx.poolItems[3].id,
+  });
+
+  assertEquals(deadlineCleared, true);
+  assertEquals(scheduler.cancelled, [fx.draft.id]);
+  // Should not publish a turn_change on the final pick
+  assertEquals(
+    publisher.published.filter((p) => p.event.type === "draft:turn_change")
+      .length,
+    0,
+  );
+});
+
+Deno.test("draftService.runAutoPick: picks highest-BST available item with autoPicked=true", async () => {
+  const fx = setupMakePickFakes({ currentPick: 0 });
+  fx.league.rulesConfig = {
+    draftFormat: "snake",
+    numberOfRounds: 2,
+    pickTimeLimitSeconds: 10,
+    poolSizeMultiplier: 2,
+  };
+  // Two items: weak (total 100) vs strong (total 700). Put weaker first to
+  // make sure we sort, not just "pick first".
+  const weakItem = {
+    ...fx.poolItems[0],
+    metadata: {
+      pokemonId: 1,
+      types: ["normal"],
+      baseStats: {
+        hp: 10,
+        attack: 20,
+        defense: 20,
+        specialAttack: 20,
+        specialDefense: 20,
+        speed: 10,
+      },
+      generation: "gen-1",
+    },
+  };
+  const strongItem = {
+    ...fx.poolItems[1],
+    metadata: {
+      pokemonId: 150,
+      types: ["psychic"],
+      baseStats: {
+        hp: 106,
+        attack: 110,
+        defense: 90,
+        specialAttack: 154,
+        specialDefense: 90,
+        speed: 130,
+      },
+      generation: "gen-1",
+    },
+  };
+  const items = [weakItem, strongItem];
+
+  // Draft with expired deadline
+  const draftWithDeadline = {
+    ...fx.draft,
+    currentTurnDeadline: new Date(Date.now() - 1000),
+  };
+
+  let createdPickInput:
+    | {
+      poolItemId: string;
+      autoPicked?: boolean;
+      leaguePlayerId: string;
+    }
+    | null = null;
+  const draftRepo = createFakeDraftRepo({
+    findByLeagueId: () => Promise.resolve(draftWithDeadline),
+    listPicks: () => Promise.resolve([]),
+    createPick: (input) => {
+      createdPickInput = input;
+      return Promise.resolve({
+        id: crypto.randomUUID(),
+        draftId: input.draftId,
+        leaguePlayerId: input.leaguePlayerId,
+        poolItemId: input.poolItemId,
+        pickNumber: input.pickNumber,
+        pickedAt: new Date(),
+        autoPicked: input.autoPicked ?? false,
+      });
+    },
+    incrementCurrentPick: () => Promise.resolve(1),
+    updateTurnDeadline: () => Promise.resolve(),
+  });
+  const leagueRepo = createFakeLeagueRepo({
+    findById: () => Promise.resolve(fx.league),
+    findPlayer: () => Promise.resolve(null as FakePlayer),
+    findPlayersByLeagueId: () => Promise.resolve([fx.playerA, fx.playerB]),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    findByLeagueId: () => Promise.resolve(fx.pool),
+    findItemsByPoolId: () => Promise.resolve(items),
+  });
+  const publisher = createRecordingPublisher();
+  const scheduler = createRecordingScheduler();
+  const service = createDraftService({
+    draftRepo,
+    leagueRepo,
+    draftPoolRepo,
+    draftEventPublisher: publisher,
+    timerScheduler: scheduler,
+  });
+
+  await service.runAutoPick({ leagueId: fx.league.id });
+
+  assertEquals(
+    (createdPickInput as unknown as { poolItemId: string } | null)?.poolItemId,
+    strongItem.id,
+  );
+  assertEquals(
+    (createdPickInput as unknown as { autoPicked?: boolean } | null)
+      ?.autoPicked,
+    true,
+  );
+  // playerA (index 0) is the current turn at pick 0
+  assertEquals(
+    (createdPickInput as unknown as { leaguePlayerId: string } | null)
+      ?.leaguePlayerId,
+    fx.playerA.id,
+  );
+
+  const pickMade = publisher.published.find((p) =>
+    p.event.type === "draft:pick_made"
+  );
+  if (pickMade && pickMade.event.type === "draft:pick_made") {
+    assertEquals(pickMade.event.data.autoPicked, true);
+  } else {
+    throw new Error("expected pick_made event");
+  }
+  assertEquals(
+    publisher.published.some((p) => p.event.type === "draft:turn_change"),
+    true,
+  );
+});
+
+Deno.test("draftService.runAutoPick: no-op when deadline not yet passed", async () => {
+  const fx = setupMakePickFakes({ currentPick: 0 });
+  const draftWithFutureDeadline = {
+    ...fx.draft,
+    currentTurnDeadline: new Date(Date.now() + 60_000),
+  };
+  let createCalled = false;
+  const draftRepo = createFakeDraftRepo({
+    findByLeagueId: () => Promise.resolve(draftWithFutureDeadline),
+    listPicks: () => Promise.resolve([]),
+    createPick: (input) => {
+      createCalled = true;
+      return Promise.resolve({
+        id: crypto.randomUUID(),
+        draftId: input.draftId,
+        leaguePlayerId: input.leaguePlayerId,
+        poolItemId: input.poolItemId,
+        pickNumber: input.pickNumber,
+        pickedAt: new Date(),
+        autoPicked: true,
+      });
+    },
+  });
+  const leagueRepo = createFakeLeagueRepo({
+    findById: () => Promise.resolve(fx.league),
+    findPlayersByLeagueId: () => Promise.resolve([fx.playerA, fx.playerB]),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    findByLeagueId: () => Promise.resolve(fx.pool),
+    findItemsByPoolId: () => Promise.resolve(fx.poolItems),
+  });
+  const service = createDraftService({ draftRepo, leagueRepo, draftPoolRepo });
+
+  await service.runAutoPick({ leagueId: fx.league.id });
+
+  assertEquals(createCalled, false);
+});
+
+Deno.test("draftService.runAutoPick: no-op when draft not in_progress", async () => {
+  const fx = setupMakePickFakes({ currentPick: 0, draftStatus: "complete" });
+  const draft = {
+    ...fx.draft,
+    currentTurnDeadline: new Date(Date.now() - 1000),
+  };
+  let createCalled = false;
+  const draftRepo = createFakeDraftRepo({
+    findByLeagueId: () => Promise.resolve(draft),
+    listPicks: () => Promise.resolve([]),
+    createPick: (input) => {
+      createCalled = true;
+      return Promise.resolve({
+        id: crypto.randomUUID(),
+        draftId: input.draftId,
+        leaguePlayerId: input.leaguePlayerId,
+        poolItemId: input.poolItemId,
+        pickNumber: input.pickNumber,
+        pickedAt: new Date(),
+        autoPicked: true,
+      });
+    },
+  });
+  const leagueRepo = createFakeLeagueRepo({
+    findById: () => Promise.resolve(fx.league),
+    findPlayersByLeagueId: () => Promise.resolve([fx.playerA, fx.playerB]),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    findByLeagueId: () => Promise.resolve(fx.pool),
+    findItemsByPoolId: () => Promise.resolve(fx.poolItems),
+  });
+  const service = createDraftService({ draftRepo, leagueRepo, draftPoolRepo });
+
+  await service.runAutoPick({ leagueId: fx.league.id });
+
+  assertEquals(createCalled, false);
+});
+
+Deno.test("draftService.runAutoPick: completing auto-pick publishes draft:completed", async () => {
+  const fx = setupMakePickFakes({ currentPick: 3, numberOfRounds: 2 });
+  const draft = {
+    ...fx.draft,
+    currentTurnDeadline: new Date(Date.now() - 1000),
+  };
+  const existingPicks: FakeDraftPick[] = [0, 1, 2].map((i) => ({
+    id: crypto.randomUUID(),
+    draftId: fx.draft.id,
+    leaguePlayerId: i === 0 ? fx.playerA.id : fx.playerB.id,
+    poolItemId: fx.poolItems[i].id,
+    pickNumber: i,
+    pickedAt: new Date(),
+    autoPicked: false,
+  }));
+  const draftRepo = createFakeDraftRepo({
+    findByLeagueId: () => Promise.resolve(draft),
+    listPicks: () => Promise.resolve(existingPicks),
+    incrementCurrentPick: () => Promise.resolve(4),
+    updateStatus: (id, status, ts) =>
+      Promise.resolve({
+        ...draft,
+        id,
+        status: status as "complete",
+        completedAt: ts.completedAt ?? null,
+        currentPick: 4,
+      }),
+    updateTurnDeadline: () => Promise.resolve(),
+    createPick: (input) =>
+      Promise.resolve({
+        id: crypto.randomUUID(),
+        draftId: input.draftId,
+        leaguePlayerId: input.leaguePlayerId,
+        poolItemId: input.poolItemId,
+        pickNumber: input.pickNumber,
+        pickedAt: new Date(),
+        autoPicked: true,
+      }),
+  });
+  const leagueRepo = createFakeLeagueRepo({
+    findById: () => Promise.resolve(fx.league),
+    findPlayersByLeagueId: () => Promise.resolve([fx.playerA, fx.playerB]),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    findByLeagueId: () => Promise.resolve(fx.pool),
+    findItemsByPoolId: () => Promise.resolve(fx.poolItems),
+  });
+  const publisher = createRecordingPublisher();
+  const scheduler = createRecordingScheduler();
+  const service = createDraftService({
+    draftRepo,
+    leagueRepo,
+    draftPoolRepo,
+    draftEventPublisher: publisher,
+    timerScheduler: scheduler,
+  });
+
+  await service.runAutoPick({ leagueId: fx.league.id });
+
+  assertEquals(
+    publisher.published.some((p) => p.event.type === "draft:completed"),
+    true,
+  );
+  assertEquals(scheduler.cancelled, [draft.id]);
 });

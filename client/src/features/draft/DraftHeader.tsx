@@ -1,5 +1,5 @@
 import { Badge, Card, Group, Stack, Text, Title } from "@mantine/core";
-import type { DraftState } from "./draft-types.ts";
+import type { DraftState } from "@make-the-pick/shared";
 import { PickTimer } from "./PickTimer.tsx";
 import { roundForPick } from "./snake.ts";
 
