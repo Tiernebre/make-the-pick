@@ -302,25 +302,43 @@ export function LeagueDetailPage() {
                         : "View"}
                     </Button>
                   </Group>
-                  {league.data.rulesConfig &&
-                      typeof league.data.rulesConfig === "object"
-                    ? (
+                  {(() => {
+                    if (
+                      !league.data.rulesConfig ||
+                      typeof league.data.rulesConfig !== "object"
+                    ) {
+                      return (
+                        <Text size="sm" c="dimmed">
+                          Not configured yet.
+                        </Text>
+                      );
+                    }
+                    const rules = league.data.rulesConfig as {
+                      draftFormat?: string;
+                      numberOfRounds?: number;
+                      pickTimeLimitSeconds?: number | null;
+                      poolSizeMultiplier?: number;
+                      gameVersion?: string;
+                      excludeLegendaries?: boolean;
+                      excludeStarters?: boolean;
+                      excludeTradeEvolutions?: boolean;
+                    };
+                    const exclusions = [
+                      rules.excludeLegendaries && "Legendaries",
+                      rules.excludeStarters && "Starters",
+                      rules.excludeTradeEvolutions && "Trade evolutions",
+                    ].filter((v): v is string => typeof v === "string");
+                    return (
                       <Stack gap="xs">
                         <Group justify="space-between">
                           <Text size="sm" c="dimmed">Format</Text>
                           <Text size="sm" tt="capitalize">
-                            {(league.data.rulesConfig as {
-                              draftFormat?: string;
-                            }).draftFormat ?? "—"}
+                            {rules.draftFormat ?? "—"}
                           </Text>
                         </Group>
                         <Group justify="space-between">
                           <Text size="sm" c="dimmed">Rounds</Text>
-                          <Text size="sm">
-                            {(league.data.rulesConfig as {
-                              numberOfRounds?: number;
-                            }).numberOfRounds ?? "—"}
-                          </Text>
+                          <Text size="sm">{rules.numberOfRounds ?? "—"}</Text>
                         </Group>
                         {league.data.maxPlayers && (
                           <Group justify="space-between">
@@ -328,13 +346,45 @@ export function LeagueDetailPage() {
                             <Text size="sm">{league.data.maxPlayers}</Text>
                           </Group>
                         )}
+                        <Group justify="space-between">
+                          <Text size="sm" c="dimmed">Pick timer</Text>
+                          <Text size="sm">
+                            {rules.pickTimeLimitSeconds
+                              ? `${rules.pickTimeLimitSeconds}s`
+                              : "No limit"}
+                          </Text>
+                        </Group>
+                        {league.data.sportType === "pokemon" && (
+                          <>
+                            <Group justify="space-between">
+                              <Text size="sm" c="dimmed">Game version</Text>
+                              <Text size="sm">
+                                {rules.gameVersion ?? "All Pokemon"}
+                              </Text>
+                            </Group>
+                            <Group justify="space-between">
+                              <Text size="sm" c="dimmed">Pool multiplier</Text>
+                              <Text size="sm">
+                                {rules.poolSizeMultiplier ?? 2}x
+                              </Text>
+                            </Group>
+                            <Group
+                              justify="space-between"
+                              align="flex-start"
+                              wrap="nowrap"
+                            >
+                              <Text size="sm" c="dimmed">Exclusions</Text>
+                              <Text size="sm" ta="right">
+                                {exclusions.length > 0
+                                  ? exclusions.join(", ")
+                                  : "None"}
+                              </Text>
+                            </Group>
+                          </>
+                        )}
                       </Stack>
-                    )
-                    : (
-                      <Text size="sm" c="dimmed">
-                        Not configured yet.
-                      </Text>
-                    )}
+                    );
+                  })()}
                 </Card>
               </Stack>
             </Grid.Col>

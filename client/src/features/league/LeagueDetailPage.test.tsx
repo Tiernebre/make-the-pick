@@ -425,6 +425,51 @@ describe("LeagueDetailPage", () => {
     ).toBeInTheDocument();
   });
 
+  it("shows Pokemon settings in the Rules card when present", () => {
+    mockUseLeague.mockReturnValue({
+      data: {
+        ...mockLeague,
+        sportType: "pokemon",
+        maxPlayers: 8,
+        rulesConfig: {
+          draftFormat: "snake",
+          numberOfRounds: 10,
+          pickTimeLimitSeconds: 90,
+          poolSizeMultiplier: 2.5,
+          gameVersion: "scarlet-violet",
+          excludeLegendaries: true,
+          excludeStarters: false,
+          excludeTradeEvolutions: true,
+        },
+      },
+      isLoading: false,
+    });
+    mockUseLeaguePlayers.mockReturnValue({
+      data: [
+        {
+          id: "p1",
+          userId: "user-2",
+          name: "Bob",
+          image: null,
+          role: "member",
+          joinedAt: "2026-01-01T00:00:00Z",
+        },
+      ],
+      isLoading: false,
+    });
+    renderPage();
+    expect(screen.getByText(/game version/i)).toBeInTheDocument();
+    expect(screen.getByText(/scarlet-violet/i)).toBeInTheDocument();
+    expect(screen.getByText(/pool multiplier/i)).toBeInTheDocument();
+    expect(screen.getByText(/2\.5x/)).toBeInTheDocument();
+    expect(screen.getByText(/pick timer/i)).toBeInTheDocument();
+    expect(screen.getByText(/90s/)).toBeInTheDocument();
+    expect(screen.getByText(/exclusions/i)).toBeInTheDocument();
+    expect(screen.getByText(/legendaries/i)).toBeInTheDocument();
+    expect(screen.getByText(/trade evolutions/i)).toBeInTheDocument();
+    expect(screen.queryByText(/^starters$/i)).not.toBeInTheDocument();
+  });
+
   it("does not render a Save Settings button", () => {
     mockUseLeague.mockReturnValue({
       data: {
