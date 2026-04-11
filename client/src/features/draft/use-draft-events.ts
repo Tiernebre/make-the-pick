@@ -3,6 +3,8 @@ import {
   draftCompletedEventSchema,
   type DraftEvent,
   draftPickMadeEventSchema,
+  draftPoolItemRevealedEventSchema,
+  draftPoolRevealCompletedEventSchema,
   draftStartedEventSchema,
   draftStateEventSchema,
   draftTurnChangeEventSchema,
@@ -24,6 +26,8 @@ const eventSchemas = {
   "draft:pick_made": draftPickMadeEventSchema,
   "draft:turn_change": draftTurnChangeEventSchema,
   "draft:completed": draftCompletedEventSchema,
+  "draftPool:item_revealed": draftPoolItemRevealedEventSchema,
+  "draftPool:reveal_completed": draftPoolRevealCompletedEventSchema,
 } as const;
 
 type DraftEventName = keyof typeof eventSchemas;
@@ -108,7 +112,14 @@ export function useDraftEvents(
           return;
         }
         onEventRef.current?.(result.data as DraftEvent);
-        utilsRef.current.draft.getState.invalidate({ leagueId });
+        // Draft events invalidate the draft state query; pool reveal
+        // events invalidate the draft pool query so the pooling-phase
+        // showcase view refreshes as new items flip visible.
+        if (name.startsWith("draftPool:")) {
+          utilsRef.current.draftPool.getByLeagueId.invalidate({ leagueId });
+        } else {
+          utilsRef.current.draft.getState.invalidate({ leagueId });
+        }
       };
       source.addEventListener(name, handler as EventListener);
       listeners.push({ name, handler });

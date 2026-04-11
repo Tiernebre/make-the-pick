@@ -13,6 +13,7 @@ import type {
 } from "@make-the-pick/shared";
 import { TRPCError } from "@trpc/server";
 import { logger } from "../../logger.ts";
+import type { DraftEventPublisher } from "../draft/draft.events.ts";
 import type { LeagueRepository } from "../league/league.repository.ts";
 import type { DraftPoolRepository } from "./draft-pool.repository.ts";
 
@@ -329,6 +330,7 @@ export function createDraftPoolService(deps: {
   pokemonEncounters?: PokemonEncountersData;
   pokemonEvolutions?: PokemonEvolutionsData;
   pokemonGifts?: PokemonGiftsData;
+  eventPublisher?: DraftEventPublisher;
 }) {
   const pokemonById = new Map<number, Pokemon>(
     deps.pokemonData.map((p) => [p.id, p]),
@@ -659,6 +661,16 @@ export function createDraftPoolService(deps: {
           message: "All draft pool items have already been revealed",
         });
       }
+
+      deps.eventPublisher?.publish(input.leagueId, {
+        type: "draftPool:item_revealed",
+        data: {
+          itemId: result.item.id,
+          revealOrder: result.item.revealOrder,
+          remaining: result.remaining,
+        },
+      });
+
       return {
         itemId: result.item.id,
         revealOrder: result.item.revealOrder,

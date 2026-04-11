@@ -242,6 +242,36 @@ export const draftPickUndoneEventSchema: z.ZodObject<{
 
 export type DraftPickUndoneEvent = z.infer<typeof draftPickUndoneEventSchema>;
 
+export const draftPoolItemRevealedEventSchema: z.ZodObject<{
+  type: z.ZodLiteral<"draftPool:item_revealed">;
+  data: z.ZodObject<{
+    itemId: z.ZodString;
+    revealOrder: z.ZodNumber;
+    remaining: z.ZodNumber;
+  }>;
+}> = object({
+  type: literal("draftPool:item_revealed"),
+  data: object({
+    itemId: string().uuid(),
+    revealOrder: number().int().min(0),
+    remaining: number().int().min(0),
+  }),
+});
+
+export type DraftPoolItemRevealedEvent = z.infer<
+  typeof draftPoolItemRevealedEventSchema
+>;
+
+export const draftPoolRevealCompletedEventSchema: z.ZodObject<{
+  type: z.ZodLiteral<"draftPool:reveal_completed">;
+}> = object({
+  type: literal("draftPool:reveal_completed"),
+});
+
+export type DraftPoolRevealCompletedEvent = z.infer<
+  typeof draftPoolRevealCompletedEventSchema
+>;
+
 export const draftEventSchema: z.ZodUnion<[
   typeof draftStartedEventSchema,
   typeof draftPickMadeEventSchema,
@@ -251,6 +281,8 @@ export const draftEventSchema: z.ZodUnion<[
   typeof draftPausedEventSchema,
   typeof draftResumedEventSchema,
   typeof draftPickUndoneEventSchema,
+  typeof draftPoolItemRevealedEventSchema,
+  typeof draftPoolRevealCompletedEventSchema,
 ]> = union([
   draftStartedEventSchema,
   draftPickMadeEventSchema,
@@ -260,6 +292,8 @@ export const draftEventSchema: z.ZodUnion<[
   draftPausedEventSchema,
   draftResumedEventSchema,
   draftPickUndoneEventSchema,
+  draftPoolItemRevealedEventSchema,
+  draftPoolRevealCompletedEventSchema,
 ]);
 
 export type DraftEvent = z.infer<typeof draftEventSchema>;

@@ -2129,6 +2129,65 @@ Deno.test("draftPoolService.generate: catchability filter is a no-op when pokemo
 
 // --- revealNext ---
 
+Deno.test("draftPoolService.revealNext: publishes draftPool:item_revealed event", async () => {
+  const fakeLeague = createFakeLeague({ status: "pooling" });
+  const fakePool = {
+    id: crypto.randomUUID(),
+    leagueId: fakeLeague.id,
+    name: "Pool",
+    createdAt: new Date(),
+  };
+  const revealedItem = {
+    id: crypto.randomUUID(),
+    draftPoolId: fakePool.id,
+    name: "pikachu",
+    thumbnailUrl: null,
+    metadata: null,
+    revealOrder: 2,
+    revealedAt: new Date(),
+  };
+
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve(createCommissionerPlayer(fakeLeague.id)),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    findByLeagueId: (_leagueId) => Promise.resolve(fakePool),
+    revealNextItem: (_poolId, _now) =>
+      Promise.resolve({ item: revealedItem, remaining: 1 }),
+  });
+
+  const published: Array<{ leagueId: string; event: unknown }> = [];
+  const eventPublisher = {
+    subscribe: () => () => {},
+    publish: (leagueId: string, event: unknown) => {
+      published.push({ leagueId, event });
+    },
+    subscriberCount: () => 0,
+  };
+
+  const service = createDraftPoolService({
+    draftPoolRepo,
+    leagueRepo,
+    pokemonData: createFakePokemonData(1),
+    eventPublisher,
+  });
+
+  await service.revealNext("user-1", { leagueId: fakeLeague.id });
+
+  assertEquals(published.length, 1);
+  assertEquals(published[0].leagueId, fakeLeague.id);
+  assertEquals(
+    (published[0].event as { type: string }).type,
+    "draftPool:item_revealed",
+  );
+  assertEquals(
+    (published[0].event as { data: { remaining: number } }).data.remaining,
+    1,
+  );
+});
+
 Deno.test("draftPoolService.revealNext: reveals the next item in pooling phase", async () => {
   const fakeLeague = createFakeLeague({ status: "pooling" });
   const fakePool = {

@@ -4,6 +4,7 @@ import {
   rulesConfigSchema,
 } from "@make-the-pick/shared";
 import { TRPCError } from "@trpc/server";
+import type { DraftEventPublisher } from "../draft/draft.events.ts";
 import type { DraftRepository } from "../draft/draft.repository.ts";
 import type { DraftPoolRepository } from "../draft-pool/draft-pool.repository.ts";
 import type { DraftPoolService } from "../draft-pool/draft-pool.service.ts";
@@ -30,6 +31,7 @@ export function createLeagueService(
     draftRepo: DraftRepository;
     draftPoolRepo: DraftPoolRepository;
     draftPoolService: DraftPoolService;
+    eventPublisher?: DraftEventPublisher;
     startDraft?: (
       input: { userId: string; leagueId: string },
     ) => Promise<unknown>;
@@ -202,6 +204,9 @@ export function createLeagueService(
         if (pool) {
           await deps.draftPoolRepo.revealAllItems(pool.id, new Date());
         }
+        deps.eventPublisher?.publish(input.leagueId, {
+          type: "draftPool:reveal_completed",
+        });
       }
       if (league.status === "drafting") {
         const draft = await deps.draftRepo.findByLeagueId(input.leagueId);

@@ -79,6 +79,7 @@ export function createFeatureRouters(db: Database) {
   const leagueRepo = createLeagueRepository(db);
   const draftRepo = createDraftRepository(db);
   const draftPoolRepo = createDraftPoolRepository(db);
+  const draftEventPublisher = createDraftEventPublisher();
   const draftPoolService = createDraftPoolService({
     draftPoolRepo,
     leagueRepo,
@@ -94,10 +95,9 @@ export function createFeatureRouters(db: Database) {
     pokemonEncounters: pokemonEncountersJson as PokemonEncountersData,
     pokemonEvolutions: pokemonEvolutionsJson as PokemonEvolutionsData,
     pokemonGifts: pokemonGiftsJson as PokemonGiftsData,
+    eventPublisher: draftEventPublisher,
   });
   const draftPoolRouter = createDraftPoolRouter(draftPoolService);
-
-  const draftEventPublisher = createDraftEventPublisher();
   // Create the scheduler up front so we can pass it into the service; then
   // wire the auto-pick handler back into the scheduler after the service
   // exists. This breaks the scheduler <-> service circular dependency
@@ -125,6 +125,7 @@ export function createFeatureRouters(db: Database) {
     draftRepo,
     draftPoolRepo,
     draftPoolService,
+    eventPublisher: draftEventPublisher,
     startDraft: (input) => draftService.startDraft(input),
   });
   const leagueRouter = createLeagueRouter(leagueService);
