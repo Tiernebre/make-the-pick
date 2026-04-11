@@ -31,7 +31,10 @@ jobs:
 
       - name: Build and push image
         run: |
-          docker build -t ghcr.io/tiernebre/make-the-pick:latest .
+          docker build \
+            --build-arg GIT_SHA="${{ github.sha }}" \
+            -t ghcr.io/tiernebre/make-the-pick:latest \
+            .
           docker push ghcr.io/tiernebre/make-the-pick:latest
 
       - name: Copy docker-compose.prod.yml to Droplet
@@ -86,14 +89,20 @@ jobs:
 
       - name: Smoke test
         run: |
+          expected="${{ github.sha }}"
           for i in $(seq 1 10); do
-            status=$(curl -s -o /dev/null -w '%{http_code}' https://makethepick.gg)
-            if [ "$status" = "200" ]; then
-              echo "Health check passed (HTTP $status)"
+            # Incident 002: assert /api/health.commit matches the SHA we
+            # just built, not just that _something_ returns 200. The old
+            # check-for-200 on / would have passed against a stale
+            # container that never received the new image.
+            body=$(curl -s https://makethepick.gg/api/health || echo "")
+            commit=$(printf '%s' "$body" | jq -r '.commit // empty' 2>/dev/null || echo "")
+            if [ "$commit" = "$expected" ]; then
+              echo "Health check passed: /api/health.commit = $commit"
               exit 0
             fi
-            echo "Attempt $i: HTTP $status, retrying in 5s..."
+            echo "Attempt $i: commit=$commit expected=$expected body=$body"
             sleep 5
           done
-          echo "Health check failed after 10 attempts"
+          echo "Health check failed after 10 attempts — deployed code did not reach prod"
           exit 1
