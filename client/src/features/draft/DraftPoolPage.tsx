@@ -584,7 +584,7 @@ export function DraftPoolPage() {
   });
 
   return (
-    <Container size={1800} py="xl" pos="relative">
+    <Container fluid py="xl" pos="relative">
       <LoadingOverlay visible={isLoading} />
 
       <Anchor
