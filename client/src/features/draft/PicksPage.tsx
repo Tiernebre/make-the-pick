@@ -19,6 +19,7 @@ import {
 import { useMemo } from "react";
 import { Link, useParams } from "wouter";
 import type { DraftPoolItem } from "@make-the-pick/shared";
+import { usePageTitle } from "../../hooks/use-page-title";
 import { useLeague } from "../league/use-leagues";
 import { AllRostersPanel } from "./AllRostersPanel";
 import { useDraft } from "./use-draft";
@@ -39,6 +40,7 @@ export function PicksPage() {
   const { id } = useParams<{ id: string }>();
   const leagueId = id!;
   const league = useLeague(leagueId);
+  usePageTitle(league.data ? `Picks · ${league.data.name}` : undefined);
   const draft = useDraft(leagueId);
 
   const isLoading = league.isLoading || draft.isLoading;

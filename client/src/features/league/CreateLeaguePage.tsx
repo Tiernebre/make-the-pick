@@ -12,10 +12,12 @@ import {
 } from "@mantine/core";
 import { type FormEvent, useState } from "react";
 import { Link, useLocation } from "wouter";
+import { usePageTitle } from "../../hooks/use-page-title";
 import { usePokemonVersions } from "../pokemon-version/use-pokemon-versions";
 import { useCreateLeague } from "./use-leagues";
 
 export function CreateLeaguePage() {
+  usePageTitle("New League");
   const [, navigate] = useLocation();
   const createLeague = useCreateLeague();
   const pokemonVersions = usePokemonVersions();
