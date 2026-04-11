@@ -673,7 +673,7 @@ export function DraftPoolPage() {
               <Group justify="space-between" align="center" wrap="wrap">
                 <Stack gap={4} style={{ flex: 1, minWidth: 240 }}>
                   <Group gap="sm" align="center">
-                    <Text fw={700} size="md" c="mint-green-9">
+                    <Text fw={700} size="md" c="dark.9">
                       Live pool reveal in progress
                     </Text>
                     <Badge color="mint-green" variant="filled" size="lg">
