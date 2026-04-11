@@ -319,6 +319,167 @@ Deno.test({
 
 Deno.test({
   name:
+    "draftPoolRepository.findItemsByPoolId: filters to revealed items when onlyRevealed is true",
+  sanitizeResources: false,
+  sanitizeOps: false,
+  fn: async () => {
+    const { db, client } = createTestDb();
+    const repo = createDraftPoolRepository(db);
+    const userId = crypto.randomUUID();
+
+    try {
+      await createTestUser(db, userId);
+      const testLeague = await createTestLeague(db, userId);
+      const pool = await repo.create(testLeague.id, "Reveal Filter Pool");
+
+      await repo.createItems([
+        {
+          draftPoolId: pool.id,
+          name: "bulbasaur",
+          thumbnailUrl: null,
+          metadata: null,
+          revealOrder: 0,
+          revealedAt: new Date(),
+        },
+        {
+          draftPoolId: pool.id,
+          name: "charmander",
+          thumbnailUrl: null,
+          metadata: null,
+          revealOrder: 1,
+          revealedAt: null,
+        },
+      ]);
+
+      const all = await repo.findItemsByPoolId(pool.id);
+      assertEquals(all.length, 2);
+
+      const revealed = await repo.findItemsByPoolId(pool.id, {
+        onlyRevealed: true,
+      });
+      assertEquals(revealed.length, 1);
+      assertEquals(revealed[0].name, "bulbasaur");
+    } finally {
+      await cleanup(db, client, [userId]);
+    }
+  },
+});
+
+Deno.test({
+  name:
+    "draftPoolRepository.revealNextItem: reveals the lowest revealOrder unrevealed item",
+  sanitizeResources: false,
+  sanitizeOps: false,
+  fn: async () => {
+    const { db, client } = createTestDb();
+    const repo = createDraftPoolRepository(db);
+    const userId = crypto.randomUUID();
+
+    try {
+      await createTestUser(db, userId);
+      const testLeague = await createTestLeague(db, userId);
+      const pool = await repo.create(testLeague.id, "Reveal Next Pool");
+
+      await repo.createItems([
+        {
+          draftPoolId: pool.id,
+          name: "bulbasaur",
+          thumbnailUrl: null,
+          metadata: null,
+          revealOrder: 2,
+          revealedAt: null,
+        },
+        {
+          draftPoolId: pool.id,
+          name: "charmander",
+          thumbnailUrl: null,
+          metadata: null,
+          revealOrder: 0,
+          revealedAt: null,
+        },
+        {
+          draftPoolId: pool.id,
+          name: "squirtle",
+          thumbnailUrl: null,
+          metadata: null,
+          revealOrder: 1,
+          revealedAt: null,
+        },
+      ]);
+
+      const first = await repo.revealNextItem(pool.id, new Date());
+      assertEquals(first?.item.name, "charmander");
+      assertEquals(first?.remaining, 2);
+
+      const second = await repo.revealNextItem(pool.id, new Date());
+      assertEquals(second?.item.name, "squirtle");
+      assertEquals(second?.remaining, 1);
+
+      const third = await repo.revealNextItem(pool.id, new Date());
+      assertEquals(third?.item.name, "bulbasaur");
+      assertEquals(third?.remaining, 0);
+
+      const fourth = await repo.revealNextItem(pool.id, new Date());
+      assertEquals(fourth, null);
+    } finally {
+      await cleanup(db, client, [userId]);
+    }
+  },
+});
+
+Deno.test({
+  name:
+    "draftPoolRepository.revealAllItems: stamps every unrevealed item with the given time",
+  sanitizeResources: false,
+  sanitizeOps: false,
+  fn: async () => {
+    const { db, client } = createTestDb();
+    const repo = createDraftPoolRepository(db);
+    const userId = crypto.randomUUID();
+
+    try {
+      await createTestUser(db, userId);
+      const testLeague = await createTestLeague(db, userId);
+      const pool = await repo.create(testLeague.id, "Reveal All Pool");
+
+      await repo.createItems([
+        {
+          draftPoolId: pool.id,
+          name: "bulbasaur",
+          thumbnailUrl: null,
+          metadata: null,
+          revealOrder: 0,
+          revealedAt: null,
+        },
+        {
+          draftPoolId: pool.id,
+          name: "charmander",
+          thumbnailUrl: null,
+          metadata: null,
+          revealOrder: 1,
+          revealedAt: null,
+        },
+      ]);
+
+      const count = await repo.revealAllItems(pool.id, new Date());
+      assertEquals(count, 2);
+
+      const revealed = await repo.findItemsByPoolId(pool.id, {
+        onlyRevealed: true,
+      });
+      assertEquals(revealed.length, 2);
+
+      // Calling again reveals nothing new.
+      const second = await repo.revealAllItems(pool.id, new Date());
+      assertEquals(second, 0);
+    } finally {
+      await cleanup(db, client, [userId]);
+    }
+  },
+});
+
+Deno.test({
+  name:
     "draftPoolRepository.deleteByLeagueId: removes pool and cascades to items",
   sanitizeResources: false,
   sanitizeOps: false,

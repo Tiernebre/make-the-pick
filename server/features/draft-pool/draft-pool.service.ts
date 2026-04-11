@@ -370,10 +370,11 @@ export function createDraftPoolService(deps: {
         throw new TRPCError({ code: "NOT_FOUND", message: "League not found" });
       }
 
-      if (league.status !== "setup") {
+      if (league.status !== "setup" && league.status !== "pooling") {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "Draft pool can only be generated during league setup",
+          message:
+            "Draft pool can only be generated before the draft has started",
         });
       }
 
@@ -537,8 +538,10 @@ export function createDraftPoolService(deps: {
         "Draft Pool",
       );
 
-      // Map to pool items
-      const poolItems = selected.map((pokemon) => ({
+      // Map to pool items. `selected` is already fisher-yates shuffled, so
+      // using the array index as reveal_order gives a deterministic but
+      // random-looking showcase sequence without a second shuffle.
+      const poolItems = selected.map((pokemon, index) => ({
         draftPoolId: pool.id,
         name: pokemon.name,
         thumbnailUrl: pokemon.spriteUrl,
@@ -548,6 +551,8 @@ export function createDraftPoolService(deps: {
           baseStats: pokemon.baseStats,
           generation: pokemon.generation,
         },
+        revealOrder: index,
+        revealedAt: null,
       }));
 
       const items = await deps.draftPoolRepo.createItems(poolItems);
@@ -590,7 +595,14 @@ export function createDraftPoolService(deps: {
         });
       }
 
-      const items = await deps.draftPoolRepo.findItemsByPoolId(pool.id);
+      // During the "pooling" phase the showcase is mid-reveal: members
+      // (including the commissioner running it) only see items the
+      // commissioner has actually revealed so far. Once the league has
+      // advanced to scouting or beyond, the filter drops and everything is
+      // visible.
+      const items = await deps.draftPoolRepo.findItemsByPoolId(pool.id, {
+        onlyRevealed: league.status === "pooling",
+      });
 
       const augmentedItems = augmentItems(
         items,
@@ -599,6 +611,59 @@ export function createDraftPoolService(deps: {
       );
 
       return { ...pool, items: augmentedItems };
+    },
+
+    async revealNext(userId: string, input: { leagueId: string }) {
+      log.debug(
+        { userId, leagueId: input.leagueId },
+        "revealing next draft pool item",
+      );
+
+      const league = await deps.leagueRepo.findById(input.leagueId);
+      if (!league) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "League not found" });
+      }
+      if (league.status !== "pooling") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            "Draft pool items can only be revealed during the pooling phase",
+        });
+      }
+      const player = await deps.leagueRepo.findPlayer(
+        input.leagueId,
+        userId,
+      );
+      if (player?.role !== "commissioner") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only the league commissioner can reveal draft pool items",
+        });
+      }
+
+      const pool = await deps.draftPoolRepo.findByLeagueId(input.leagueId);
+      if (!pool) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "No draft pool has been generated for this league",
+        });
+      }
+
+      const result = await deps.draftPoolRepo.revealNextItem(
+        pool.id,
+        new Date(),
+      );
+      if (!result) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "All draft pool items have already been revealed",
+        });
+      }
+      return {
+        itemId: result.item.id,
+        revealOrder: result.item.revealOrder,
+        remaining: result.remaining,
+      };
     },
   };
 }

@@ -123,6 +123,7 @@ export function createFeatureRouters(db: Database) {
   const leagueService = createLeagueService({
     leagueRepo,
     draftRepo,
+    draftPoolRepo,
     draftPoolService,
     startDraft: (input) => draftService.startDraft(input),
   });

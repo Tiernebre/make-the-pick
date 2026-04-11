@@ -140,7 +140,11 @@ function createFakeDraftPoolRepo(
         })),
       ),
     findByLeagueId: (_leagueId) => Promise.resolve(null as FakePool),
-    findItemsByPoolId: (_poolId) => Promise.resolve([] as FakePoolItem[]),
+    findItemsByPoolId: (_poolId, _opts) =>
+      Promise.resolve([] as FakePoolItem[]),
+    countUnrevealedItems: (_poolId) => Promise.resolve(0),
+    revealNextItem: (_poolId, _now) => Promise.resolve(null),
+    revealAllItems: (_poolId, _now) => Promise.resolve(0),
     deleteByLeagueId: (_leagueId) => Promise.resolve(),
     ...overrides,
   };
@@ -2121,4 +2125,190 @@ Deno.test("draftPoolService.generate: catchability filter is a no-op when pokemo
     leagueId: fakeLeague.id,
   });
   assertEquals(result.items.length, 2);
+});
+
+// --- revealNext ---
+
+Deno.test("draftPoolService.revealNext: reveals the next item in pooling phase", async () => {
+  const fakeLeague = createFakeLeague({ status: "pooling" });
+  const fakePool = {
+    id: crypto.randomUUID(),
+    leagueId: fakeLeague.id,
+    name: "Pool",
+    createdAt: new Date(),
+  };
+  const revealedItem = {
+    id: crypto.randomUUID(),
+    draftPoolId: fakePool.id,
+    name: "pikachu",
+    thumbnailUrl: null,
+    metadata: null,
+    revealOrder: 0,
+    revealedAt: new Date(),
+  };
+
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve(createCommissionerPlayer(fakeLeague.id)),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    findByLeagueId: (_leagueId) => Promise.resolve(fakePool),
+    revealNextItem: (_poolId, _now) =>
+      Promise.resolve({ item: revealedItem, remaining: 4 }),
+  });
+
+  const service = createDraftPoolService({
+    draftPoolRepo,
+    leagueRepo,
+    pokemonData: createFakePokemonData(1),
+  });
+
+  const result = await service.revealNext("user-1", {
+    leagueId: fakeLeague.id,
+  });
+  assertEquals(result.itemId, revealedItem.id);
+  assertEquals(result.revealOrder, 0);
+  assertEquals(result.remaining, 4);
+});
+
+Deno.test("draftPoolService.revealNext: rejects non-commissioners", async () => {
+  const fakeLeague = createFakeLeague({ status: "pooling" });
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve(createMemberPlayer(fakeLeague.id)),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo();
+
+  const service = createDraftPoolService({
+    draftPoolRepo,
+    leagueRepo,
+    pokemonData: createFakePokemonData(1),
+  });
+
+  const error = await assertRejects(
+    () => service.revealNext("user-1", { leagueId: fakeLeague.id }),
+    TRPCError,
+  );
+  assertEquals(error.code, "FORBIDDEN");
+});
+
+Deno.test("draftPoolService.revealNext: rejects when league is not in pooling", async () => {
+  const fakeLeague = createFakeLeague({ status: "scouting" });
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve(createCommissionerPlayer(fakeLeague.id)),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo();
+
+  const service = createDraftPoolService({
+    draftPoolRepo,
+    leagueRepo,
+    pokemonData: createFakePokemonData(1),
+  });
+
+  const error = await assertRejects(
+    () => service.revealNext("user-1", { leagueId: fakeLeague.id }),
+    TRPCError,
+  );
+  assertEquals(error.code, "BAD_REQUEST");
+});
+
+Deno.test("draftPoolService.revealNext: rejects when all items are already revealed", async () => {
+  const fakeLeague = createFakeLeague({ status: "pooling" });
+  const fakePool = {
+    id: crypto.randomUUID(),
+    leagueId: fakeLeague.id,
+    name: "Pool",
+    createdAt: new Date(),
+  };
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve(createCommissionerPlayer(fakeLeague.id)),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    findByLeagueId: (_leagueId) => Promise.resolve(fakePool),
+    revealNextItem: (_poolId, _now) => Promise.resolve(null),
+  });
+
+  const service = createDraftPoolService({
+    draftPoolRepo,
+    leagueRepo,
+    pokemonData: createFakePokemonData(1),
+  });
+
+  const error = await assertRejects(
+    () => service.revealNext("user-1", { leagueId: fakeLeague.id }),
+    TRPCError,
+  );
+  assertEquals(error.code, "BAD_REQUEST");
+});
+
+Deno.test("draftPoolService.getByLeagueId: filters to revealed items during pooling", async () => {
+  const fakeLeague = createFakeLeague({ status: "pooling" });
+  const fakePool = {
+    id: crypto.randomUUID(),
+    leagueId: fakeLeague.id,
+    name: "Pool",
+    createdAt: new Date(),
+  };
+  let capturedOpts: { onlyRevealed?: boolean } | undefined;
+
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve(createMemberPlayer(fakeLeague.id)),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    findByLeagueId: (_leagueId) => Promise.resolve(fakePool),
+    findItemsByPoolId: (_poolId, opts) => {
+      capturedOpts = opts;
+      return Promise.resolve([]);
+    },
+  });
+
+  const service = createDraftPoolService({
+    draftPoolRepo,
+    leagueRepo,
+    pokemonData: createFakePokemonData(1),
+  });
+
+  await service.getByLeagueId("user-1", fakeLeague.id);
+  assertEquals(capturedOpts?.onlyRevealed, true);
+});
+
+Deno.test("draftPoolService.getByLeagueId: does not filter during scouting", async () => {
+  const fakeLeague = createFakeLeague({ status: "scouting" });
+  const fakePool = {
+    id: crypto.randomUUID(),
+    leagueId: fakeLeague.id,
+    name: "Pool",
+    createdAt: new Date(),
+  };
+  let capturedOpts: { onlyRevealed?: boolean } | undefined;
+
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve(createMemberPlayer(fakeLeague.id)),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    findByLeagueId: (_leagueId) => Promise.resolve(fakePool),
+    findItemsByPoolId: (_poolId, opts) => {
+      capturedOpts = opts;
+      return Promise.resolve([]);
+    },
+  });
+
+  const service = createDraftPoolService({
+    draftPoolRepo,
+    leagueRepo,
+    pokemonData: createFakePokemonData(1),
+  });
+
+  await service.getByLeagueId("user-1", fakeLeague.id);
+  assertEquals(capturedOpts?.onlyRevealed, false);
 });
