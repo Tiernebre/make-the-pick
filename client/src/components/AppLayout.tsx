@@ -81,6 +81,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   return (
     <AppShell
       header={{ height: 52 }}
+      footer={{ height: 40 }}
       navbar={{
         width: navbarWidth,
         breakpoint: "sm",
@@ -289,6 +290,24 @@ export function AppLayout({ children }: AppLayoutProps) {
       </AppShell.Navbar>
 
       <AppShell.Main>{children}</AppShell.Main>
+
+      <AppShell.Footer>
+        <Group h="100%" px="md" justify="space-between" gap="sm">
+          <Text size="xs" c="dimmed">
+            © {new Date().getFullYear()} Make the Pick
+          </Text>
+          <Text
+            component="a"
+            href="https://github.com/Tiernebre/make-the-pick"
+            target="_blank"
+            rel="noopener noreferrer"
+            size="xs"
+            c="dimmed"
+          >
+            GitHub
+          </Text>
+        </Group>
+      </AppShell.Footer>
 
       <Modal
         opened={deleteOpened}
