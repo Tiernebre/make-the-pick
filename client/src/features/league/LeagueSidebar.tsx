@@ -9,7 +9,6 @@ import {
   Tooltip,
 } from "@mantine/core";
 import {
-  IconChartBar,
   IconChecklist,
   IconLayoutDashboard,
   IconSettings,
@@ -54,7 +53,9 @@ export function LeagueSidebar(
   ) ?? false;
 
   const status = league.data?.status ?? "setup";
-  const draftEnabled = status !== "setup";
+  const poolEnabled = status !== "setup";
+  const draftRoomEnabled = status === "drafting" || status === "competing" ||
+    status === "complete";
   const picksEnabled = status === "competing" || status === "complete";
   const name = league.data?.name ?? "League";
 
@@ -100,29 +101,22 @@ export function LeagueSidebar(
           collapsed={collapsed}
         />
         <LeagueNavItem
-          to={draftEnabled ? draftHref : undefined}
+          to={draftRoomEnabled ? draftHref : undefined}
           label="Draft Room"
           icon={<IconSwords size={20} />}
           active={isDraftActive}
           collapsed={collapsed}
-          disabled={!draftEnabled}
-          tooltip={!draftEnabled ? "Draft hasn't started" : undefined}
+          disabled={!draftRoomEnabled}
+          tooltip={!draftRoomEnabled ? "Draft hasn't started" : undefined}
         />
         <LeagueNavItem
-          to={draftEnabled ? poolHref : undefined}
+          to={poolEnabled ? poolHref : undefined}
           label="Draft Pool"
           icon={<IconTelescope size={20} />}
           active={isPoolActive}
           collapsed={collapsed}
-          disabled={!draftEnabled}
-          tooltip={!draftEnabled ? "Draft hasn't started" : undefined}
-        />
-        <LeagueNavItem
-          label="Standings"
-          icon={<IconChartBar size={20} />}
-          collapsed={collapsed}
-          disabled
-          badge="Soon"
+          disabled={!poolEnabled}
+          tooltip={!poolEnabled ? "Pool hasn't been revealed yet" : undefined}
         />
         <LeagueNavItem
           to={picksEnabled ? picksHref : undefined}
