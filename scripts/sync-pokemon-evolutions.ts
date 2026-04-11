@@ -1,4 +1,4 @@
-import pokemonJson from "../packages/shared/data/pokemon.json" with {
+import pokemonJson from "../server/data/pokemon.json" with {
   type: "json",
 };
 
@@ -196,7 +196,7 @@ async function main() {
   }
 
   const outputPath = new URL(
-    "../packages/shared/data/pokemon-evolutions.json",
+    "../server/data/pokemon-evolutions.json",
     import.meta.url,
   );
   await Deno.writeTextFile(
@@ -204,7 +204,7 @@ async function main() {
     JSON.stringify(record, null, 2) + "\n",
   );
   console.log(
-    `\nDone. ${result.size} Pokemon evolution entries written to packages/shared/data/pokemon-evolutions.json`,
+    `\nDone. ${result.size} Pokemon evolution entries written to server/data/pokemon-evolutions.json`,
   );
 }
 

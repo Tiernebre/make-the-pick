@@ -131,7 +131,7 @@ async function main() {
   allPokemon.sort((a, b) => a.id - b.id);
 
   const outputPath = new URL(
-    "../packages/shared/data/pokemon.json",
+    "../server/data/pokemon.json",
     import.meta.url,
   );
   await Deno.mkdir(new URL(".", outputPath), { recursive: true });
@@ -141,7 +141,7 @@ async function main() {
   );
 
   console.log(
-    `Done. ${allPokemon.length} Pokemon written to packages/shared/data/pokemon.json`,
+    `Done. ${allPokemon.length} Pokemon written to server/data/pokemon.json`,
   );
 }
 

@@ -6,31 +6,31 @@ import type {
   PokemonVersion,
   RegionalPokedexEntry,
 } from "@make-the-pick/shared";
-import pokemonJson from "../../packages/shared/data/pokemon.json" with {
+import pokemonJson from "../data/pokemon.json" with {
   type: "json",
 };
-import pokemonVersionsJson from "../../packages/shared/data/pokemon-versions.json" with {
+import pokemonVersionsJson from "../data/pokemon-versions.json" with {
   type: "json",
 };
-import regionalPokedexesJson from "../../packages/shared/data/regional-pokedexes.json" with {
+import regionalPokedexesJson from "../data/regional-pokedexes.json" with {
   type: "json",
 };
-import legendaryPokemonJson from "../../packages/shared/data/legendary-pokemon.json" with {
+import legendaryPokemonJson from "../data/legendary-pokemon.json" with {
   type: "json",
 };
-import starterPokemonJson from "../../packages/shared/data/starter-pokemon.json" with {
+import starterPokemonJson from "../data/starter-pokemon.json" with {
   type: "json",
 };
-import tradeEvolutionPokemonJson from "../../packages/shared/data/trade-evolution-pokemon.json" with {
+import tradeEvolutionPokemonJson from "../data/trade-evolution-pokemon.json" with {
   type: "json",
 };
-import pokemonEncountersJson from "../../packages/shared/data/pokemon-encounters.json" with {
+import pokemonEncountersJson from "../data/pokemon-encounters.json" with {
   type: "json",
 };
-import pokemonEvolutionsJson from "../../packages/shared/data/pokemon-evolutions.json" with {
+import pokemonEvolutionsJson from "../data/pokemon-evolutions.json" with {
   type: "json",
 };
-import pokemonGiftsJson from "../../packages/shared/data/pokemon-gifts.json" with {
+import pokemonGiftsJson from "../data/pokemon-gifts.json" with {
   type: "json",
 };
 import type { Hono } from "hono";
