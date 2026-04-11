@@ -81,3 +81,46 @@ export function parseNpcStrategy(raw: string | null): NpcStrategyInfo | null {
 function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
+
+const TYPE_COLORS: Record<string, string> = {
+  normal: "gray",
+  fire: "red",
+  water: "blue",
+  electric: "yellow",
+  grass: "lime",
+  ice: "cyan",
+  fighting: "orange",
+  poison: "grape",
+  ground: "yellow",
+  flying: "indigo",
+  psychic: "pink",
+  bug: "teal",
+  rock: "dark",
+  ghost: "violet",
+  dragon: "indigo",
+  dark: "dark",
+  steel: "gray",
+  fairy: "pink",
+};
+
+/**
+ * Returns a Mantine color name for rendering an NPC strategy badge. Each
+ * strategy gets a distinct hue so the tag is recognizable at a glance —
+ * e.g. Electric Specialist renders yellow, Balanced renders neutral gray.
+ */
+export function npcStrategyColor(info: NpcStrategyInfo): string {
+  switch (info.kind) {
+    case "balanced":
+      return "gray";
+    case "best-available":
+      return "green";
+    case "regional":
+      return "orange";
+    case "chaos":
+      return "grape";
+    case "type-specialist":
+      return info.preferredType
+        ? (TYPE_COLORS[info.preferredType] ?? "gray")
+        : "gray";
+  }
+}

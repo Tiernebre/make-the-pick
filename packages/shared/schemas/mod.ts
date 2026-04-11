@@ -45,6 +45,7 @@ export {
 export { type HealthResponse, healthResponseSchema } from "./health.ts";
 export {
   NPC_STRATEGY_KINDS,
+  npcStrategyColor,
   type NpcStrategyInfo,
   type NpcStrategyKind,
   parseNpcStrategy,
