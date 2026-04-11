@@ -11,16 +11,23 @@ import {
   CopyButton,
   Grid,
   Group,
+  Loader,
   LoadingOverlay,
+  Menu,
   Modal,
   Paper,
   Stack,
   Text,
   Title,
   Tooltip,
+  UnstyledButton,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconSettings, IconSparkles } from "@tabler/icons-react";
+import {
+  IconChevronDown,
+  IconSettings,
+  IconSparkles,
+} from "@tabler/icons-react";
 import { parseNpcStrategy } from "@make-the-pick/shared";
 import { useMemo } from "react";
 import { Link, useLocation, useParams } from "wouter";
@@ -32,6 +39,7 @@ import { TrainerCard } from "./TrainerCard";
 import {
   useAddNpcPlayer,
   useAdvanceLeagueStatus,
+  useAvailableNpcs,
   useDeleteLeague,
   useLeague,
   useLeaguePlayers,
@@ -65,6 +73,9 @@ export function LeagueDetailPage() {
     useDisclosure(false);
   const [advanceOpened, { open: openAdvance, close: closeAdvance }] =
     useDisclosure(false);
+  const [chooseNpcOpened, { open: openChooseNpc, close: closeChooseNpc }] =
+    useDisclosure(false);
+  const availableNpcs = useAvailableNpcs(id!, chooseNpcOpened);
 
   const isCommissioner = players.data?.some(
     (p) => p.userId === session?.user?.id && p.role === "commissioner",
@@ -284,14 +295,43 @@ export function LeagueDetailPage() {
                       </Text>
                     )}
                     {isCommissioner && league.data.status === "setup" && (
-                      <Button
-                        variant="light"
-                        size="xs"
-                        loading={addNpcPlayer.isPending}
-                        onClick={() => addNpcPlayer.mutate({ leagueId: id! })}
-                      >
-                        + Add NPC trainer
-                      </Button>
+                      <Group gap={0} wrap="nowrap">
+                        <Button
+                          variant="light"
+                          size="xs"
+                          loading={addNpcPlayer.isPending}
+                          onClick={() =>
+                            addNpcPlayer.mutate({ leagueId: id! })}
+                          style={{
+                            borderTopRightRadius: 0,
+                            borderBottomRightRadius: 0,
+                          }}
+                        >
+                          + Add random NPC
+                        </Button>
+                        <Menu position="bottom-end" withinPortal>
+                          <Menu.Target>
+                            <ActionIcon
+                              variant="light"
+                              size={30}
+                              aria-label="More NPC options"
+                              style={{
+                                borderTopLeftRadius: 0,
+                                borderBottomLeftRadius: 0,
+                                borderLeft:
+                                  "1px solid var(--mantine-color-default-border)",
+                              }}
+                            >
+                              <IconChevronDown size={14} />
+                            </ActionIcon>
+                          </Menu.Target>
+                          <Menu.Dropdown>
+                            <Menu.Item onClick={openChooseNpc}>
+                              Choose specific NPC…
+                            </Menu.Item>
+                          </Menu.Dropdown>
+                        </Menu>
+                      </Group>
                     )}
                   </Stack>
                 </Card>
@@ -523,6 +563,80 @@ export function LeagueDetailPage() {
                   Advance
                 </Button>
               </Group>
+            </Stack>
+          </Modal>
+
+          <Modal
+            opened={chooseNpcOpened}
+            onClose={closeChooseNpc}
+            title="Choose an NPC trainer"
+          >
+            <Stack gap="sm">
+              {availableNpcs.isLoading && (
+                <Group justify="center" py="md">
+                  <Loader size="sm" />
+                </Group>
+              )}
+              {availableNpcs.isError && (
+                <Alert color="red" title="Failed to load NPCs">
+                  {availableNpcs.error.message}
+                </Alert>
+              )}
+              {availableNpcs.data && availableNpcs.data.length === 0 && (
+                <Text c="dimmed" size="sm">
+                  No NPC trainers available — all have already joined.
+                </Text>
+              )}
+              {availableNpcs.data?.map((npc) => {
+                const strategy = parseNpcStrategy(npc.npcStrategy ?? null);
+                return (
+                  <UnstyledButton
+                    key={npc.id}
+                    disabled={addNpcPlayer.isPending}
+                    onClick={() => {
+                      addNpcPlayer.mutate(
+                        { leagueId: id!, npcUserId: npc.id },
+                        { onSuccess: () => closeChooseNpc() },
+                      );
+                    }}
+                    p="sm"
+                    style={{
+                      borderRadius: "var(--mantine-radius-sm)",
+                      border: "1px solid var(--mantine-color-default-border)",
+                    }}
+                  >
+                    <Group justify="space-between" wrap="nowrap">
+                      <Group gap="sm">
+                        <Avatar radius="xl" size="sm" color="mint-green">
+                          {npc.name
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")
+                            .toUpperCase()
+                            .slice(0, 2)}
+                        </Avatar>
+                        <Text size="sm">{npc.name}</Text>
+                      </Group>
+                      {strategy && (
+                        <Tooltip label={strategy.description} withinPortal>
+                          <Badge
+                            variant="outline"
+                            color="grape"
+                            size="xs"
+                          >
+                            {strategy.label}
+                          </Badge>
+                        </Tooltip>
+                      )}
+                    </Group>
+                  </UnstyledButton>
+                );
+              })}
+              {addNpcPlayer.isError && (
+                <Alert color="red" title="Failed to add NPC">
+                  {addNpcPlayer.error.message}
+                </Alert>
+              )}
             </Stack>
           </Modal>
 
