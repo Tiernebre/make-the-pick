@@ -28,9 +28,10 @@ import {
   IconChevronDown,
   IconSettings,
   IconSparkles,
+  IconTrash,
 } from "@tabler/icons-react";
 import { npcStrategyColor, parseNpcStrategy } from "@make-the-pick/shared";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link, useLocation, useParams } from "wouter";
 import { useSession } from "../../auth";
 import { AllRostersPanel } from "../draft/AllRostersPanel";
@@ -45,6 +46,7 @@ import {
   useDeleteLeague,
   useLeague,
   useLeaguePlayers,
+  useRemoveLeaguePlayer,
 } from "./use-leagues";
 
 const NEXT_STATUS: Record<string, string | null> = {
@@ -71,7 +73,11 @@ export function LeagueDetailPage() {
   const deleteLeague = useDeleteLeague();
   const advanceStatus = useAdvanceLeagueStatus();
   const addNpcPlayer = useAddNpcPlayer();
+  const removePlayer = useRemoveLeaguePlayer();
   const [, navigate] = useLocation();
+  const [playerToRemove, setPlayerToRemove] = useState<
+    { userId: string; name: string } | null
+  >(null);
 
   const [deleteOpened, { open: openDelete, close: closeDelete }] =
     useDisclosure(false);
@@ -319,14 +325,40 @@ export function LeagueDetailPage() {
                                 {player.name}
                               </Text>
                             </Group>
-                            <Badge
-                              variant="light"
-                              size="sm"
-                              tt="capitalize"
+                            <Group
+                              gap="xs"
+                              wrap="nowrap"
                               style={{ flexShrink: 0 }}
                             >
-                              {player.role}
-                            </Badge>
+                              <Badge
+                                variant="light"
+                                size="sm"
+                                tt="capitalize"
+                              >
+                                {player.role}
+                              </Badge>
+                              {isCommissioner &&
+                                league.data.status === "setup" &&
+                                player.role !== "commissioner" && (
+                                <Tooltip label={`Remove ${player.name}`}>
+                                  <ActionIcon
+                                    variant="subtle"
+                                    color="red"
+                                    size="sm"
+                                    aria-label={`Remove ${player.name}`}
+                                    onClick={() => {
+                                      removePlayer.reset();
+                                      setPlayerToRemove({
+                                        userId: player.userId,
+                                        name: player.name,
+                                      });
+                                    }}
+                                  >
+                                    <IconTrash size={14} />
+                                  </ActionIcon>
+                                </Tooltip>
+                              )}
+                            </Group>
                           </Group>
                           {hasMetaBadges && (
                             <Group gap="xs" wrap="wrap" pl={34}>
@@ -713,6 +745,49 @@ export function LeagueDetailPage() {
                   {addNpcPlayer.error.message}
                 </Alert>
               )}
+            </Stack>
+          </Modal>
+
+          <Modal
+            opened={playerToRemove !== null}
+            onClose={() => setPlayerToRemove(null)}
+            title="Remove player"
+          >
+            <Stack gap="md">
+              <Text>
+                Are you sure you want to remove{" "}
+                <Text span fw={700}>{playerToRemove?.name}</Text>{" "}
+                from the league? They can rejoin with the invite code.
+              </Text>
+              {removePlayer.isError && (
+                <Alert color="red" title="Failed to remove">
+                  {removePlayer.error.message}
+                </Alert>
+              )}
+              <Group justify="flex-end">
+                <Button
+                  variant="default"
+                  onClick={() => setPlayerToRemove(null)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  color="red"
+                  loading={removePlayer.isPending}
+                  onClick={() => {
+                    if (!playerToRemove) return;
+                    removePlayer.mutate(
+                      {
+                        leagueId: id!,
+                        playerUserId: playerToRemove.userId,
+                      },
+                      { onSuccess: () => setPlayerToRemove(null) },
+                    );
+                  }}
+                >
+                  Remove
+                </Button>
+              </Group>
             </Stack>
           </Modal>
 

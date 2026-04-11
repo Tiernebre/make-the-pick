@@ -401,6 +401,13 @@ export function createLeagueService(
         });
       }
 
+      if (league.status !== "setup") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Players can only be removed while the league is in setup",
+        });
+      }
+
       const target = await deps.leagueRepo.findPlayer(
         input.leagueId,
         input.playerUserId,
