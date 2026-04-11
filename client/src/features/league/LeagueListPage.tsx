@@ -166,11 +166,11 @@ export function LeagueListPage() {
   const isEmpty = !leagues.isLoading && data.length === 0;
 
   return (
-    <Container size="lg" py="xl" pos="relative">
+    <Container size="lg" py={{ base: "md", sm: "xl" }} pos="relative">
       <LoadingOverlay visible={leagues.isLoading} />
-      <Group justify="space-between" mb="lg">
+      <Group justify="space-between" mb="lg" wrap="wrap" gap="sm">
         <Title order={1}>My Leagues</Title>
-        <Group>
+        <Group gap="sm" wrap="wrap">
           <Button
             component={Link}
             href="/leagues/new"

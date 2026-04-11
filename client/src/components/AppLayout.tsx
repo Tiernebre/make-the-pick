@@ -4,6 +4,7 @@ import {
   Avatar,
   Badge,
   Box,
+  Burger,
   Button,
   Divider,
   Group,
@@ -17,6 +18,7 @@ import {
   UnstyledButton,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
+import { useEffect } from "react";
 import {
   IconBinoculars,
   IconChevronLeft,
@@ -44,9 +46,15 @@ export function AppLayout({ children }: AppLayoutProps) {
   const user = session?.user;
   const [location] = useLocation();
   const [collapsed, { toggle: toggleCollapsed }] = useDisclosure(false);
+  const [mobileOpened, { toggle: toggleMobile, close: closeMobile }] =
+    useDisclosure(false);
   const [deleteOpened, { open: openDelete, close: closeDelete }] =
     useDisclosure(false);
   const [leaguesOpened, { toggle: toggleLeagues }] = useDisclosure(true);
+
+  useEffect(() => {
+    closeMobile();
+  }, [location, closeMobile]);
 
   const leagues = useLeagues();
   const deleteAccount = trpc.user.deleteAccount.useMutation({
@@ -76,12 +84,19 @@ export function AppLayout({ children }: AppLayoutProps) {
       navbar={{
         width: navbarWidth,
         breakpoint: "sm",
-        collapsed: { mobile: true, desktop: false },
+        collapsed: { mobile: !mobileOpened, desktop: false },
       }}
       padding="md"
     >
       <AppShell.Header>
-        <Group h="100%" px="md" justify="space-between">
+        <Group h="100%" px="md" gap="sm">
+          <Burger
+            opened={mobileOpened}
+            onClick={toggleMobile}
+            hiddenFrom="sm"
+            size="sm"
+            aria-label="Toggle navigation"
+          />
           <Text size="sm" c="dimmed">
             {breadcrumbForLocation(location)}
           </Text>
