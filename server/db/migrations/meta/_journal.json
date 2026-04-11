@@ -169,6 +169,13 @@
       "when": 1776350000000,
       "tag": "0023_smogon_sprited_npc_renames",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1775927221347,
+      "tag": "0024_loving_namorita",
+      "breakpoints": true
     }
   ]
 }
