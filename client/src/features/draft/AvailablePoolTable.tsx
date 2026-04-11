@@ -194,48 +194,51 @@ export function AvailablePoolTable({
       {
         accessorKey: "thumbnailUrl",
         header: "",
-        size: 56,
+        size: 140,
         enableSorting: false,
         enableColumnFilter: false,
-        Cell: ({ row }) => (
-          <Avatar
-            src={row.original.thumbnailUrl}
-            alt={row.original.name}
-            size="md"
-            radius="sm"
-          />
-        ),
-      },
-      {
-        accessorKey: "name",
-        header: "Name",
-        Cell: ({ row, renderedCellValue }) => {
+        Cell: ({ row }) => {
           const display = getPoolItemDisplay(row.original);
           if (display?.mode === "species" && display.chain.length > 0) {
             return (
-              <Group gap={4} wrap="nowrap" align="center">
+              <Group gap={2} wrap="nowrap" align="center">
                 {display.chain.map((stage) => (
                   <img
                     key={stage.pokemonId}
                     src={stage.spriteUrl ?? undefined}
                     alt={stage.name}
-                    width={32}
-                    height={32}
+                    width={36}
+                    height={36}
                     style={{
                       objectFit: "contain",
                       imageRendering: "pixelated",
                     }}
                   />
                 ))}
-                <span style={{ fontWeight: 500, textTransform: "capitalize" }}>
-                  {row.original.name} Line
-                </span>
               </Group>
             );
           }
           return (
+            <Avatar
+              src={row.original.thumbnailUrl}
+              alt={row.original.name}
+              size="md"
+              radius="sm"
+            />
+          );
+        },
+      },
+      {
+        accessorKey: "name",
+        header: "Name",
+        Cell: ({ row, renderedCellValue }) => {
+          const display = getPoolItemDisplay(row.original);
+          const label = display?.mode === "species"
+            ? `${row.original.name} Line`
+            : renderedCellValue;
+          return (
             <span style={{ fontWeight: 500, textTransform: "capitalize" }}>
-              {renderedCellValue}
+              {label}
             </span>
           );
         },
