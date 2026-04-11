@@ -36,6 +36,7 @@ import { Link, useLocation, useParams } from "wouter";
 import { useSession } from "../../auth";
 import { AllRostersPanel } from "../draft/AllRostersPanel";
 import { useDraft } from "../draft/use-draft";
+import { usePokemonVersions } from "../pokemon-version/use-pokemon-versions";
 import { LifecycleStepper } from "./LifecycleStepper";
 import { NpcAvatar } from "./NpcAvatar";
 import { TrainerCard } from "./TrainerCard";
@@ -65,6 +66,15 @@ function capitalize(word: string): string {
 export function LeagueDetailPage() {
   const { id } = useParams<{ id: string }>();
   const league = useLeague(id!);
+  const pokemonVersions = usePokemonVersions();
+  const gameVersionName = useMemo(() => {
+    const rules = league.data?.rulesConfig as
+      | { gameVersion?: string }
+      | undefined;
+    if (!rules?.gameVersion) return undefined;
+    const match = pokemonVersions.data?.find((v) => v.id === rules.gameVersion);
+    return match?.name ?? rules.gameVersion;
+  }, [league.data?.rulesConfig, pokemonVersions.data]);
   const players = useLeaguePlayers(id!);
   const draft = useDraft(id!, {
     enabled: league.data?.status === "competing",
@@ -596,7 +606,7 @@ export function LeagueDetailPage() {
                             <Group justify="space-between">
                               <Text size="sm" c="dimmed">Game version</Text>
                               <Text size="sm">
-                                {rules.gameVersion ?? "All Pokemon"}
+                                {gameVersionName ?? "All Pokemon"}
                               </Text>
                             </Group>
                             <Group justify="space-between">
