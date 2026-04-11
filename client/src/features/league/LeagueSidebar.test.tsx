@@ -146,6 +146,40 @@ describe("LeagueSidebar", () => {
     expect(screen.getByText(/draft room/i)).toBeInTheDocument();
   });
 
+  it("disables Draft Room while status is pooling", () => {
+    setup({ leagueStatus: "pooling" });
+    renderSidebar();
+    expect(screen.queryByRole("link", { name: /draft room/i })).toBeNull();
+    expect(screen.getByText(/draft room/i)).toBeInTheDocument();
+  });
+
+  it("disables Draft Room while status is scouting", () => {
+    setup({ leagueStatus: "scouting" });
+    renderSidebar();
+    expect(screen.queryByRole("link", { name: /draft room/i })).toBeNull();
+    expect(screen.getByText(/draft room/i)).toBeInTheDocument();
+  });
+
+  it("disables Draft Pool while status is setup", () => {
+    setup({ leagueStatus: "setup" });
+    renderSidebar();
+    expect(screen.queryByRole("link", { name: /draft pool/i })).toBeNull();
+    expect(screen.getByText(/draft pool/i)).toBeInTheDocument();
+  });
+
+  it("enables Draft Pool while status is pooling", () => {
+    setup({ leagueStatus: "pooling" });
+    renderSidebar();
+    const pool = screen.getByRole("link", { name: /draft pool/i });
+    expect(pool).toHaveAttribute("href", "/leagues/L1/draft/pool");
+  });
+
+  it("does not render a Standings nav item", () => {
+    setup({ leagueStatus: "drafting" });
+    renderSidebar();
+    expect(screen.queryByText(/standings/i)).toBeNull();
+  });
+
   it("shows Settings link for commissioner", () => {
     setup({ role: "commissioner" });
     renderSidebar();
