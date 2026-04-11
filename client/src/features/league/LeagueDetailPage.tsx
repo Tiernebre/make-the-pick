@@ -35,6 +35,7 @@ import { useSession } from "../../auth";
 import { AllRostersPanel } from "../draft/AllRostersPanel";
 import { useDraft } from "../draft/use-draft";
 import { LifecycleStepper } from "./LifecycleStepper";
+import { NpcAvatar } from "./NpcAvatar";
 import { TrainerCard } from "./TrainerCard";
 import {
   useAddNpcPlayer,
@@ -271,20 +272,31 @@ export function LeagueDetailPage() {
                       return (
                         <Group key={player.id} justify="space-between">
                           <Group gap="sm">
-                            <Avatar
-                              src={player.image}
-                              alt={player.name}
-                              radius="xl"
-                              size="sm"
-                              color="mint-green"
-                            >
-                              {player.name
-                                .split(" ")
-                                .map((n) => n[0])
-                                .join("")
-                                .toUpperCase()
-                                .slice(0, 2)}
-                            </Avatar>
+                            {player.isNpc
+                              ? (
+                                <NpcAvatar
+                                  name={player.name}
+                                  image={player.image}
+                                  radius="xl"
+                                  size="sm"
+                                />
+                              )
+                              : (
+                                <Avatar
+                                  src={player.image}
+                                  alt={player.name}
+                                  radius="xl"
+                                  size="sm"
+                                  color="mint-green"
+                                >
+                                  {player.name
+                                    .split(" ")
+                                    .map((n) => n[0])
+                                    .join("")
+                                    .toUpperCase()
+                                    .slice(0, 2)}
+                                </Avatar>
+                              )}
                             <Text size="sm">{player.name}</Text>
                             {player.isNpc && (
                               <Badge variant="light" color="grape" size="xs">
