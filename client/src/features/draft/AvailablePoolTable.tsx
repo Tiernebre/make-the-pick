@@ -99,6 +99,18 @@ export function AvailablePoolTable({
     return draftState.poolItems.filter((item) => availableSet.has(item.id));
   }, [draftState.availableItemIds, draftState.poolItems]);
 
+  // A draft is single-mode (all items individual or all species), so the
+  // first item with metadata tells us which width the thumbnail column
+  // needs — wide enough for a 3-stage chain in species mode, narrow for
+  // a single Avatar in individual mode.
+  const isSpeciesDraft = useMemo(() => {
+    for (const item of draftState.poolItems) {
+      const display = getPoolItemDisplay(item);
+      if (display) return display.mode === "species";
+    }
+    return false;
+  }, [draftState.poolItems]);
+
   function handleClickItem(item: DraftPoolItem) {
     setPendingItem(item);
     open();
@@ -194,7 +206,7 @@ export function AvailablePoolTable({
       {
         accessorKey: "thumbnailUrl",
         header: "",
-        size: 140,
+        size: isSpeciesDraft ? 140 : 56,
         enableSorting: false,
         enableColumnFilter: false,
         Cell: ({ row }) => {
@@ -343,6 +355,7 @@ export function AvailablePoolTable({
       addToWatchlist,
       removeFromWatchlist,
       isMyTurn,
+      isSpeciesDraft,
     ],
   );
 
