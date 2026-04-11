@@ -19,6 +19,7 @@ import {
 } from "mantine-react-table";
 import { useMemo } from "react";
 import { Link, useLocation } from "wouter";
+import { usePageTitle } from "../../hooks/use-page-title";
 import { JoinLeagueModal } from "./JoinLeagueModal";
 import { useLeagues } from "./use-leagues";
 
@@ -56,6 +57,7 @@ function nextActionFor(league: LeagueRow): string {
 }
 
 export function LeagueListPage() {
+  usePageTitle("My Leagues");
   const leagues = useLeagues();
   const [, navigate] = useLocation();
   const [joinOpened, joinHandlers] = useDisclosure(false);

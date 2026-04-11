@@ -15,6 +15,7 @@ import {
 import { useEffect, useState } from "react";
 import { Link, useParams } from "wouter";
 import { useSession } from "../../auth";
+import { usePageTitle } from "../../hooks/use-page-title";
 import { usePokemonVersions } from "../pokemon-version/use-pokemon-versions";
 import {
   useLeague,
@@ -25,6 +26,7 @@ import {
 export function LeagueSettingsPage() {
   const { id } = useParams<{ id: string }>();
   const league = useLeague(id!);
+  usePageTitle(league.data ? `Settings · ${league.data.name}` : undefined);
   const players = useLeaguePlayers(id!);
   const { data: session } = useSession();
   const updateSettings = useUpdateLeagueSettings();

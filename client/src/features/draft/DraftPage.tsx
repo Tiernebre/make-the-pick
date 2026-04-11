@@ -14,6 +14,7 @@ import {
 import { useMemo } from "react";
 import { Link, useParams } from "wouter";
 import { useSession } from "../../auth";
+import { usePageTitle } from "../../hooks/use-page-title";
 import { useLeague, useLeaguePlayers } from "../league/use-leagues";
 import { AllRostersPanel } from "./AllRostersPanel";
 import { AvailablePoolTable } from "./AvailablePoolTable";
@@ -32,6 +33,7 @@ export function DraftPage() {
   const { id } = useParams<{ id: string }>();
   const leagueId = id!;
   const league = useLeague(leagueId);
+  usePageTitle(league.data ? `Draft · ${league.data.name}` : undefined);
   const leaguePlayers = useLeaguePlayers(leagueId);
   const draft = useDraft(leagueId);
   const makePick = useMakePick(leagueId);

@@ -37,6 +37,7 @@ import type {
 import { getPoolItemDisplay, getPoolItemStatTotal } from "./pool-item-display";
 import { Link, useParams } from "wouter";
 import { useSession } from "../../auth";
+import { usePageTitle } from "../../hooks/use-page-title";
 import {
   useAdvanceLeagueStatus,
   useLeague,
@@ -300,6 +301,11 @@ export function DraftPoolPage() {
   const advanceStatus = useAdvanceLeagueStatus();
 
   const isPooling = league.data?.status === "pooling";
+  usePageTitle(
+    league.data
+      ? `${isPooling ? "Pool Reveal" : "Draft Pool"} · ${league.data.name}`
+      : undefined,
+  );
   const isCommissioner = players.data?.some(
     (p) => p.userId === session?.user?.id && p.role === "commissioner",
   ) ?? false;

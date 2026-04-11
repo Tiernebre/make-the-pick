@@ -1,9 +1,11 @@
 import { Alert, Anchor, Center, Loader, Stack, Text } from "@mantine/core";
 import { useEffect, useRef } from "react";
 import { useLocation, useParams } from "wouter";
+import { usePageTitle } from "../../hooks/use-page-title";
 import { useJoinLeague } from "./use-leagues";
 
 export function JoinLeaguePage() {
+  usePageTitle("Joining League");
   const { inviteCode } = useParams<{ inviteCode: string }>();
   const [, navigate] = useLocation();
   const joinLeague = useJoinLeague();

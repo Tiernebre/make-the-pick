@@ -12,6 +12,7 @@ import { useDisclosure } from "@mantine/hooks";
 import { useMemo, useState } from "react";
 import { Link, useLocation, useParams } from "wouter";
 import { useSession } from "../../auth";
+import { usePageTitle } from "../../hooks/use-page-title";
 import { AllRostersPanel } from "../draft/AllRostersPanel";
 import { useDraft } from "../draft/use-draft";
 import { usePokemonVersions } from "../pokemon-version/use-pokemon-versions";
@@ -46,6 +47,7 @@ const NEXT_STATUS: Record<string, string | null> = {
 export function LeagueDetailPage() {
   const { id } = useParams<{ id: string }>();
   const league = useLeague(id!);
+  usePageTitle(league.data?.name);
   const pokemonVersions = usePokemonVersions();
   const gameVersionName = useMemo(() => {
     const rules = league.data?.rulesConfig as

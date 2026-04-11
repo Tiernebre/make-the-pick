@@ -1,6 +1,7 @@
 import { Alert, Center, Stack, Title, UnstyledButton } from "@mantine/core";
 import { useSearch } from "wouter";
 import { signIn } from "../auth";
+import { usePageTitle } from "../hooks/use-page-title";
 
 const googleLogoSvg =
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
@@ -11,6 +12,7 @@ const googleLogoSvg =
 </svg>`;
 
 export function LoginPage() {
+  usePageTitle("Sign In");
   const search = useSearch();
   const hasOAuthError = new URLSearchParams(search).get("error") === "oauth";
 
