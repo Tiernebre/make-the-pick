@@ -5,6 +5,7 @@ import {
 } from "@make-the-pick/shared";
 import { TRPCError } from "@trpc/server";
 import type { DraftRepository } from "../draft/draft.repository.ts";
+import type { DraftPoolRepository } from "../draft-pool/draft-pool.repository.ts";
 import type { DraftPoolService } from "../draft-pool/draft-pool.service.ts";
 import { logger } from "../../logger.ts";
 import type { LeagueRepository } from "./league.repository.ts";
@@ -27,6 +28,7 @@ export function createLeagueService(
   deps: {
     leagueRepo: LeagueRepository;
     draftRepo: DraftRepository;
+    draftPoolRepo: DraftPoolRepository;
     draftPoolService: DraftPoolService;
     startDraft?: (
       input: { userId: string; leagueId: string },
@@ -182,9 +184,24 @@ export function createLeagueService(
               "League settings must be fully configured before advancing from setup",
           });
         }
+        // Generate the pool on entry to pooling. Items are born hidden
+        // (revealed_at = null) so the showcase UI starts from zero. A
+        // commissioner that doesn't want the showcase can immediately
+        // advance from pooling to scouting below, which reveals the rest.
         await deps.draftPoolService.generate(userId, {
           leagueId: input.leagueId,
         });
+      }
+      if (league.status === "pooling") {
+        // "Advance to scouting" skips the showcase: reveal everything that
+        // the commissioner hasn't revealed manually so scouting starts with
+        // a fully-visible pool.
+        const pool = await deps.draftPoolRepo.findByLeagueId(
+          input.leagueId,
+        );
+        if (pool) {
+          await deps.draftPoolRepo.revealAllItems(pool.id, new Date());
+        }
       }
       if (league.status === "drafting") {
         const draft = await deps.draftRepo.findByLeagueId(input.leagueId);
@@ -204,7 +221,7 @@ export function createLeagueService(
         { leagueId: input.leagueId, newStatus: nextStatus },
         "league status advanced",
       );
-      if (league.status === "setup" && deps.startDraft) {
+      if (league.status === "scouting" && deps.startDraft) {
         await deps.startDraft({
           userId,
           leagueId: input.leagueId,

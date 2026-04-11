@@ -18,7 +18,7 @@ export const LEAGUE_STATUS_TRANSITIONS: Record<
   LeagueStatus,
   LeagueStatus | null
 > = {
-  setup: "drafting",
+  setup: "pooling",
   pooling: "scouting",
   scouting: "drafting",
   drafting: "competing",

@@ -227,7 +227,7 @@ describe("LeagueDetailPage", () => {
     });
     renderPage();
     expect(
-      screen.getByRole("button", { name: /advance to drafting/i }),
+      screen.getByRole("button", { name: /advance to pooling/i }),
     ).toBeInTheDocument();
   });
 

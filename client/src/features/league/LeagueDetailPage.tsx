@@ -46,7 +46,9 @@ import {
 } from "./use-leagues";
 
 const NEXT_STATUS: Record<string, string | null> = {
-  setup: "drafting",
+  setup: "pooling",
+  pooling: "scouting",
+  scouting: "drafting",
   drafting: "competing",
   competing: "complete",
   complete: null,

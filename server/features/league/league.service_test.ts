@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { createLeagueService } from "./league.service.ts";
 import type { LeagueRepository } from "./league.repository.ts";
 import type { DraftRepository } from "../draft/draft.repository.ts";
+import type { DraftPoolRepository } from "../draft-pool/draft-pool.repository.ts";
 import type { DraftPoolService } from "../draft-pool/draft-pool.service.ts";
 
 type FakeLeague = Awaited<ReturnType<LeagueRepository["findById"]>>;
@@ -142,6 +143,34 @@ function createFakeDraftPoolService(
         createdAt: new Date(),
         items: [],
       }),
+    revealNext: (_userId, _input) =>
+      Promise.resolve({
+        itemId: crypto.randomUUID(),
+        revealOrder: 0,
+        remaining: 0,
+      }),
+    ...overrides,
+  };
+}
+
+function createFakeDraftPoolRepo(
+  overrides: Partial<DraftPoolRepository> = {},
+): DraftPoolRepository {
+  return {
+    create: (leagueId, name) =>
+      Promise.resolve({
+        id: crypto.randomUUID(),
+        leagueId,
+        name,
+        createdAt: new Date(),
+      }),
+    createItems: (_items) => Promise.resolve([]),
+    findByLeagueId: (_leagueId) => Promise.resolve(null),
+    findItemsByPoolId: (_poolId, _opts) => Promise.resolve([]),
+    countUnrevealedItems: (_poolId) => Promise.resolve(0),
+    revealNextItem: (_poolId, _now) => Promise.resolve(null),
+    revealAllItems: (_poolId, _now) => Promise.resolve(0),
+    deleteByLeagueId: (_leagueId) => Promise.resolve(),
     ...overrides,
   };
 }
@@ -186,6 +215,7 @@ Deno.test("leagueService.create: creates a league with settings and generated in
   const service = createLeagueService({
     leagueRepo: repo,
     draftRepo: createFakeDraftRepo(),
+    draftPoolRepo: createFakeDraftPoolRepo(),
     draftPoolService: createFakeDraftPoolService(),
   });
   const result = await service.create("user-1", validCreateInput);
@@ -209,6 +239,7 @@ Deno.test("leagueService.getById: returns league when found", async () => {
   const service = createLeagueService({
     leagueRepo: repo,
     draftRepo: createFakeDraftRepo(),
+    draftPoolRepo: createFakeDraftPoolRepo(),
     draftPoolService: createFakeDraftPoolService(),
   });
   const result = await service.getById(fakeLeague.id);
@@ -220,6 +251,7 @@ Deno.test("leagueService.getById: throws NOT_FOUND when missing", async () => {
   const service = createLeagueService({
     leagueRepo: repo,
     draftRepo: createFakeDraftRepo(),
+    draftPoolRepo: createFakeDraftPoolRepo(),
     draftPoolService: createFakeDraftPoolService(),
   });
 
@@ -239,6 +271,7 @@ Deno.test("leagueService.join: joins a league via invite code", async () => {
   const service = createLeagueService({
     leagueRepo: repo,
     draftRepo: createFakeDraftRepo(),
+    draftPoolRepo: createFakeDraftPoolRepo(),
     draftPoolService: createFakeDraftPoolService(),
   });
   const result = await service.join("user-2", "JOIN1234");
@@ -250,6 +283,7 @@ Deno.test("leagueService.join: throws NOT_FOUND for invalid invite code", async 
   const service = createLeagueService({
     leagueRepo: repo,
     draftRepo: createFakeDraftRepo(),
+    draftPoolRepo: createFakeDraftPoolRepo(),
     draftPoolService: createFakeDraftPoolService(),
   });
 
@@ -282,6 +316,7 @@ Deno.test("leagueService.delete: deletes a league when user is the commissioner"
   const service = createLeagueService({
     leagueRepo: repo,
     draftRepo: createFakeDraftRepo(),
+    draftPoolRepo: createFakeDraftPoolRepo(),
     draftPoolService: createFakeDraftPoolService(),
   });
   await service.delete("user-1", fakeLeague.id);
@@ -293,6 +328,7 @@ Deno.test("leagueService.delete: throws NOT_FOUND when league does not exist", a
   const service = createLeagueService({
     leagueRepo: repo,
     draftRepo: createFakeDraftRepo(),
+    draftPoolRepo: createFakeDraftPoolRepo(),
     draftPoolService: createFakeDraftPoolService(),
   });
 
@@ -320,6 +356,7 @@ Deno.test("leagueService.delete: throws FORBIDDEN when user is not the commissio
   const service = createLeagueService({
     leagueRepo: repo,
     draftRepo: createFakeDraftRepo(),
+    draftPoolRepo: createFakeDraftPoolRepo(),
     draftPoolService: createFakeDraftPoolService(),
   });
 
@@ -362,6 +399,7 @@ Deno.test("leagueService.listPlayers: returns players for a league", async () =>
   const service = createLeagueService({
     leagueRepo: repo,
     draftRepo: createFakeDraftRepo(),
+    draftPoolRepo: createFakeDraftPoolRepo(),
     draftPoolService: createFakeDraftPoolService(),
   });
   const result = await service.listPlayers(fakeLeague.id);
@@ -375,6 +413,7 @@ Deno.test("leagueService.listPlayers: throws NOT_FOUND when league does not exis
   const service = createLeagueService({
     leagueRepo: repo,
     draftRepo: createFakeDraftRepo(),
+    draftPoolRepo: createFakeDraftPoolRepo(),
     draftPoolService: createFakeDraftPoolService(),
   });
 
@@ -402,6 +441,7 @@ Deno.test("leagueService.join: throws BAD_REQUEST if already a member", async ()
   const service = createLeagueService({
     leagueRepo: repo,
     draftRepo: createFakeDraftRepo(),
+    draftPoolRepo: createFakeDraftPoolRepo(),
     draftPoolService: createFakeDraftPoolService(),
   });
 
@@ -453,6 +493,7 @@ Deno.test("leagueService.updateSettings: updates settings when user is commissio
   const service = createLeagueService({
     leagueRepo: repo,
     draftRepo: createFakeDraftRepo(),
+    draftPoolRepo: createFakeDraftPoolRepo(),
     draftPoolService: createFakeDraftPoolService(),
   });
   const result = await service.updateSettings("user-1", validSettingsInput);
@@ -468,6 +509,7 @@ Deno.test("leagueService.updateSettings: throws NOT_FOUND when league does not e
   const service = createLeagueService({
     leagueRepo: repo,
     draftRepo: createFakeDraftRepo(),
+    draftPoolRepo: createFakeDraftPoolRepo(),
     draftPoolService: createFakeDraftPoolService(),
   });
 
@@ -495,6 +537,7 @@ Deno.test("leagueService.updateSettings: throws FORBIDDEN when user is not commi
   const service = createLeagueService({
     leagueRepo: repo,
     draftRepo: createFakeDraftRepo(),
+    draftPoolRepo: createFakeDraftPoolRepo(),
     draftPoolService: createFakeDraftPoolService(),
   });
 
@@ -514,6 +557,7 @@ Deno.test("leagueService.updateSettings: throws FORBIDDEN when user is not a mem
   const service = createLeagueService({
     leagueRepo: repo,
     draftRepo: createFakeDraftRepo(),
+    draftPoolRepo: createFakeDraftPoolRepo(),
     draftPoolService: createFakeDraftPoolService(),
   });
 
@@ -537,6 +581,7 @@ Deno.test("leagueService.join: throws BAD_REQUEST when league is full", async ()
   const service = createLeagueService({
     leagueRepo: repo,
     draftRepo: createFakeDraftRepo(),
+    draftPoolRepo: createFakeDraftPoolRepo(),
     draftPoolService: createFakeDraftPoolService(),
   });
 
@@ -560,6 +605,7 @@ Deno.test("leagueService.join: allows join when under max_players", async () => 
   const service = createLeagueService({
     leagueRepo: repo,
     draftRepo: createFakeDraftRepo(),
+    draftPoolRepo: createFakeDraftPoolRepo(),
     draftPoolService: createFakeDraftPoolService(),
   });
   const result = await service.join("user-3", "OPEN0001");
@@ -578,6 +624,7 @@ Deno.test("leagueService.join: allows join when max_players is null", async () =
   const service = createLeagueService({
     leagueRepo: repo,
     draftRepo: createFakeDraftRepo(),
+    draftPoolRepo: createFakeDraftPoolRepo(),
     draftPoolService: createFakeDraftPoolService(),
   });
   const result = await service.join("user-3", "NOLIM001");
@@ -591,6 +638,7 @@ Deno.test("leagueService.advanceStatus: throws NOT_FOUND when league does not ex
   const service = createLeagueService({
     leagueRepo: repo,
     draftRepo: createFakeDraftRepo(),
+    draftPoolRepo: createFakeDraftPoolRepo(),
     draftPoolService: createFakeDraftPoolService(),
   });
 
@@ -618,6 +666,7 @@ Deno.test("leagueService.advanceStatus: throws FORBIDDEN when user is not commis
   const service = createLeagueService({
     leagueRepo: repo,
     draftRepo: createFakeDraftRepo(),
+    draftPoolRepo: createFakeDraftPoolRepo(),
     draftPoolService: createFakeDraftPoolService(),
   });
 
@@ -637,6 +686,7 @@ Deno.test("leagueService.advanceStatus: throws FORBIDDEN when user is not a memb
   const service = createLeagueService({
     leagueRepo: repo,
     draftRepo: createFakeDraftRepo(),
+    draftPoolRepo: createFakeDraftPoolRepo(),
     draftPoolService: createFakeDraftPoolService(),
   });
 
@@ -664,6 +714,7 @@ Deno.test("leagueService.advanceStatus: throws BAD_REQUEST when league is alread
   const service = createLeagueService({
     leagueRepo: repo,
     draftRepo: createFakeDraftRepo(),
+    draftPoolRepo: createFakeDraftPoolRepo(),
     draftPoolService: createFakeDraftPoolService(),
   });
 
@@ -695,6 +746,7 @@ Deno.test("leagueService.advanceStatus: throws BAD_REQUEST when advancing from s
   const service = createLeagueService({
     leagueRepo: repo,
     draftRepo: createFakeDraftRepo(),
+    draftPoolRepo: createFakeDraftPoolRepo(),
     draftPoolService: createFakeDraftPoolService(),
   });
 
@@ -726,6 +778,7 @@ Deno.test("leagueService.advanceStatus: throws BAD_REQUEST when advancing from s
   const service = createLeagueService({
     leagueRepo: repo,
     draftRepo: createFakeDraftRepo(),
+    draftPoolRepo: createFakeDraftPoolRepo(),
     draftPoolService: createFakeDraftPoolService(),
   });
 
@@ -736,7 +789,7 @@ Deno.test("leagueService.advanceStatus: throws BAD_REQUEST when advancing from s
   assertEquals(error.code, "BAD_REQUEST");
 });
 
-Deno.test("leagueService.advanceStatus: advances from setup to drafting and generates draft pool", async () => {
+Deno.test("leagueService.advanceStatus: advances from setup to pooling and generates draft pool", async () => {
   const fakeLeague = createFakeLeague({
     status: "setup",
     sportType: "pokemon",
@@ -781,19 +834,20 @@ Deno.test("leagueService.advanceStatus: advances from setup to drafting and gene
   const service = createLeagueService({
     leagueRepo: repo,
     draftRepo: createFakeDraftRepo(),
+    draftPoolRepo: createFakeDraftPoolRepo(),
     draftPoolService,
   });
   const result = await service.advanceStatus("user-1", {
     leagueId: fakeLeague.id,
   });
 
-  assertEquals(capturedStatus, "drafting");
-  assertEquals(result.status, "drafting");
+  assertEquals(capturedStatus, "pooling");
+  assertEquals(result.status, "pooling");
   assertEquals(generateCalledWith?.userId, "user-1");
   assertEquals(generateCalledWith?.leagueId, fakeLeague.id);
 });
 
-Deno.test("leagueService.advanceStatus: starts the draft after advancing from setup to drafting", async () => {
+Deno.test("leagueService.advanceStatus: does not start the draft when advancing from setup to pooling", async () => {
   const fakeLeague = createFakeLeague({
     status: "setup",
     sportType: "pokemon",
@@ -816,6 +870,42 @@ Deno.test("leagueService.advanceStatus: starts the draft after advancing from se
         joinedAt: new Date(),
       }),
     updateStatus: (_id, status) =>
+      Promise.resolve(createFakeLeague({ status: status as "pooling" })),
+  });
+  let startDraftCalled = false;
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo: createFakeDraftRepo(),
+    draftPoolRepo: createFakeDraftPoolRepo(),
+    draftPoolService: createFakeDraftPoolService(),
+    startDraft: (_input) => {
+      startDraftCalled = true;
+      return Promise.resolve();
+    },
+  });
+
+  await service.advanceStatus("user-1", { leagueId: fakeLeague.id });
+
+  assertEquals(
+    startDraftCalled,
+    false,
+    "startDraft must not fire on setup→pooling",
+  );
+});
+
+Deno.test("leagueService.advanceStatus: starts the draft after advancing from scouting to drafting", async () => {
+  const fakeLeague = createFakeLeague({ status: "scouting" });
+  const repo = createFakeRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve({
+        id: crypto.randomUUID(),
+        leagueId: fakeLeague.id,
+        userId: "user-1",
+        role: "commissioner" as const,
+        joinedAt: new Date(),
+      }),
+    updateStatus: (_id, status) =>
       Promise.resolve(createFakeLeague({ status: status as "drafting" })),
   });
   let startDraftCalledWith:
@@ -824,6 +914,7 @@ Deno.test("leagueService.advanceStatus: starts the draft after advancing from se
   const service = createLeagueService({
     leagueRepo: repo,
     draftRepo: createFakeDraftRepo(),
+    draftPoolRepo: createFakeDraftPoolRepo(),
     draftPoolService: createFakeDraftPoolService(),
     startDraft: (input) => {
       startDraftCalledWith = input;
@@ -835,6 +926,51 @@ Deno.test("leagueService.advanceStatus: starts the draft after advancing from se
 
   assertEquals(startDraftCalledWith?.userId, "user-1");
   assertEquals(startDraftCalledWith?.leagueId, fakeLeague.id);
+});
+
+Deno.test("leagueService.advanceStatus: reveals remaining pool items when advancing from pooling to scouting", async () => {
+  const fakeLeague = createFakeLeague({ status: "pooling" });
+  const fakePool = {
+    id: crypto.randomUUID(),
+    leagueId: fakeLeague.id,
+    name: "Draft Pool",
+    createdAt: new Date(),
+  };
+  const repo = createFakeRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve({
+        id: crypto.randomUUID(),
+        leagueId: fakeLeague.id,
+        userId: "user-1",
+        role: "commissioner" as const,
+        joinedAt: new Date(),
+      }),
+    updateStatus: (_id, status) =>
+      Promise.resolve(createFakeLeague({ status: status as "scouting" })),
+  });
+  let revealedPoolId: string | undefined;
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    findByLeagueId: (_leagueId) => Promise.resolve(fakePool),
+    revealAllItems: (poolId, _now) => {
+      revealedPoolId = poolId;
+      return Promise.resolve(3);
+    },
+  });
+
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo: createFakeDraftRepo(),
+    draftPoolRepo,
+    draftPoolService: createFakeDraftPoolService(),
+  });
+
+  const result = await service.advanceStatus("user-1", {
+    leagueId: fakeLeague.id,
+  });
+
+  assertEquals(result.status, "scouting");
+  assertEquals(revealedPoolId, fakePool.id);
 });
 
 Deno.test("leagueService.advanceStatus: does not start the draft when advancing from drafting to competing", async () => {
@@ -862,6 +998,7 @@ Deno.test("leagueService.advanceStatus: does not start the draft when advancing 
   const service = createLeagueService({
     leagueRepo: repo,
     draftRepo,
+    draftPoolRepo: createFakeDraftPoolRepo(),
     draftPoolService: createFakeDraftPoolService(),
     startDraft: () => {
       startDraftCalled = true;
@@ -914,6 +1051,7 @@ Deno.test("leagueService.advanceStatus: does not advance from setup if draft poo
   const service = createLeagueService({
     leagueRepo: repo,
     draftRepo: createFakeDraftRepo(),
+    draftPoolRepo: createFakeDraftPoolRepo(),
     draftPoolService,
   });
 
@@ -953,6 +1091,7 @@ Deno.test("leagueService.advanceStatus: advances from drafting to competing when
   const service = createLeagueService({
     leagueRepo: repo,
     draftRepo,
+    draftPoolRepo: createFakeDraftPoolRepo(),
     draftPoolService: createFakeDraftPoolService(),
   });
   const result = await service.advanceStatus("user-1", {
@@ -983,6 +1122,7 @@ Deno.test("leagueService.advanceStatus: throws BAD_REQUEST when advancing from d
   const service = createLeagueService({
     leagueRepo: repo,
     draftRepo,
+    draftPoolRepo: createFakeDraftPoolRepo(),
     draftPoolService: createFakeDraftPoolService(),
   });
 
@@ -1016,6 +1156,7 @@ Deno.test("leagueService.advanceStatus: throws BAD_REQUEST when advancing from d
   const service = createLeagueService({
     leagueRepo: repo,
     draftRepo,
+    draftPoolRepo: createFakeDraftPoolRepo(),
     draftPoolService: createFakeDraftPoolService(),
   });
 
@@ -1049,6 +1190,7 @@ Deno.test("leagueService.advanceStatus: throws BAD_REQUEST when advancing from d
   const service = createLeagueService({
     leagueRepo: repo,
     draftRepo,
+    draftPoolRepo: createFakeDraftPoolRepo(),
     draftPoolService: createFakeDraftPoolService(),
   });
 
@@ -1081,6 +1223,7 @@ Deno.test("leagueService.advanceStatus: advances from competing to complete", as
   const service = createLeagueService({
     leagueRepo: repo,
     draftRepo: createFakeDraftRepo(),
+    draftPoolRepo: createFakeDraftPoolRepo(),
     draftPoolService: createFakeDraftPoolService(),
   });
   const result = await service.advanceStatus("user-1", {
@@ -1127,6 +1270,7 @@ Deno.test("leagueService.removePlayer: removes a player when user is commissione
   const service = createLeagueService({
     leagueRepo: repo,
     draftRepo: createFakeDraftRepo(),
+    draftPoolRepo: createFakeDraftPoolRepo(),
     draftPoolService: createFakeDraftPoolService(),
   });
   await service.removePlayer("commissioner-1", {
@@ -1143,6 +1287,7 @@ Deno.test("leagueService.removePlayer: throws NOT_FOUND when league does not exi
   const service = createLeagueService({
     leagueRepo: repo,
     draftRepo: createFakeDraftRepo(),
+    draftPoolRepo: createFakeDraftPoolRepo(),
     draftPoolService: createFakeDraftPoolService(),
   });
 
@@ -1174,6 +1319,7 @@ Deno.test("leagueService.removePlayer: throws FORBIDDEN when user is not commiss
   const service = createLeagueService({
     leagueRepo: repo,
     draftRepo: createFakeDraftRepo(),
+    draftPoolRepo: createFakeDraftPoolRepo(),
     draftPoolService: createFakeDraftPoolService(),
   });
 
@@ -1197,6 +1343,7 @@ Deno.test("leagueService.removePlayer: throws FORBIDDEN when user is not a membe
   const service = createLeagueService({
     leagueRepo: repo,
     draftRepo: createFakeDraftRepo(),
+    draftPoolRepo: createFakeDraftPoolRepo(),
     draftPoolService: createFakeDraftPoolService(),
   });
 
@@ -1230,6 +1377,7 @@ Deno.test("leagueService.removePlayer: throws BAD_REQUEST when trying to remove 
   const service = createLeagueService({
     leagueRepo: repo,
     draftRepo: createFakeDraftRepo(),
+    draftPoolRepo: createFakeDraftPoolRepo(),
     draftPoolService: createFakeDraftPoolService(),
   });
 
@@ -1265,6 +1413,7 @@ Deno.test("leagueService.removePlayer: throws NOT_FOUND when target player is no
   const service = createLeagueService({
     leagueRepo: repo,
     draftRepo: createFakeDraftRepo(),
+    draftPoolRepo: createFakeDraftPoolRepo(),
     draftPoolService: createFakeDraftPoolService(),
   });
 
@@ -1343,6 +1492,7 @@ Deno.test("leagueService.addNpcPlayer: picks a random NPC when no id is provided
     const service = createLeagueService({
       leagueRepo: repo,
       draftRepo: createFakeDraftRepo(),
+      draftPoolRepo: createFakeDraftPoolRepo(),
       draftPoolService: createFakeDraftPoolService(),
     });
     const result = await service.addNpcPlayer("commissioner-1", {
@@ -1380,6 +1530,7 @@ Deno.test("leagueService.addNpcPlayer: adds the specified NPC when npcUserId is 
   const service = createLeagueService({
     leagueRepo: repo,
     draftRepo: createFakeDraftRepo(),
+    draftPoolRepo: createFakeDraftPoolRepo(),
     draftPoolService: createFakeDraftPoolService(),
   });
   const result = await service.addNpcPlayer("commissioner-1", {
@@ -1401,6 +1552,7 @@ Deno.test("leagueService.addNpcPlayer: rejects an npcUserId that isn't available
   const service = createLeagueService({
     leagueRepo: repo,
     draftRepo: createFakeDraftRepo(),
+    draftPoolRepo: createFakeDraftPoolRepo(),
     draftPoolService: createFakeDraftPoolService(),
   });
   const error = await assertRejects(
@@ -1427,6 +1579,7 @@ Deno.test("leagueService.listAvailableNpcs: returns available NPCs for the commi
   const service = createLeagueService({
     leagueRepo: repo,
     draftRepo: createFakeDraftRepo(),
+    draftPoolRepo: createFakeDraftPoolRepo(),
     draftPoolService: createFakeDraftPoolService(),
   });
   const result = await service.listAvailableNpcs("commissioner-1", {
@@ -1447,6 +1600,7 @@ Deno.test("leagueService.listAvailableNpcs: forbids non-commissioners", async ()
   const service = createLeagueService({
     leagueRepo: repo,
     draftRepo: createFakeDraftRepo(),
+    draftPoolRepo: createFakeDraftPoolRepo(),
     draftPoolService: createFakeDraftPoolService(),
   });
   const error = await assertRejects(

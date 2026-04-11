@@ -224,7 +224,10 @@ function createFakeDraftPoolRepo(
       }),
     createItems: (_items) => Promise.resolve([]),
     findByLeagueId: (_leagueId) => Promise.resolve(null as FakePool),
-    findItemsByPoolId: (_poolId) => Promise.resolve([]),
+    findItemsByPoolId: (_poolId, _opts) => Promise.resolve([]),
+    countUnrevealedItems: (_poolId) => Promise.resolve(0),
+    revealNextItem: (_poolId, _now) => Promise.resolve(null),
+    revealAllItems: (_poolId, _now) => Promise.resolve(0),
     deleteByLeagueId: (_leagueId) => Promise.resolve(),
     ...overrides,
   };
