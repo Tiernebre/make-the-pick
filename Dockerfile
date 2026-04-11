@@ -19,6 +19,12 @@ FROM base AS production
 COPY . .
 COPY --from=build /app/client/dist ./client/dist
 
+# Baked at build time by CI (--build-arg GIT_SHA=$GITHUB_SHA) so the
+# running container can report which commit it's on via /api/health.
+# The smoke test asserts this matches the commit being deployed.
+ARG GIT_SHA=unknown
+ENV GIT_SHA=$GIT_SHA
+
 ENV DENO_ENV=production
 EXPOSE 3000
 

@@ -9,6 +9,7 @@ const healthRouter = router({
     return {
       status: "ok",
       timestamp: check.checkedAt.toISOString(),
+      commit: Deno.env.get("GIT_SHA") ?? "unknown",
     };
   }),
 });
