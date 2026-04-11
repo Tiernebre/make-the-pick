@@ -12,7 +12,10 @@ import { computeTurnDeadline, resolveSnakeTurn } from "./draft-utils.ts";
 import type { DraftEventPublisher } from "./draft.events.ts";
 import type { Clock, DraftTimerScheduler } from "./draft.timers.ts";
 import { type NpcScheduler, randomNpcPickDelayMs } from "./npc-scheduler.ts";
-import { pickWithStrategy } from "./npc-strategies.ts";
+import {
+  createNpcPickService,
+  type NpcPickService,
+} from "./npc-pick.service.ts";
 
 const noopPublisher: DraftEventPublisher = {
   subscribe: () => () => {},
@@ -198,6 +201,7 @@ export function createDraftService(deps: {
   clock?: Clock;
   timerScheduler?: DraftTimerScheduler;
   npcScheduler?: NpcScheduler;
+  npcPickService?: NpcPickService;
   randomFn?: () => number;
 }) {
   const publisher = deps.draftEventPublisher ?? noopPublisher;
@@ -205,6 +209,7 @@ export function createDraftService(deps: {
   const scheduler = deps.timerScheduler;
   const npcScheduler = deps.npcScheduler;
   const watchlistRepo = deps.watchlistRepo;
+  const npcPickService = deps.npcPickService ?? createNpcPickService();
   const randomFn = deps.randomFn ?? Math.random;
 
   /**
@@ -737,20 +742,16 @@ export function createDraftService(deps: {
       if (!isNpc) return;
 
       const picks = await deps.draftRepo.listPicks(draftRow.id);
-      const pickedItemIds = new Set(picks.map((p) => p.poolItemId));
-      const available = poolItems.filter((item) => !pickedItemIds.has(item.id));
-      const myPickIds = new Set(
-        picks
-          .filter((p) => p.leaguePlayerId === currentPlayer.id)
-          .map((p) => p.poolItemId),
-      );
-      const myPicks = poolItems.filter((item) => myPickIds.has(item.id));
       const rawStrategy =
         (currentPlayer as { npcStrategy?: string | null }).npcStrategy ?? null;
-      const chosen = pickWithStrategy({
-        rawStrategy,
-        availableItems: available,
-        myPicks,
+      const chosen = npcPickService.selectPick({
+        currentLeaguePlayerId: currentPlayer.id,
+        npcStrategy: rawStrategy,
+        poolItems,
+        picks: picks.map((p) => ({
+          leaguePlayerId: p.leaguePlayerId,
+          poolItemId: p.poolItemId,
+        })),
         randomFn,
       });
       if (!chosen) return;
