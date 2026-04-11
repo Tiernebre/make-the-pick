@@ -68,6 +68,18 @@ export function useAvailableNpcs(leagueId: string, enabled: boolean) {
   );
 }
 
+export function useRemoveLeaguePlayer() {
+  const utils = trpc.useUtils();
+  return trpc.league.removePlayer.useMutation({
+    onSuccess: (_data, variables) => {
+      utils.league.listPlayers.invalidate({ leagueId: variables.leagueId });
+      utils.league.listAvailableNpcs.invalidate({
+        leagueId: variables.leagueId,
+      });
+    },
+  });
+}
+
 export function useDeleteLeague() {
   const utils = trpc.useUtils();
   return trpc.league.delete.useMutation({
