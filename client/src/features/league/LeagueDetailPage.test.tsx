@@ -16,6 +16,7 @@ const {
   mockUseRemoveLeaguePlayer,
   mockRemovePlayerMutate,
   mockUseDraft,
+  mockUsePokemonVersions,
 } = vi.hoisted(
   () => ({
     mockUseLeague: vi.fn(),
@@ -30,6 +31,7 @@ const {
     mockUseRemoveLeaguePlayer: vi.fn(),
     mockRemovePlayerMutate: vi.fn(),
     mockUseDraft: vi.fn(),
+    mockUsePokemonVersions: vi.fn(),
   }),
 );
 
@@ -45,6 +47,10 @@ vi.mock("./use-leagues", () => ({
 
 vi.mock("../draft/use-draft", () => ({
   useDraft: mockUseDraft,
+}));
+
+vi.mock("../pokemon-version/use-pokemon-versions", () => ({
+  usePokemonVersions: mockUsePokemonVersions,
 }));
 
 vi.mock("../../auth", () => ({
@@ -103,6 +109,18 @@ describe("LeagueDetailPage", () => {
       error: null,
     });
     mockUseDraft.mockReturnValue({ data: undefined, isLoading: false });
+    mockUsePokemonVersions.mockReturnValue({
+      data: [
+        {
+          id: "scarlet-violet",
+          name: "Scarlet Violet",
+          versionGroup: "scarlet-violet",
+          region: "Paldea",
+          generation: 9,
+        },
+      ],
+      isLoading: false,
+    });
     mockUseRemoveLeaguePlayer.mockReturnValue({
       mutate: mockRemovePlayerMutate,
       reset: vi.fn(),
@@ -507,7 +525,7 @@ describe("LeagueDetailPage", () => {
     });
     renderPage();
     expect(screen.getByText(/game version/i)).toBeInTheDocument();
-    expect(screen.getByText(/scarlet-violet/i)).toBeInTheDocument();
+    expect(screen.getByText("Scarlet Violet")).toBeInTheDocument();
     expect(screen.getByText(/pool multiplier/i)).toBeInTheDocument();
     expect(screen.getByText(/2\.5x/)).toBeInTheDocument();
     expect(screen.getByText(/pick timer/i)).toBeInTheDocument();
