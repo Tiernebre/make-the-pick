@@ -42,8 +42,12 @@ export {
   draftPoolSchema,
   type GenerateDraftPoolInput,
   generateDraftPoolSchema,
+  type IndividualPoolItemMetadata,
+  individualPoolItemMetadataSchema,
   type PoolItemAvailability,
   poolItemAvailabilitySchema,
+  type SpeciesPoolItemMetadata,
+  speciesPoolItemMetadataSchema,
 } from "./schemas/mod.ts";
 export { type HealthResponse, healthResponseSchema } from "./schemas/mod.ts";
 export {

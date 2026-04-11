@@ -1,5 +1,6 @@
 import type {
   DraftPoolItemMetadata,
+  IndividualPoolItemMetadata,
   Pokemon,
   PokemonEncountersData,
   PokemonEvolution,
@@ -217,23 +218,33 @@ function augmentItems(
 
   return items.map((item) => {
     const metadata = item.metadata as DraftPoolItemMetadata | null;
+    // Species-mode augmentation lives in a later PR; today every persisted
+    // pool item is individual-mode, so narrow to that branch before reading
+    // pokemonId-anchored context. Legacy rows predate the discriminator and
+    // store no `mode` field, so treat "anything that isn't species" as
+    // individual rather than a strict equality check.
+    const individual: IndividualPoolItemMetadata | null =
+      metadata && metadata.mode !== "species"
+        ? (metadata as IndividualPoolItemMetadata)
+        : null;
 
     let availability: PoolItemAvailability | null = null;
-    if (metadata && dexSize > 0) {
-      const dexNumber = dexByPokemonId.get(metadata.pokemonId);
+    if (individual && dexSize > 0) {
+      const dexNumber = dexByPokemonId.get(individual.pokemonId);
       if (dexNumber !== undefined) {
         availability = computeAvailabilityBucket(dexNumber, dexSize);
       }
     }
 
     let evolution: PokemonEvolution | null = null;
-    if (metadata && ctx.evolutions) {
-      evolution = ctx.evolutions[String(metadata.pokemonId)] ?? null;
+    if (individual && ctx.evolutions) {
+      evolution = ctx.evolutions[String(individual.pokemonId)] ?? null;
     }
 
     let encounter: PoolItemEncounter | null = null;
-    if (metadata && ctx.encountersForVersion) {
-      const directEntry = ctx.encountersForVersion[String(metadata.pokemonId)];
+    if (individual && ctx.encountersForVersion) {
+      const directEntry =
+        ctx.encountersForVersion[String(individual.pokemonId)];
       if (directEntry && directEntry.encounters.length > 0) {
         encounter = {
           primary: directEntry.primary,
@@ -242,9 +253,9 @@ function augmentItems(
       } else if (ctx.evolutions) {
         // Evolved Pokemon are rarely catchable in the wild. Walk the
         // pre-evolution chain until we find a stage that has encounters.
-        const seen = new Set<number>([metadata.pokemonId]);
+        const seen = new Set<number>([individual.pokemonId]);
         let cursor =
-          ctx.evolutions[String(metadata.pokemonId)]?.evolvesFromId ??
+          ctx.evolutions[String(individual.pokemonId)]?.evolvesFromId ??
             null;
         while (cursor !== null && !seen.has(cursor)) {
           seen.add(cursor);
@@ -267,8 +278,8 @@ function augmentItems(
     }
 
     let effort: PoolItemEffort | null = null;
-    if (metadata) {
-      const pokemon = pokemonById.get(metadata.pokemonId);
+    if (individual) {
+      const pokemon = pokemonById.get(individual.pokemonId);
       const captureSource = encounter?.source
         ? pokemonById.get(encounter.source.pokemonId) ?? pokemon
         : pokemon;
@@ -276,7 +287,7 @@ function augmentItems(
         captureRate: captureSource?.captureRate ?? null,
         encounter,
         evolution,
-        isTradeEvolution: ctx.tradeEvolutionIds.has(metadata.pokemonId),
+        isTradeEvolution: ctx.tradeEvolutionIds.has(individual.pokemonId),
       });
     }
 
