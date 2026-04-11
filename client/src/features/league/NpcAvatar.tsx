@@ -29,10 +29,10 @@ function backgroundColorFor(name: string): string {
 }
 
 /**
- * Spoofs a Google-profile-style bubble for NPC trainers: full-body Sugimori
- * sprites are cropped to the top of the image so the head lands inside the
- * circle, and the container gets a deterministic background color so the
- * bubble still feels filled when the sprite is narrower than the container.
+ * Spoofs a Google-profile-style bubble for NPC trainers: full-body sprites are
+ * cropped to the top of the image so the head lands inside the circle, and the
+ * container gets a deterministic background color so the bubble still feels
+ * filled when the sprite is narrower than the container.
  */
 export function NpcAvatar({ name, image, style, ...rest }: NpcAvatarProps) {
   const background = backgroundColorFor(name);
