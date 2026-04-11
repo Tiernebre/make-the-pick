@@ -114,9 +114,16 @@ export function useDraftEvents(
         onEventRef.current?.(result.data as DraftEvent);
         // Draft events invalidate the draft state query; pool reveal
         // events invalidate the draft pool query so the pooling-phase
-        // showcase view refreshes as new items flip visible.
+        // showcase view refreshes as new items flip visible. A
+        // reveal_completed event also implies the league status has
+        // flipped to "scouting" (the server auto-advances), so we also
+        // invalidate the league query so the banner dismisses and the
+        // stepper advances without a manual refresh.
         if (name.startsWith("draftPool:")) {
           utilsRef.current.draftPool.getByLeagueId.invalidate({ leagueId });
+          if (name === "draftPool:reveal_completed") {
+            utilsRef.current.league.getById.invalidate({ id: leagueId });
+          }
         } else {
           utilsRef.current.draft.getState.invalidate({ leagueId });
         }
