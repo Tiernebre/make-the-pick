@@ -124,7 +124,7 @@ describe("LeagueDetailPage", () => {
   it("displays the league status", () => {
     mockUseLeague.mockReturnValue({ data: mockLeague, isLoading: false });
     renderPage();
-    expect(screen.getByText(/setup/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/setup/i).length).toBeGreaterThan(0);
   });
 
   it("displays the invite code", () => {

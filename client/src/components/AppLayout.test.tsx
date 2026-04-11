@@ -196,6 +196,12 @@ describe("AppLayout shell", () => {
     const nav = screen.getByRole("navigation");
     expect(within(nav).getByText(/make the pick/i)).toBeInTheDocument();
   });
+
+  it("renders a burger button in the header for opening the mobile nav", () => {
+    setupMocks();
+    renderLayout();
+    expect(screen.getByLabelText("Toggle navigation")).toBeInTheDocument();
+  });
 });
 
 describe("AppLayout league mode", () => {

@@ -27,7 +27,7 @@ export function HomeDashboard() {
   const userName = session?.user?.name ?? "Trainer";
 
   return (
-    <Container size="lg" py="xl">
+    <Container size="lg" py={{ base: "md", sm: "xl" }}>
       <Group justify="space-between" mb="lg">
         <Title order={1}>Welcome back, {userName.split(" ")[0]}</Title>
       </Group>

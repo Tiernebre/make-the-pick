@@ -1,4 +1,4 @@
-import { Box, Group, Text } from "@mantine/core";
+import { Box, Group, Progress, Stack, Text } from "@mantine/core";
 import { IconCheck } from "@tabler/icons-react";
 
 type Phase =
@@ -37,10 +37,38 @@ interface LifecycleStepperProps {
 
 export function LifecycleStepper({ currentPhase }: LifecycleStepperProps) {
   const currentIndex = PHASES.findIndex((p) => p.id === currentPhase);
+  const safeIndex = currentIndex < 0 ? 0 : currentIndex;
+  const currentLabel = PHASES[safeIndex]?.label ?? "";
+  const progressValue = ((safeIndex + 1) / PHASES.length) * 100;
   return (
     <>
       <style>{STEPPER_KEYFRAMES}</style>
-      <Group gap="xs" wrap="nowrap" role="group" aria-label="League lifecycle">
+      <Stack
+        gap={6}
+        hiddenFrom="sm"
+        role="group"
+        aria-label="League lifecycle (compact)"
+      >
+        <Group justify="space-between" gap="xs">
+          <Text size="sm" fw={700}>{currentLabel}</Text>
+          <Text size="xs" c="dimmed">
+            Step {safeIndex + 1} of {PHASES.length}
+          </Text>
+        </Group>
+        <Progress
+          value={progressValue}
+          color="mint-green"
+          size="sm"
+          radius="xl"
+        />
+      </Stack>
+      <Group
+        gap="xs"
+        wrap="nowrap"
+        role="group"
+        aria-label="League lifecycle"
+        visibleFrom="sm"
+      >
         {PHASES.map((phase, index) => {
           const isCurrent = index === currentIndex;
           const isPast = index < currentIndex;

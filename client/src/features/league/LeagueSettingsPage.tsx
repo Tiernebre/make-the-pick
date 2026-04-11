@@ -138,7 +138,7 @@ export function LeagueSettingsPage() {
   const saveCurrentSettings = () => saveSettings(currentSettings);
 
   return (
-    <Container size="sm" py="xl" pos="relative">
+    <Container size="sm" py={{ base: "md", sm: "xl" }} pos="relative">
       <LoadingOverlay visible={league.isLoading} />
 
       <Anchor component={Link} href={`/leagues/${id}`} mb="md" display="block">

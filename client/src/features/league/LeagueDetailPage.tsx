@@ -130,7 +130,7 @@ export function LeagueDetailPage() {
   }, [draft.data]);
 
   return (
-    <Container size="lg" py="xl" pos="relative">
+    <Container size="lg" py={{ base: "md", sm: "xl" }} pos="relative">
       <LoadingOverlay visible={league.isLoading} />
 
       <Anchor component={Link} href="/leagues" mb="md" display="block">
@@ -139,9 +139,9 @@ export function LeagueDetailPage() {
 
       {league.data && (
         <>
-          <Paper withBorder radius="md" p="lg" mb="lg">
+          <Paper withBorder radius="md" p={{ base: "md", sm: "lg" }} mb="lg">
             <Group justify="space-between" align="flex-start" wrap="wrap">
-              <Stack gap="xs" style={{ flex: 1, minWidth: 260 }}>
+              <Stack gap="xs" style={{ flex: 1, minWidth: 0 }}>
                 <Title order={1}>{league.data.name}</Title>
                 {league.data.sportType && (
                   <Group gap="xs">
@@ -270,8 +270,17 @@ export function LeagueDetailPage() {
                         player.npcStrategy ?? null,
                       );
                       return (
-                        <Group key={player.id} justify="space-between">
-                          <Group gap="sm">
+                        <Group
+                          key={player.id}
+                          justify="space-between"
+                          wrap="nowrap"
+                          align="flex-start"
+                        >
+                          <Group
+                            gap="xs"
+                            wrap="wrap"
+                            style={{ flex: 1, minWidth: 0 }}
+                          >
                             {player.isNpc
                               ? (
                                 <NpcAvatar
@@ -297,7 +306,9 @@ export function LeagueDetailPage() {
                                     .slice(0, 2)}
                                 </Avatar>
                               )}
-                            <Text size="sm">{player.name}</Text>
+                            <Text size="sm" style={{ minWidth: 0 }} truncate>
+                              {player.name}
+                            </Text>
                             {player.isNpc && (
                               <Badge variant="light" color="grape" size="xs">
                                 NPC
@@ -315,7 +326,12 @@ export function LeagueDetailPage() {
                               </Tooltip>
                             )}
                           </Group>
-                          <Badge variant="light" size="sm" tt="capitalize">
+                          <Badge
+                            variant="light"
+                            size="sm"
+                            tt="capitalize"
+                            style={{ flexShrink: 0 }}
+                          >
                             {player.role}
                           </Badge>
                         </Group>
@@ -375,11 +391,21 @@ export function LeagueDetailPage() {
               <Stack gap="lg">
                 <Card shadow="sm" padding="lg" radius="md" withBorder>
                   <Title order={4} mb="sm">League info</Title>
-                  <Stack gap="xs">
-                    <Group justify="space-between">
+                  <Stack gap="md">
+                    <Stack gap={4}>
                       <Text size="sm" fw={500}>Invite code</Text>
-                      <Group gap={4}>
-                        <Text ff="monospace" size="sm">
+                      <Group gap={4} wrap="nowrap">
+                        <Text
+                          ff="monospace"
+                          size="sm"
+                          style={{
+                            flex: 1,
+                            minWidth: 0,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
                           {league.data.inviteCode}
                         </Text>
                         <CopyButton value={league.data.inviteCode}>
@@ -398,7 +424,7 @@ export function LeagueDetailPage() {
                           )}
                         </CopyButton>
                       </Group>
-                    </Group>
+                    </Stack>
                     <Stack gap={4}>
                       <Text size="sm" fw={500}>Share link</Text>
                       <Group gap={4} wrap="nowrap">
@@ -407,6 +433,8 @@ export function LeagueDetailPage() {
                           size="xs"
                           c="dimmed"
                           style={{
+                            flex: 1,
+                            minWidth: 0,
                             overflow: "hidden",
                             textOverflow: "ellipsis",
                             whiteSpace: "nowrap",
@@ -433,7 +461,7 @@ export function LeagueDetailPage() {
                         </CopyButton>
                       </Group>
                     </Stack>
-                    <Group justify="space-between">
+                    <Group justify="space-between" wrap="nowrap">
                       <Text size="sm" fw={500}>Created</Text>
                       <Text size="sm" c="dimmed">
                         {new Date(league.data.createdAt).toLocaleDateString()}

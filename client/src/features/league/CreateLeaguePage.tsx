@@ -82,7 +82,7 @@ export function CreateLeaguePage() {
   };
 
   return (
-    <Container size="sm" py="xl">
+    <Container size="sm" py={{ base: "md", sm: "xl" }}>
       <Anchor component={Link} href="/leagues" mb="md" display="block">
         &larr; Back to Leagues
       </Anchor>
