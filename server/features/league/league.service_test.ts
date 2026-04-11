@@ -1280,14 +1280,19 @@ Deno.test("leagueService.removePlayer: throws NOT_FOUND when target player is no
 });
 
 function createFakeNpcUser(
-  overrides: { id?: string; name?: string; npcStrategy?: string | null } = {},
+  overrides: {
+    id?: string;
+    name?: string;
+    npcStrategy?: string | null;
+    image?: string | null;
+  } = {},
 ) {
   return {
     id: overrides.id ?? crypto.randomUUID(),
     name: overrides.name ?? "NPC Trainer",
     email: `${crypto.randomUUID()}@example.test`,
     emailVerified: true,
-    image: null,
+    image: overrides.image ?? null,
     isNpc: true,
     npcStrategy: overrides.npcStrategy ?? "balanced",
     createdAt: new Date(),
@@ -1417,8 +1422,18 @@ Deno.test("leagueService.addNpcPlayer: rejects an npcUserId that isn't available
 Deno.test("leagueService.listAvailableNpcs: returns available NPCs for the commissioner", async () => {
   const fakeLeague = createFakeLeague();
   const npcs = [
-    createFakeNpcUser({ id: "npc-a", name: "Alice", npcStrategy: "balanced" }),
-    createFakeNpcUser({ id: "npc-b", name: "Bob", npcStrategy: "aggressive" }),
+    createFakeNpcUser({
+      id: "npc-a",
+      name: "Alice",
+      npcStrategy: "balanced",
+      image: "https://example.test/alice.png",
+    }),
+    createFakeNpcUser({
+      id: "npc-b",
+      name: "Bob",
+      npcStrategy: "aggressive",
+      image: "https://example.test/bob.png",
+    }),
   ];
   const repo = commissionerRepoWith(fakeLeague, {
     findAvailableNpcUsers: (_leagueId) => Promise.resolve(npcs),
@@ -1433,8 +1448,18 @@ Deno.test("leagueService.listAvailableNpcs: returns available NPCs for the commi
     leagueId: fakeLeague.id,
   });
   assertEquals(result, [
-    { id: "npc-a", name: "Alice", npcStrategy: "balanced" },
-    { id: "npc-b", name: "Bob", npcStrategy: "aggressive" },
+    {
+      id: "npc-a",
+      name: "Alice",
+      npcStrategy: "balanced",
+      image: "https://example.test/alice.png",
+    },
+    {
+      id: "npc-b",
+      name: "Bob",
+      npcStrategy: "aggressive",
+      image: "https://example.test/bob.png",
+    },
   ]);
 });
 
