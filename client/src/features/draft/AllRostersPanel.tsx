@@ -15,6 +15,7 @@ import {
   parseNpcStrategy,
 } from "@make-the-pick/shared";
 import { useMemo } from "react";
+import { getPoolItemDisplay } from "./pool-item-display";
 
 export interface AllRostersPanelProps {
   draftState: DraftState;
@@ -79,6 +80,7 @@ export function AllRostersPanel({
                       {picks.map((pick) => {
                         const item = poolItemsById[pick.poolItemId];
                         if (!item) return null;
+                        const display = getPoolItemDisplay(item);
                         return (
                           <Group key={pick.id} gap="xs" wrap="nowrap">
                             <Avatar
@@ -91,9 +93,9 @@ export function AllRostersPanel({
                               <Text size="sm" fw={500} tt="capitalize" truncate>
                                 {item.name}
                               </Text>
-                              {item.metadata && (
+                              {display && (
                                 <Group gap={4}>
-                                  {item.metadata.types.map((t) => (
+                                  {display.types.map((t) => (
                                     <Badge
                                       key={t}
                                       size="xs"
