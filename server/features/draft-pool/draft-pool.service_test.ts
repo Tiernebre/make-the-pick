@@ -1237,7 +1237,14 @@ Deno.test("draftPoolService.getByLeagueId: derives availability from regional de
 
   const result = await service.getByLeagueId("user-2", fakeLeague.id);
   const byPokemonId = new Map(
-    result.items.map((item) => [item.metadata?.pokemonId, item.availability]),
+    result.items.map((
+      item,
+    ) => [
+      item.metadata && item.metadata.mode !== "species"
+        ? item.metadata.pokemonId
+        : undefined,
+      item.availability,
+    ]),
   );
   assertEquals(byPokemonId.get(1), "early");
   assertEquals(byPokemonId.get(3), "early");
@@ -1643,7 +1650,14 @@ Deno.test("draftPoolService.getByLeagueId: attaches encounter, effort, and evolu
 
   const result = await service.getByLeagueId("user-2", fakeLeague.id);
   const byId = new Map(
-    result.items.map((item) => [item.metadata?.pokemonId, item]),
+    result.items.map((
+      item,
+    ) => [
+      item.metadata && item.metadata.mode !== "species"
+        ? item.metadata.pokemonId
+        : undefined,
+      item,
+    ]),
   );
 
   const commonMon = byId.get(1)!;
@@ -1802,7 +1816,14 @@ Deno.test("draftPoolService.getByLeagueId: falls back to pre-evolution encounter
 
   const result = await service.getByLeagueId("user-2", fakeLeague.id);
   const byId = new Map(
-    result.items.map((item) => [item.metadata?.pokemonId, item]),
+    result.items.map((
+      item,
+    ) => [
+      item.metadata && item.metadata.mode !== "species"
+        ? item.metadata.pokemonId
+        : undefined,
+      item,
+    ]),
   );
 
   const firstStage = byId.get(2)!;
