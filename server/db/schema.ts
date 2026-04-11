@@ -147,6 +147,8 @@ export const draftPoolItem = pgTable("draft_pool_item", {
   name: text("name").notNull(),
   thumbnailUrl: text("thumbnail_url"),
   metadata: jsonb("metadata"),
+  revealOrder: integer("reveal_order").notNull().default(0),
+  revealedAt: timestamp("revealed_at", { withTimezone: true }),
 }, (table) => [
   unique("draft_pool_item_unique").on(table.draftPoolId, table.name),
 ]);
