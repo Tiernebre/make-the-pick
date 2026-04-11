@@ -9,17 +9,45 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MantineProvider } from "@mantine/core";
 import { DraftPoolPage } from "./DraftPoolPage";
 
-const { mockUseLeague, mockUseDraftPool } = vi.hoisted(() => ({
+const {
+  mockUseLeague,
+  mockUseDraftPool,
+  mockUseLeaguePlayers,
+  mockRevealNext,
+  mockAdvanceStatus,
+} = vi.hoisted(() => ({
   mockUseLeague: vi.fn(),
   mockUseDraftPool: vi.fn(),
+  mockUseLeaguePlayers: vi.fn(() => ({ data: [] })),
+  mockRevealNext: vi.fn(),
+  mockAdvanceStatus: vi.fn(),
 }));
 
 vi.mock("../league/use-leagues", () => ({
   useLeague: mockUseLeague,
+  useLeaguePlayers: mockUseLeaguePlayers,
+  useAdvanceLeagueStatus: () => ({
+    mutate: mockAdvanceStatus,
+    isPending: false,
+    error: null,
+  }),
+}));
+
+vi.mock("../../auth", () => ({
+  useSession: () => ({ data: { user: { id: "user-1" } } }),
 }));
 
 vi.mock("./use-draft", () => ({
   useDraftPool: mockUseDraftPool,
+  useRevealNextPoolItem: () => ({
+    mutate: mockRevealNext,
+    isPending: false,
+    error: null,
+  }),
+}));
+
+vi.mock("./use-draft-events", () => ({
+  useDraftEvents: () => ({ status: "idle" }),
 }));
 
 vi.mock("./use-pool-item-notes", () => ({
@@ -319,5 +347,107 @@ describe("DraftPoolPage", () => {
     expect(
       await screen.findByText(/click the star icon on any player/i),
     ).toBeInTheDocument();
+  });
+
+  describe("pooling phase showcase", () => {
+    it("shows the showcase banner and reveal button for commissioners", () => {
+      mockUseLeague.mockReturnValue({
+        data: { ...mockLeague, status: "pooling" },
+        isLoading: false,
+      });
+      mockUseDraftPool.mockReturnValue({
+        data: { ...mockPool, totalItems: 12 },
+        isLoading: false,
+      });
+      mockUseLeaguePlayers.mockReturnValue({
+        data: [
+          {
+            id: "p1",
+            userId: "user-1",
+            name: "Ash",
+            image: null,
+            role: "commissioner",
+            joinedAt: "2026-01-01T00:00:00Z",
+          },
+        ],
+      });
+
+      renderPage();
+
+      expect(
+        screen.getByText(/live pool reveal in progress/i),
+      ).toBeInTheDocument();
+      // 2 mock items in mockPool, total 12 → "2 / 12 revealed".
+      expect(screen.getByText(/2 \/ 12 revealed/i)).toBeInTheDocument();
+      const revealButton = screen.getByRole("button", {
+        name: /reveal next pokémon/i,
+      });
+      expect(revealButton).toBeInTheDocument();
+
+      fireEvent.click(revealButton);
+      expect(mockRevealNext).toHaveBeenCalledWith({ leagueId: "league-1" });
+    });
+
+    it("shows a Skip showcase button that advances the league status", () => {
+      mockUseLeague.mockReturnValue({
+        data: { ...mockLeague, status: "pooling" },
+        isLoading: false,
+      });
+      mockUseLeaguePlayers.mockReturnValue({
+        data: [
+          {
+            id: "p1",
+            userId: "user-1",
+            name: "Ash",
+            image: null,
+            role: "commissioner",
+            joinedAt: "2026-01-01T00:00:00Z",
+          },
+        ],
+      });
+
+      renderPage();
+
+      const skipButton = screen.getByRole("button", {
+        name: /skip showcase/i,
+      });
+      fireEvent.click(skipButton);
+      expect(mockAdvanceStatus).toHaveBeenCalledWith({ leagueId: "league-1" });
+    });
+
+    it("shows a waiting message for members without the reveal button", () => {
+      mockUseLeague.mockReturnValue({
+        data: { ...mockLeague, status: "pooling" },
+        isLoading: false,
+      });
+      mockUseLeaguePlayers.mockReturnValue({
+        data: [
+          {
+            id: "p2",
+            userId: "user-1",
+            name: "Gary",
+            image: null,
+            role: "member",
+            joinedAt: "2026-01-01T00:00:00Z",
+          },
+        ],
+      });
+
+      renderPage();
+
+      expect(
+        screen.getByText(/waiting on the commissioner/i),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: /reveal next pokémon/i }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("does not show the showcase banner outside of the pooling phase", () => {
+      renderPage();
+      expect(
+        screen.queryByText(/live pool reveal in progress/i),
+      ).not.toBeInTheDocument();
+    });
   });
 });

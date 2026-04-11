@@ -1,10 +1,18 @@
 import { Box, Group, Text } from "@mantine/core";
 import { IconCheck } from "@tabler/icons-react";
 
-type Phase = "setup" | "drafting" | "competing" | "complete";
+type Phase =
+  | "setup"
+  | "pooling"
+  | "scouting"
+  | "drafting"
+  | "competing"
+  | "complete";
 
 const PHASES: { id: Phase; label: string }[] = [
   { id: "setup", label: "Setup" },
+  { id: "pooling", label: "Pooling" },
+  { id: "scouting", label: "Scouting" },
   { id: "drafting", label: "Drafting" },
   { id: "competing", label: "Competing" },
   { id: "complete", label: "Complete" },

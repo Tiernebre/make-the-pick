@@ -28,3 +28,12 @@ export function useStartDraft(leagueId: string) {
     },
   });
 }
+
+export function useRevealNextPoolItem(leagueId: string) {
+  const utils = trpc.useUtils();
+  return trpc.draftPool.revealNext.useMutation({
+    onSuccess: () => {
+      utils.draftPool.getByLeagueId.invalidate({ leagueId });
+    },
+  });
+}

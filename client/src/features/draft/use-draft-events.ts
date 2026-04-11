@@ -3,6 +3,8 @@ import {
   draftCompletedEventSchema,
   type DraftEvent,
   draftPickMadeEventSchema,
+  draftPoolItemRevealedEventSchema,
+  draftPoolRevealCompletedEventSchema,
   draftStartedEventSchema,
   draftStateEventSchema,
   draftTurnChangeEventSchema,
@@ -24,6 +26,8 @@ const eventSchemas = {
   "draft:pick_made": draftPickMadeEventSchema,
   "draft:turn_change": draftTurnChangeEventSchema,
   "draft:completed": draftCompletedEventSchema,
+  "draftPool:item_revealed": draftPoolItemRevealedEventSchema,
+  "draftPool:reveal_completed": draftPoolRevealCompletedEventSchema,
 } as const;
 
 type DraftEventName = keyof typeof eventSchemas;
@@ -108,7 +112,21 @@ export function useDraftEvents(
           return;
         }
         onEventRef.current?.(result.data as DraftEvent);
-        utilsRef.current.draft.getState.invalidate({ leagueId });
+        // Draft events invalidate the draft state query; pool reveal
+        // events invalidate the draft pool query so the pooling-phase
+        // showcase view refreshes as new items flip visible. A
+        // reveal_completed event also implies the league status has
+        // flipped to "scouting" (the server auto-advances), so we also
+        // invalidate the league query so the banner dismisses and the
+        // stepper advances without a manual refresh.
+        if (name.startsWith("draftPool:")) {
+          utilsRef.current.draftPool.getByLeagueId.invalidate({ leagueId });
+          if (name === "draftPool:reveal_completed") {
+            utilsRef.current.league.getById.invalidate({ id: leagueId });
+          }
+        } else {
+          utilsRef.current.draft.getState.invalidate({ leagueId });
+        }
       };
       source.addEventListener(name, handler as EventListener);
       listeners.push({ name, handler });

@@ -11,8 +11,10 @@ import type {
   PoolItemEncounter,
   RegionalPokedexEntry,
 } from "@make-the-pick/shared";
+import { LEAGUE_STATUS_TRANSITIONS } from "@make-the-pick/shared";
 import { TRPCError } from "@trpc/server";
 import { logger } from "../../logger.ts";
+import type { DraftEventPublisher } from "../draft/draft.events.ts";
 import type { LeagueRepository } from "../league/league.repository.ts";
 import type { DraftPoolRepository } from "./draft-pool.repository.ts";
 
@@ -329,6 +331,7 @@ export function createDraftPoolService(deps: {
   pokemonEncounters?: PokemonEncountersData;
   pokemonEvolutions?: PokemonEvolutionsData;
   pokemonGifts?: PokemonGiftsData;
+  eventPublisher?: DraftEventPublisher;
 }) {
   const pokemonById = new Map<number, Pokemon>(
     deps.pokemonData.map((p) => [p.id, p]),
@@ -370,10 +373,11 @@ export function createDraftPoolService(deps: {
         throw new TRPCError({ code: "NOT_FOUND", message: "League not found" });
       }
 
-      if (league.status !== "setup") {
+      if (league.status !== "setup" && league.status !== "pooling") {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "Draft pool can only be generated during league setup",
+          message:
+            "Draft pool can only be generated before the draft has started",
         });
       }
 
@@ -537,8 +541,10 @@ export function createDraftPoolService(deps: {
         "Draft Pool",
       );
 
-      // Map to pool items
-      const poolItems = selected.map((pokemon) => ({
+      // Map to pool items. `selected` is already fisher-yates shuffled, so
+      // using the array index as reveal_order gives a deterministic but
+      // random-looking showcase sequence without a second shuffle.
+      const poolItems = selected.map((pokemon, index) => ({
         draftPoolId: pool.id,
         name: pokemon.name,
         thumbnailUrl: pokemon.spriteUrl,
@@ -548,6 +554,8 @@ export function createDraftPoolService(deps: {
           baseStats: pokemon.baseStats,
           generation: pokemon.generation,
         },
+        revealOrder: index,
+        revealedAt: null,
       }));
 
       const items = await deps.draftPoolRepo.createItems(poolItems);
@@ -590,7 +598,24 @@ export function createDraftPoolService(deps: {
         });
       }
 
-      const items = await deps.draftPoolRepo.findItemsByPoolId(pool.id);
+      // During the "pooling" phase the showcase is mid-reveal: members
+      // (including the commissioner running it) only see items the
+      // commissioner has actually revealed so far. Once the league has
+      // advanced to scouting or beyond, the filter drops and everything is
+      // visible.
+      const isPooling = league.status === "pooling";
+      const items = await deps.draftPoolRepo.findItemsByPoolId(pool.id, {
+        onlyRevealed: isPooling,
+      });
+
+      // Include the total pool size (not just revealed) so the client can
+      // render a "X / Y revealed" progress indicator in the showcase banner
+      // without hitting a separate endpoint. Outside of pooling, totalItems
+      // equals items.length since the filter is off.
+      const totalItems = isPooling
+        ? items.length +
+          (await deps.draftPoolRepo.countUnrevealedItems(pool.id))
+        : items.length;
 
       const augmentedItems = augmentItems(
         items,
@@ -598,7 +623,89 @@ export function createDraftPoolService(deps: {
         pokemonById,
       );
 
-      return { ...pool, items: augmentedItems };
+      return { ...pool, items: augmentedItems, totalItems };
+    },
+
+    async revealNext(userId: string, input: { leagueId: string }) {
+      log.debug(
+        { userId, leagueId: input.leagueId },
+        "revealing next draft pool item",
+      );
+
+      const league = await deps.leagueRepo.findById(input.leagueId);
+      if (!league) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "League not found" });
+      }
+      if (league.status !== "pooling") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            "Draft pool items can only be revealed during the pooling phase",
+        });
+      }
+      const player = await deps.leagueRepo.findPlayer(
+        input.leagueId,
+        userId,
+      );
+      if (player?.role !== "commissioner") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only the league commissioner can reveal draft pool items",
+        });
+      }
+
+      const pool = await deps.draftPoolRepo.findByLeagueId(input.leagueId);
+      if (!pool) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "No draft pool has been generated for this league",
+        });
+      }
+
+      const result = await deps.draftPoolRepo.revealNextItem(
+        pool.id,
+        new Date(),
+      );
+      if (!result) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "All draft pool items have already been revealed",
+        });
+      }
+
+      deps.eventPublisher?.publish(input.leagueId, {
+        type: "draftPool:item_revealed",
+        data: {
+          itemId: result.item.id,
+          revealOrder: result.item.revealOrder,
+          remaining: result.remaining,
+        },
+      });
+
+      // Auto-advance to scouting when the last item has just been revealed.
+      // Avoids making the commissioner click "Advance" right after clicking
+      // "Reveal" — the showcase is done, so there is nothing left to wait
+      // for. Done via the direct repo call rather than by re-entering
+      // leagueService.advanceStatus so we don't run revealAllItems again on
+      // a pool that is already fully revealed. The next status is looked up
+      // from the shared transition map instead of hard-coding "scouting"
+      // so that if the lifecycle is ever reshuffled this auto-advance
+      // follows the same chain the manual "Advance" button walks.
+      if (result.remaining === 0) {
+        const nextStatus = LEAGUE_STATUS_TRANSITIONS.pooling;
+        if (nextStatus) {
+          await deps.leagueRepo.updateStatus(input.leagueId, nextStatus);
+        }
+        deps.eventPublisher?.publish(input.leagueId, {
+          type: "draftPool:reveal_completed",
+        });
+      }
+
+      return {
+        itemId: result.item.id,
+        revealOrder: result.item.revealOrder,
+        remaining: result.remaining,
+      };
     },
   };
 }

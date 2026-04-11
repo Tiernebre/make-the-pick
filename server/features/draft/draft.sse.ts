@@ -47,8 +47,17 @@ export function registerDraftSseRoute(app: Hono, deps: DraftSseDeps): void {
     }
     const leagueId = c.req.param("leagueId");
 
-    // getState validates league membership and gives us the initial snapshot.
-    let initialState;
+    // getState validates league membership and gives us the initial draft
+    // snapshot. During the pooling phase the draft row does not exist yet,
+    // but league members still need to tune in to see the pool reveal
+    // showcase — we catch the NOT_FOUND, skip the initial snapshot, and
+    // still subscribe them to the event stream so they receive the
+    // draftPool:item_revealed events as the commissioner advances.
+    let initialState:
+      | Awaited<
+        ReturnType<DraftService["getState"]>
+      >
+      | null = null;
     try {
       initialState = await deps.draftService.getState({
         userId: session.userId,
@@ -60,11 +69,20 @@ export function registerDraftSseRoute(app: Hono, deps: DraftSseDeps): void {
           return c.json({ error: err.message }, 403);
         }
         if (err.code === "NOT_FOUND") {
-          return c.json({ error: err.message }, 404);
+          // Draft hasn't been created yet (league is still in setup /
+          // pooling / scouting). Fall through to the stream without an
+          // initial draft:state event. Membership was already validated by
+          // getState before the draft-row check, so reaching this branch
+          // means the caller is a league member.
+          initialState = null;
+        } else {
+          log.error({ err, leagueId }, "failed to load draft state for SSE");
+          throw err;
         }
+      } else {
+        log.error({ err, leagueId }, "failed to load draft state for SSE");
+        throw err;
       }
-      log.error({ err, leagueId }, "failed to load draft state for SSE");
-      throw err;
     }
 
     return streamSSE(c, async (stream) => {
@@ -81,14 +99,17 @@ export function registerDraftSseRoute(app: Hono, deps: DraftSseDeps): void {
       );
 
       // Emit initial snapshot so reconnects see the full current state.
-      const initialEvent: DraftEvent = {
-        type: "draft:state",
-        data: initialState as DraftState,
-      };
-      await stream.writeSSE({
-        event: initialEvent.type,
-        data: JSON.stringify(initialEvent),
-      });
+      // Skipped when no draft exists yet (pooling / scouting phases).
+      if (initialState) {
+        const initialEvent: DraftEvent = {
+          type: "draft:state",
+          data: initialState as unknown as DraftState,
+        };
+        await stream.writeSSE({
+          event: initialEvent.type,
+          data: JSON.stringify(initialEvent),
+        });
+      }
 
       const heartbeatTimer = setInterval(() => {
         // Comment lines are ignored by EventSource clients but keep proxies alive.

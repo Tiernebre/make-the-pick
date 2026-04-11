@@ -148,6 +148,13 @@
       "when": 1776320000000,
       "tag": "0020_brendan_may_npcs",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1776330000000,
+      "tag": "0021_real_eternity",
+      "breakpoints": true
     }
   ]
 }

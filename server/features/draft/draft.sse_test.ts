@@ -164,3 +164,73 @@ Deno.test("draft SSE: streams initial state and forwards published events, unsub
   await new Promise((r) => setTimeout(r, 20));
   assertEquals(publisher.subscriberCount(leagueId), 0);
 });
+
+Deno.test("draft SSE: member → streams events even when no draft exists yet (pooling phase)", async () => {
+  const leagueId = crypto.randomUUID();
+  const publisher = createDraftEventPublisher();
+  // Simulate the draft row not yet existing — e.g. league is in "pooling"
+  // phase. getState throws NOT_FOUND after validating membership.
+  const app = buildApp({
+    publisher,
+    draftService: createFakeDraftService(() =>
+      Promise.reject(
+        new TRPCError({
+          code: "NOT_FOUND",
+          message: "No draft has been created for this league yet",
+        }),
+      )
+    ),
+    sessionUserId: "user-1",
+  });
+
+  const controller = new AbortController();
+  const res = await app.request(`/api/draft/events/${leagueId}`, {
+    signal: controller.signal,
+  });
+  assertEquals(res.status, 200);
+  assertEquals(res.headers.get("content-type"), "text/event-stream");
+
+  const reader = res.body!.getReader();
+  const decoder = new TextDecoder();
+
+  async function readUntil(
+    predicate: (buf: string) => boolean,
+    maxReads = 20,
+  ): Promise<string> {
+    let buf = "";
+    let reads = 0;
+    while (!predicate(buf) && reads < maxReads) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      reads++;
+    }
+    return buf;
+  }
+
+  // Wait for subscription.
+  await new Promise((r) => setTimeout(r, 10));
+  assertEquals(publisher.subscriberCount(leagueId), 1);
+
+  // Publish a pool reveal event and confirm it streams through.
+  const event: DraftEvent = {
+    type: "draftPool:item_revealed",
+    data: {
+      itemId: crypto.randomUUID(),
+      revealOrder: 0,
+      remaining: 4,
+    },
+  };
+  publisher.publish(leagueId, event);
+
+  const frame = await readUntil((b) =>
+    b.includes("event: draftPool:item_revealed")
+  );
+  assertStringIncludes(frame, "event: draftPool:item_revealed");
+  assertStringIncludes(frame, '"remaining":4');
+
+  await reader.cancel();
+  controller.abort();
+  await new Promise((r) => setTimeout(r, 20));
+  assertEquals(publisher.subscriberCount(leagueId), 0);
+});

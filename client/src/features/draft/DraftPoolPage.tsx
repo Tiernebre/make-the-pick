@@ -1,5 +1,6 @@
 import {
   ActionIcon,
+  Alert,
   Anchor,
   Avatar,
   Badge,
@@ -9,6 +10,7 @@ import {
   HoverCard,
   List,
   LoadingOverlay,
+  Paper,
   Popover,
   Stack,
   Table,
@@ -33,8 +35,14 @@ import type {
   PoolItemEffort,
 } from "@make-the-pick/shared";
 import { Link, useParams } from "wouter";
-import { useLeague } from "../league/use-leagues";
-import { useDraftPool } from "./use-draft";
+import { useSession } from "../../auth";
+import {
+  useAdvanceLeagueStatus,
+  useLeague,
+  useLeaguePlayers,
+} from "../league/use-leagues";
+import { useDraftPool, useRevealNextPoolItem } from "./use-draft";
+import { useDraftEvents } from "./use-draft-events";
 import { usePoolItemNotes } from "./use-pool-item-notes";
 import {
   useAddToWatchlist,
@@ -292,6 +300,21 @@ export function DraftPoolPage() {
   const watchlist = useWatchlist(id!);
   const addToWatchlist = useAddToWatchlist();
   const removeFromWatchlist = useRemoveFromWatchlist();
+  const players = useLeaguePlayers(id!);
+  const { data: session } = useSession();
+  const revealNext = useRevealNextPoolItem(id!);
+  const advanceStatus = useAdvanceLeagueStatus();
+
+  const isPooling = league.data?.status === "pooling";
+  const isCommissioner = players.data?.some(
+    (p) => p.userId === session?.user?.id && p.role === "commissioner",
+  ) ?? false;
+
+  // Keep the SSE connection live whenever we're in the pooling showcase so
+  // reveal events invalidate the pool query in real time. Outside of
+  // pooling the page doesn't need the event stream — the draft page has its
+  // own connection.
+  useDraftEvents(id!, { enabled: isPooling });
 
   const poolItemNotes = usePoolItemNotes(id!);
 
@@ -612,7 +635,8 @@ export function DraftPoolPage() {
             }}
           >
             <Title order={1}>
-              {league.data.name} — Draft Pool
+              {league.data.name} —{" "}
+              {isPooling ? "Pool Reveal Showcase" : "Draft Pool"}
             </Title>
             <Popover
               width={360}
@@ -637,6 +661,64 @@ export function DraftPoolPage() {
               </Popover.Dropdown>
             </Popover>
           </Group>
+
+          {isPooling && (
+            <Paper
+              withBorder
+              radius="md"
+              p="md"
+              mb="lg"
+              style={{
+                background: "var(--mantine-color-mint-green-0)",
+                borderColor: "var(--mantine-color-mint-green-4)",
+              }}
+            >
+              <Group justify="space-between" align="center" wrap="wrap">
+                <Stack gap={4} style={{ flex: 1, minWidth: 240 }}>
+                  <Group gap="sm" align="center">
+                    <Text fw={700} size="md">
+                      Live pool reveal in progress
+                    </Text>
+                    <Badge color="mint-green" variant="filled" size="lg">
+                      {draftPool.data?.items.length ?? 0} /{" "}
+                      {draftPool.data?.totalItems ?? 0} revealed
+                    </Badge>
+                  </Group>
+                  <Text size="sm" c="dimmed">
+                    {isCommissioner
+                      ? "Reveal Pokémon one at a time for everyone watching. The showcase finishes automatically when the last one is revealed."
+                      : "Waiting on the commissioner to reveal the next Pokémon. The rest are hidden until then."}
+                  </Text>
+                </Stack>
+                {isCommissioner && (
+                  <Group gap="sm">
+                    <Button
+                      size="md"
+                      variant="subtle"
+                      color="gray"
+                      loading={advanceStatus.isPending}
+                      onClick={() => advanceStatus.mutate({ leagueId: id! })}
+                    >
+                      Skip showcase
+                    </Button>
+                    <Button
+                      size="md"
+                      color="mint-green"
+                      loading={revealNext.isPending}
+                      onClick={() => revealNext.mutate({ leagueId: id! })}
+                    >
+                      Reveal next Pokémon
+                    </Button>
+                  </Group>
+                )}
+              </Group>
+              {revealNext.error && (
+                <Alert color="red" title="Reveal failed" mt="sm">
+                  {revealNext.error.message}
+                </Alert>
+              )}
+            </Paper>
+          )}
 
           <MantineReactTable table={table} />
         </>

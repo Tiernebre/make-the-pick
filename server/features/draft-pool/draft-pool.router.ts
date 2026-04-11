@@ -16,5 +16,11 @@ export function createDraftPoolRouter(draftPoolService: DraftPoolService) {
       .query(({ ctx, input }) => {
         return draftPoolService.getByLeagueId(ctx.user.id, input.leagueId);
       }),
+
+    revealNext: protectedProcedure
+      .input(object({ leagueId: string().uuid() }))
+      .mutation(({ ctx, input }) => {
+        return draftPoolService.revealNext(ctx.user.id, input);
+      }),
   });
 }

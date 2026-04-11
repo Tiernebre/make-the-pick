@@ -135,10 +135,16 @@ function createFakeDraftPoolRepo(
           name: item.name as string,
           thumbnailUrl: (item.thumbnailUrl as string) ?? null,
           metadata: item.metadata ?? null,
+          revealOrder: item.revealOrder ?? 0,
+          revealedAt: item.revealedAt ?? null,
         })),
       ),
     findByLeagueId: (_leagueId) => Promise.resolve(null as FakePool),
-    findItemsByPoolId: (_poolId) => Promise.resolve([] as FakePoolItem[]),
+    findItemsByPoolId: (_poolId, _opts) =>
+      Promise.resolve([] as FakePoolItem[]),
+    countUnrevealedItems: (_poolId) => Promise.resolve(0),
+    revealNextItem: (_poolId, _now) => Promise.resolve(null),
+    revealAllItems: (_poolId, _now) => Promise.resolve(0),
     deleteByLeagueId: (_leagueId) => Promise.resolve(),
     ...overrides,
   };
@@ -167,6 +173,8 @@ Deno.test("draftPoolService.generate: returns pool with correct number of items"
           name: item.name as string,
           thumbnailUrl: (item.thumbnailUrl as string) ?? null,
           metadata: item.metadata ?? null,
+          revealOrder: item.revealOrder ?? 0,
+          revealedAt: item.revealedAt ?? null,
         })),
       );
     },
@@ -464,6 +472,8 @@ Deno.test("draftPoolService.generate: maps Pokemon metadata correctly", async ()
           name: item.name as string,
           thumbnailUrl: (item.thumbnailUrl as string) ?? null,
           metadata: item.metadata ?? null,
+          revealOrder: item.revealOrder ?? 0,
+          revealedAt: item.revealedAt ?? null,
         })),
       );
     },
@@ -550,6 +560,8 @@ Deno.test("draftPoolService.getByLeagueId: returns pool with items", async () =>
       name: "pikachu",
       thumbnailUrl: null,
       metadata: null,
+      revealOrder: 0,
+      revealedAt: null,
     },
   ];
 
@@ -707,6 +719,8 @@ Deno.test("draftPoolService.generate: filters Pokemon by regional dex when gameV
           name: item.name as string,
           thumbnailUrl: (item.thumbnailUrl as string) ?? null,
           metadata: item.metadata ?? null,
+          revealOrder: item.revealOrder ?? 0,
+          revealedAt: item.revealedAt ?? null,
         })),
       );
     },
@@ -846,6 +860,8 @@ Deno.test("draftPoolService.generate: excludes legendary Pokemon when excludeLeg
           name: item.name as string,
           thumbnailUrl: (item.thumbnailUrl as string) ?? null,
           metadata: item.metadata ?? null,
+          revealOrder: item.revealOrder ?? 0,
+          revealedAt: item.revealedAt ?? null,
         })),
       );
     },
@@ -909,6 +925,8 @@ Deno.test("draftPoolService.generate: excludes starter Pokemon when excludeStart
           name: item.name as string,
           thumbnailUrl: (item.thumbnailUrl as string) ?? null,
           metadata: item.metadata ?? null,
+          revealOrder: item.revealOrder ?? 0,
+          revealedAt: item.revealedAt ?? null,
         })),
       );
     },
@@ -964,6 +982,8 @@ Deno.test("draftPoolService.generate: excludes trade evolution Pokemon when excl
           name: item.name as string,
           thumbnailUrl: (item.thumbnailUrl as string) ?? null,
           metadata: item.metadata ?? null,
+          revealOrder: item.revealOrder ?? 0,
+          revealedAt: item.revealedAt ?? null,
         })),
       );
     },
@@ -1030,6 +1050,8 @@ Deno.test("draftPoolService.generate: applies multiple exclusions together", asy
           name: item.name as string,
           thumbnailUrl: (item.thumbnailUrl as string) ?? null,
           metadata: item.metadata ?? null,
+          revealOrder: item.revealOrder ?? 0,
+          revealedAt: item.revealedAt ?? null,
         })),
       );
     },
@@ -1164,6 +1186,8 @@ function createFakeStoredPoolItem(
       },
       generation: "generation-i",
     },
+    revealOrder: 0,
+    revealedAt: null,
   };
 }
 
@@ -1938,6 +1962,8 @@ Deno.test("draftPoolService.generate: drops Pokemon with no wild encounter and n
           name: item.name as string,
           thumbnailUrl: (item.thumbnailUrl as string) ?? null,
           metadata: item.metadata ?? null,
+          revealOrder: item.revealOrder ?? 0,
+          revealedAt: item.revealedAt ?? null,
         })),
       );
     },
@@ -2032,6 +2058,8 @@ Deno.test("draftPoolService.generate: keeps Pokemon whose pre-evolution has a wi
           name: item.name as string,
           thumbnailUrl: (item.thumbnailUrl as string) ?? null,
           metadata: item.metadata ?? null,
+          revealOrder: item.revealOrder ?? 0,
+          revealedAt: item.revealedAt ?? null,
         })),
       );
     },
@@ -2097,4 +2125,310 @@ Deno.test("draftPoolService.generate: catchability filter is a no-op when pokemo
     leagueId: fakeLeague.id,
   });
   assertEquals(result.items.length, 2);
+});
+
+// --- revealNext ---
+
+Deno.test("draftPoolService.revealNext: publishes draftPool:item_revealed event", async () => {
+  const fakeLeague = createFakeLeague({ status: "pooling" });
+  const fakePool = {
+    id: crypto.randomUUID(),
+    leagueId: fakeLeague.id,
+    name: "Pool",
+    createdAt: new Date(),
+  };
+  const revealedItem = {
+    id: crypto.randomUUID(),
+    draftPoolId: fakePool.id,
+    name: "pikachu",
+    thumbnailUrl: null,
+    metadata: null,
+    revealOrder: 2,
+    revealedAt: new Date(),
+  };
+
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve(createCommissionerPlayer(fakeLeague.id)),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    findByLeagueId: (_leagueId) => Promise.resolve(fakePool),
+    revealNextItem: (_poolId, _now) =>
+      Promise.resolve({ item: revealedItem, remaining: 1 }),
+  });
+
+  const published: Array<{ leagueId: string; event: unknown }> = [];
+  const eventPublisher = {
+    subscribe: () => () => {},
+    publish: (leagueId: string, event: unknown) => {
+      published.push({ leagueId, event });
+    },
+    subscriberCount: () => 0,
+  };
+
+  const service = createDraftPoolService({
+    draftPoolRepo,
+    leagueRepo,
+    pokemonData: createFakePokemonData(1),
+    eventPublisher,
+  });
+
+  await service.revealNext("user-1", { leagueId: fakeLeague.id });
+
+  assertEquals(published.length, 1);
+  assertEquals(published[0].leagueId, fakeLeague.id);
+  assertEquals(
+    (published[0].event as { type: string }).type,
+    "draftPool:item_revealed",
+  );
+  assertEquals(
+    (published[0].event as { data: { remaining: number } }).data.remaining,
+    1,
+  );
+});
+
+Deno.test("draftPoolService.revealNext: auto-advances to scouting when the last item is revealed", async () => {
+  const fakeLeague = createFakeLeague({ status: "pooling" });
+  const fakePool = {
+    id: crypto.randomUUID(),
+    leagueId: fakeLeague.id,
+    name: "Pool",
+    createdAt: new Date(),
+  };
+  const lastItem = {
+    id: crypto.randomUUID(),
+    draftPoolId: fakePool.id,
+    name: "mewtwo",
+    thumbnailUrl: null,
+    metadata: null,
+    revealOrder: 9,
+    revealedAt: new Date(),
+  };
+
+  let updatedStatus: string | undefined;
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve(createCommissionerPlayer(fakeLeague.id)),
+    updateStatus: (_id, status) => {
+      updatedStatus = status;
+      return Promise.resolve(
+        createFakeLeague({ status: status as "scouting" }),
+      );
+    },
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    findByLeagueId: (_leagueId) => Promise.resolve(fakePool),
+    revealNextItem: (_poolId, _now) =>
+      Promise.resolve({ item: lastItem, remaining: 0 }),
+  });
+
+  const publishedTypes: string[] = [];
+  const eventPublisher = {
+    subscribe: () => () => {},
+    publish: (_leagueId: string, event: { type: string }) => {
+      publishedTypes.push(event.type);
+    },
+    subscriberCount: () => 0,
+  };
+
+  const service = createDraftPoolService({
+    draftPoolRepo,
+    leagueRepo,
+    pokemonData: createFakePokemonData(1),
+    eventPublisher,
+  });
+
+  await service.revealNext("user-1", { leagueId: fakeLeague.id });
+
+  assertEquals(updatedStatus, "scouting");
+  assertEquals(publishedTypes, [
+    "draftPool:item_revealed",
+    "draftPool:reveal_completed",
+  ]);
+});
+
+Deno.test("draftPoolService.revealNext: reveals the next item in pooling phase", async () => {
+  const fakeLeague = createFakeLeague({ status: "pooling" });
+  const fakePool = {
+    id: crypto.randomUUID(),
+    leagueId: fakeLeague.id,
+    name: "Pool",
+    createdAt: new Date(),
+  };
+  const revealedItem = {
+    id: crypto.randomUUID(),
+    draftPoolId: fakePool.id,
+    name: "pikachu",
+    thumbnailUrl: null,
+    metadata: null,
+    revealOrder: 0,
+    revealedAt: new Date(),
+  };
+
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve(createCommissionerPlayer(fakeLeague.id)),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    findByLeagueId: (_leagueId) => Promise.resolve(fakePool),
+    revealNextItem: (_poolId, _now) =>
+      Promise.resolve({ item: revealedItem, remaining: 4 }),
+  });
+
+  const service = createDraftPoolService({
+    draftPoolRepo,
+    leagueRepo,
+    pokemonData: createFakePokemonData(1),
+  });
+
+  const result = await service.revealNext("user-1", {
+    leagueId: fakeLeague.id,
+  });
+  assertEquals(result.itemId, revealedItem.id);
+  assertEquals(result.revealOrder, 0);
+  assertEquals(result.remaining, 4);
+});
+
+Deno.test("draftPoolService.revealNext: rejects non-commissioners", async () => {
+  const fakeLeague = createFakeLeague({ status: "pooling" });
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve(createMemberPlayer(fakeLeague.id)),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo();
+
+  const service = createDraftPoolService({
+    draftPoolRepo,
+    leagueRepo,
+    pokemonData: createFakePokemonData(1),
+  });
+
+  const error = await assertRejects(
+    () => service.revealNext("user-1", { leagueId: fakeLeague.id }),
+    TRPCError,
+  );
+  assertEquals(error.code, "FORBIDDEN");
+});
+
+Deno.test("draftPoolService.revealNext: rejects when league is not in pooling", async () => {
+  const fakeLeague = createFakeLeague({ status: "scouting" });
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve(createCommissionerPlayer(fakeLeague.id)),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo();
+
+  const service = createDraftPoolService({
+    draftPoolRepo,
+    leagueRepo,
+    pokemonData: createFakePokemonData(1),
+  });
+
+  const error = await assertRejects(
+    () => service.revealNext("user-1", { leagueId: fakeLeague.id }),
+    TRPCError,
+  );
+  assertEquals(error.code, "BAD_REQUEST");
+});
+
+Deno.test("draftPoolService.revealNext: rejects when all items are already revealed", async () => {
+  const fakeLeague = createFakeLeague({ status: "pooling" });
+  const fakePool = {
+    id: crypto.randomUUID(),
+    leagueId: fakeLeague.id,
+    name: "Pool",
+    createdAt: new Date(),
+  };
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve(createCommissionerPlayer(fakeLeague.id)),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    findByLeagueId: (_leagueId) => Promise.resolve(fakePool),
+    revealNextItem: (_poolId, _now) => Promise.resolve(null),
+  });
+
+  const service = createDraftPoolService({
+    draftPoolRepo,
+    leagueRepo,
+    pokemonData: createFakePokemonData(1),
+  });
+
+  const error = await assertRejects(
+    () => service.revealNext("user-1", { leagueId: fakeLeague.id }),
+    TRPCError,
+  );
+  assertEquals(error.code, "BAD_REQUEST");
+});
+
+Deno.test("draftPoolService.getByLeagueId: filters to revealed items during pooling", async () => {
+  const fakeLeague = createFakeLeague({ status: "pooling" });
+  const fakePool = {
+    id: crypto.randomUUID(),
+    leagueId: fakeLeague.id,
+    name: "Pool",
+    createdAt: new Date(),
+  };
+  let capturedOpts: { onlyRevealed?: boolean } | undefined;
+
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve(createMemberPlayer(fakeLeague.id)),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    findByLeagueId: (_leagueId) => Promise.resolve(fakePool),
+    findItemsByPoolId: (_poolId, opts) => {
+      capturedOpts = opts;
+      return Promise.resolve([]);
+    },
+  });
+
+  const service = createDraftPoolService({
+    draftPoolRepo,
+    leagueRepo,
+    pokemonData: createFakePokemonData(1),
+  });
+
+  await service.getByLeagueId("user-1", fakeLeague.id);
+  assertEquals(capturedOpts?.onlyRevealed, true);
+});
+
+Deno.test("draftPoolService.getByLeagueId: does not filter during scouting", async () => {
+  const fakeLeague = createFakeLeague({ status: "scouting" });
+  const fakePool = {
+    id: crypto.randomUUID(),
+    leagueId: fakeLeague.id,
+    name: "Pool",
+    createdAt: new Date(),
+  };
+  let capturedOpts: { onlyRevealed?: boolean } | undefined;
+
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve(createMemberPlayer(fakeLeague.id)),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    findByLeagueId: (_leagueId) => Promise.resolve(fakePool),
+    findItemsByPoolId: (_poolId, opts) => {
+      capturedOpts = opts;
+      return Promise.resolve([]);
+    },
+  });
+
+  const service = createDraftPoolService({
+    draftPoolRepo,
+    leagueRepo,
+    pokemonData: createFakePokemonData(1),
+  });
+
+  await service.getByLeagueId("user-1", fakeLeague.id);
+  assertEquals(capturedOpts?.onlyRevealed, false);
 });
