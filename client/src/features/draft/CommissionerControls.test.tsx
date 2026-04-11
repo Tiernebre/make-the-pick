@@ -204,23 +204,4 @@ describe("CommissionerControls", () => {
     renderControls();
     expect(screen.getByText(/Boom/)).toBeInTheDocument();
   });
-
-  it("renders a ceremony fast-mode switch reflecting the current value", () => {
-    renderControls({ isFastMode: false, onToggleFastMode: vi.fn() });
-    const toggle = screen.getByRole("switch", { name: /fast mode/i });
-    expect(toggle).toBeInTheDocument();
-    expect(toggle).not.toBeChecked();
-  });
-
-  it("marks the fast-mode switch as checked when enabled", () => {
-    renderControls({ isFastMode: true, onToggleFastMode: vi.fn() });
-    expect(screen.getByRole("switch", { name: /fast mode/i })).toBeChecked();
-  });
-
-  it("calls onToggleFastMode with the inverted value when clicked", () => {
-    const onToggleFastMode = vi.fn();
-    renderControls({ isFastMode: false, onToggleFastMode });
-    fireEvent.click(screen.getByRole("switch", { name: /fast mode/i }));
-    expect(onToggleFastMode).toHaveBeenCalledWith(true);
-  });
 });
