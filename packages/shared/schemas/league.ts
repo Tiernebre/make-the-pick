@@ -45,6 +45,13 @@ export const draftFormatSchema: z.ZodEnum<["snake", "linear"]> = enum_([
 
 export type DraftFormat = z.infer<typeof draftFormatSchema>;
 
+export const draftModeSchema: z.ZodEnum<["individual", "species"]> = enum_([
+  "individual",
+  "species",
+]);
+
+export type DraftMode = z.infer<typeof draftModeSchema>;
+
 export const rulesConfigSchema: z.ZodObject<{
   draftFormat: typeof draftFormatSchema;
   numberOfRounds: z.ZodNumber;
@@ -54,6 +61,7 @@ export const rulesConfigSchema: z.ZodObject<{
   excludeLegendaries: z.ZodOptional<z.ZodBoolean>;
   excludeStarters: z.ZodOptional<z.ZodBoolean>;
   excludeTradeEvolutions: z.ZodOptional<z.ZodBoolean>;
+  draftMode: z.ZodDefault<typeof draftModeSchema>;
 }> = object({
   draftFormat: draftFormatSchema,
   numberOfRounds: number().int().min(1),
@@ -63,6 +71,7 @@ export const rulesConfigSchema: z.ZodObject<{
   excludeLegendaries: boolean().optional(),
   excludeStarters: boolean().optional(),
   excludeTradeEvolutions: boolean().optional(),
+  draftMode: draftModeSchema.default("individual"),
 });
 
 export type RulesConfig = z.infer<typeof rulesConfigSchema>;

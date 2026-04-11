@@ -56,3 +56,33 @@ Deno.test("createLeagueSchema rejects empty name", () => {
     createLeagueSchema.parse({ ...validSettings, name: "" });
   });
 });
+
+Deno.test("createLeagueSchema defaults draftMode to 'individual' when omitted", () => {
+  const result = createLeagueSchema.parse(validSettings);
+  assertEquals(result.rulesConfig.draftMode, "individual");
+});
+
+Deno.test("createLeagueSchema accepts draftMode: 'species'", () => {
+  const result = createLeagueSchema.parse({
+    ...validSettings,
+    rulesConfig: { ...validSettings.rulesConfig, draftMode: "species" },
+  });
+  assertEquals(result.rulesConfig.draftMode, "species");
+});
+
+Deno.test("createLeagueSchema accepts draftMode: 'individual' explicitly", () => {
+  const result = createLeagueSchema.parse({
+    ...validSettings,
+    rulesConfig: { ...validSettings.rulesConfig, draftMode: "individual" },
+  });
+  assertEquals(result.rulesConfig.draftMode, "individual");
+});
+
+Deno.test("createLeagueSchema rejects unknown draftMode values", () => {
+  assertThrows(() => {
+    createLeagueSchema.parse({
+      ...validSettings,
+      rulesConfig: { ...validSettings.rulesConfig, draftMode: "chickens" },
+    });
+  });
+});
