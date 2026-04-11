@@ -9,6 +9,7 @@ import {
   Card,
   Container,
   CopyButton,
+  Flex,
   Grid,
   Group,
   Loader,
@@ -140,9 +141,16 @@ export function LeagueDetailPage() {
       {league.data && (
         <>
           <Paper withBorder radius="md" p={{ base: "md", sm: "lg" }} mb="lg">
-            <Group justify="space-between" align="flex-start" wrap="wrap">
+            <Flex
+              direction={{ base: "column", sm: "row" }}
+              justify="space-between"
+              align={{ base: "stretch", sm: "flex-start" }}
+              gap="md"
+            >
               <Stack gap="xs" style={{ flex: 1, minWidth: 0 }}>
-                <Title order={1}>{league.data.name}</Title>
+                <Title order={1} style={{ wordBreak: "break-word" }}>
+                  {league.data.name}
+                </Title>
                 {league.data.sportType && (
                   <Group gap="xs">
                     <Badge color="mint-green" variant="light" tt="capitalize">
@@ -155,7 +163,7 @@ export function LeagueDetailPage() {
                 </Box>
               </Stack>
 
-              <Group gap="sm">
+              <Group gap="sm" wrap="wrap">
                 {(league.data.status === "pooling" ||
                   league.data.status === "scouting") && (
                   <Button
@@ -205,7 +213,7 @@ export function LeagueDetailPage() {
                   </Button>
                 )}
               </Group>
-            </Group>
+            </Flex>
           </Paper>
 
           <Grid gutter="lg">

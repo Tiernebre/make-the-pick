@@ -1,5 +1,5 @@
 {
-  "id": "63786677-7ab9-4404-9b2c-63489a46de05",
+  "id": "5ef8ee92-c39f-48da-a656-842245313445",
   "prevId": "38c0c419-63ca-44b0-b40f-e7359e3bfede",
   "version": "7",
   "dialect": "postgresql",
@@ -311,7 +311,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
+          "onDelete": "no action",
           "onUpdate": "no action"
         },
         "draft_pick_pool_item_id_draft_pool_item_id_fk": {
@@ -324,7 +324,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
+          "onDelete": "no action",
           "onUpdate": "no action"
         }
       },
