@@ -29,6 +29,13 @@ Deno.test("parseNpcStrategy parses type-specialist with preferred type", () => {
   assertEquals(info?.label, "Water Specialist");
 });
 
+Deno.test("parseNpcStrategy parses regional with preferred generation", () => {
+  const info = parseNpcStrategy("regional:generation-iii");
+  assertEquals(info?.kind, "regional");
+  assertEquals(info?.preferredGeneration, "generation-iii");
+  assertEquals(info?.label, "Hoenn Native");
+});
+
 Deno.test("parseNpcStrategy parses chaos", () => {
   const info = parseNpcStrategy("chaos");
   assertEquals(info?.kind, "chaos");

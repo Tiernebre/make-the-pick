@@ -8,6 +8,7 @@
 interface PoolItemMetadata {
   pokemonId?: number;
   types?: string[];
+  generation?: string;
   baseStats?: {
     hp?: number;
     attack?: number;
@@ -53,6 +54,10 @@ function types(item: StrategyPoolItem): string[] {
   return readMeta(item).types ?? [];
 }
 
+function generation(item: StrategyPoolItem): string | null {
+  return readMeta(item).generation ?? null;
+}
+
 function pickRandom<T>(items: T[], randomFn: () => number): T | null {
   if (items.length === 0) return null;
   const index = Math.floor(randomFn() * items.length);
@@ -84,6 +89,18 @@ function pickTypeSpecialist<T extends StrategyPoolItem>(
   if (!preferredType) return pickBestAvailable(items);
   const matching = items.filter((item) =>
     types(item).some((t) => t.toLowerCase() === preferredType.toLowerCase())
+  );
+  if (matching.length > 0) return pickBestAvailable(matching);
+  return pickBestAvailable(items);
+}
+
+function pickRegional<T extends StrategyPoolItem>(
+  items: T[],
+  preferredGeneration: string | null,
+): T | null {
+  if (!preferredGeneration) return pickBestAvailable(items);
+  const matching = items.filter((item) =>
+    generation(item)?.toLowerCase() === preferredGeneration.toLowerCase()
   );
   if (matching.length > 0) return pickBestAvailable(matching);
   return pickBestAvailable(items);
@@ -147,6 +164,8 @@ export function pickWithStrategy<T extends StrategyPoolItem>(
       return pickBestAvailable(availableItems);
     case "type-specialist":
       return pickTypeSpecialist(availableItems, preferredType ?? null);
+    case "regional":
+      return pickRegional(availableItems, preferredType ?? null);
     case "balanced":
       return pickBalanced(availableItems, myPicks);
     case "chaos":
