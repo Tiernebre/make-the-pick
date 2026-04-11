@@ -100,9 +100,9 @@ The `rules_config` field stores draft-related settings as a JSON object:
 
 ## NPC Players (dev only)
 
-Users carry an `isNpc` boolean flag (default `false`). NPC users are seeded by
-`deno task seed:dev` as a reusable pool and are added to leagues via the
-dev-only `league.addNpcPlayer` tRPC procedure, which is blocked in production.
+Users carry an `isNpc` boolean flag (default `false`). NPCs are added to leagues
+via the dev-only `league.addNpcPlayer` tRPC procedure, which is blocked in
+production.
 
 When an NPC is on the clock during a draft, the server schedules an auto-pick
 after a short random "thinking" delay (300–1500 ms) that picks a random

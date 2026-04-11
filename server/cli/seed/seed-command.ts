@@ -9,7 +9,6 @@ import {
   generateFakeLeague,
   generateFakeUsers,
 } from "./generators.ts";
-import { seedDev } from "./seed-dev.ts";
 
 const log = logger.child({ module: "cli.seed" });
 
@@ -27,10 +26,6 @@ export function parseArgs(
   args: string[],
 ): { command: string; options: SeedOptions | SeedLeagueOptions | null } {
   const subcommand = args[0] ?? "data";
-
-  if (subcommand === "dev") {
-    return { command: "dev", options: null };
-  }
 
   if (subcommand === "league") {
     let leagueId = "";
@@ -228,9 +223,7 @@ export async function runSeedCommand(args: string[]) {
 
   const { command, options } = parseArgs(args);
 
-  if (command === "dev") {
-    await seedDev();
-  } else if (command === "league") {
+  if (command === "league") {
     await seedLeague(options as SeedLeagueOptions);
   } else {
     await seedData(options as SeedOptions);
@@ -243,7 +236,6 @@ Usage: deno task cli seed <subcommand> [options]
 
 Subcommands:
   data      Seed the CLI user, fake users, and leagues (default)
-  dev       Seed dev data for tiernebre@gmail.com (leagues in every status)
   league    Seed fake players into an existing league
 
 The 'data' subcommand always creates the CLI user (cli@dev.local) used by
@@ -260,7 +252,6 @@ Options for 'league':
 Examples:
   deno task cli seed data
   deno task cli seed data --users 10 --leagues 3
-  deno task cli seed dev
   deno task cli seed league --league-id abc-123 --players 8
 `);
 }
