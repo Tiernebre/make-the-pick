@@ -120,6 +120,13 @@
       "when": 1775854031389,
       "tag": "0016_flaky_invaders",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1776240000000,
+      "tag": "0017_npc_trainer_avatars",
+      "breakpoints": true
     }
   ]
 }
