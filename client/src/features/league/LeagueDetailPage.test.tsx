@@ -12,6 +12,7 @@ const {
   mockAdvanceMutate,
   mockUseAddNpcPlayer,
   mockAddNpcMutate,
+  mockUseAvailableNpcs,
   mockUseDraft,
 } = vi.hoisted(
   () => ({
@@ -23,6 +24,7 @@ const {
     mockAdvanceMutate: vi.fn(),
     mockUseAddNpcPlayer: vi.fn(),
     mockAddNpcMutate: vi.fn(),
+    mockUseAvailableNpcs: vi.fn(),
     mockUseDraft: vi.fn(),
   }),
 );
@@ -33,6 +35,7 @@ vi.mock("./use-leagues", () => ({
   useDeleteLeague: mockUseDeleteLeague,
   useAdvanceLeagueStatus: mockUseAdvanceLeagueStatus,
   useAddNpcPlayer: mockUseAddNpcPlayer,
+  useAvailableNpcs: mockUseAvailableNpcs,
 }));
 
 vi.mock("../draft/use-draft", () => ({
@@ -85,6 +88,14 @@ describe("LeagueDetailPage", () => {
     mockUseAddNpcPlayer.mockReturnValue({
       mutate: mockAddNpcMutate,
       isPending: false,
+      isError: false,
+      error: null,
+    });
+    mockUseAvailableNpcs.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: false,
+      error: null,
     });
     mockUseDraft.mockReturnValue({ data: undefined, isLoading: false });
   });
@@ -609,6 +620,69 @@ describe("LeagueDetailPage", () => {
     mockUseLeague.mockReturnValue({ data: mockLeague, isLoading: false });
     renderPage();
     expect(mockUseDraft).toHaveBeenCalledWith("league-1", { enabled: false });
+  });
+
+  it("adds a random NPC when commissioner clicks the primary Add NPC button", () => {
+    mockUseLeague.mockReturnValue({ data: mockLeague, isLoading: false });
+    mockUseLeaguePlayers.mockReturnValue({
+      data: [
+        {
+          id: "p1",
+          userId: "user-1",
+          name: "Alice",
+          image: null,
+          role: "commissioner",
+          joinedAt: "2026-01-01T00:00:00Z",
+        },
+      ],
+      isLoading: false,
+    });
+    renderPage();
+    const randomBtn = screen.getByRole("button", { name: /add random npc/i });
+    randomBtn.click();
+    expect(mockAddNpcMutate).toHaveBeenCalledWith({ leagueId: "league-1" });
+  });
+
+  it("opens the choose NPC modal and sends the chosen npcUserId", async () => {
+    mockUseLeague.mockReturnValue({ data: mockLeague, isLoading: false });
+    mockUseLeaguePlayers.mockReturnValue({
+      data: [
+        {
+          id: "p1",
+          userId: "user-1",
+          name: "Alice",
+          image: null,
+          role: "commissioner",
+          joinedAt: "2026-01-01T00:00:00Z",
+        },
+      ],
+      isLoading: false,
+    });
+    mockUseAvailableNpcs.mockReturnValue({
+      data: [
+        { id: "npc-a", name: "Red", npcStrategy: "balanced" },
+        { id: "npc-b", name: "Blue", npcStrategy: "best-available" },
+      ],
+      isLoading: false,
+      isError: false,
+      error: null,
+    });
+
+    renderPage();
+
+    screen.getByRole("button", { name: /more npc options/i }).click();
+    const chooseItem = await screen.findByRole("menuitem", {
+      name: /choose specific npc/i,
+    });
+    chooseItem.click();
+
+    const blueBtn = await screen.findByText("Blue");
+    blueBtn.click();
+
+    expect(mockAddNpcMutate).toHaveBeenCalledWith(
+      { leagueId: "league-1", npcUserId: "npc-b" },
+      expect.anything(),
+    );
   });
 
   it("does not render a Save Settings button", () => {

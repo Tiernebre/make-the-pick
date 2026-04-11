@@ -1278,3 +1278,180 @@ Deno.test("leagueService.removePlayer: throws NOT_FOUND when target player is no
   );
   assertEquals(error.code, "NOT_FOUND");
 });
+
+function createFakeNpcUser(
+  overrides: { id?: string; name?: string; npcStrategy?: string | null } = {},
+) {
+  return {
+    id: overrides.id ?? crypto.randomUUID(),
+    name: overrides.name ?? "NPC Trainer",
+    email: `${crypto.randomUUID()}@example.test`,
+    emailVerified: true,
+    image: null,
+    isNpc: true,
+    npcStrategy: overrides.npcStrategy ?? "balanced",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+}
+
+function commissionerRepoWith(
+  fakeLeague: NonNullable<FakeLeague>,
+  overrides: Partial<LeagueRepository>,
+): LeagueRepository {
+  return createFakeRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, userId) =>
+      userId === "commissioner-1"
+        ? Promise.resolve({
+          id: crypto.randomUUID(),
+          leagueId: fakeLeague.id,
+          userId: "commissioner-1",
+          role: "commissioner" as const,
+          joinedAt: new Date(),
+        })
+        : Promise.resolve(null),
+    ...overrides,
+  });
+}
+
+Deno.test("leagueService.addNpcPlayer: picks a random NPC when no id is provided", async () => {
+  const fakeLeague = createFakeLeague();
+  const npcs = [
+    createFakeNpcUser({ id: "npc-a", name: "Alice" }),
+    createFakeNpcUser({ id: "npc-b", name: "Bob" }),
+    createFakeNpcUser({ id: "npc-c", name: "Carol" }),
+  ];
+  let addedUserId: string | undefined;
+  const repo = commissionerRepoWith(fakeLeague, {
+    findAvailableNpcUsers: (_leagueId) => Promise.resolve(npcs),
+    addPlayer: (leagueId, userId) => {
+      addedUserId = userId;
+      return Promise.resolve({
+        id: crypto.randomUUID(),
+        leagueId,
+        userId,
+        role: "member" as const,
+        joinedAt: new Date(),
+      });
+    },
+  });
+
+  const originalRandom = Math.random;
+  Math.random = () => 0.5;
+  try {
+    const service = createLeagueService({
+      leagueRepo: repo,
+      draftRepo: createFakeDraftRepo(),
+      draftPoolService: createFakeDraftPoolService(),
+    });
+    const result = await service.addNpcPlayer("commissioner-1", {
+      leagueId: fakeLeague.id,
+    });
+    assertEquals(addedUserId, "npc-b");
+    assertEquals(result.userId, "npc-b");
+    assertEquals(result.name, "Bob");
+  } finally {
+    Math.random = originalRandom;
+  }
+});
+
+Deno.test("leagueService.addNpcPlayer: adds the specified NPC when npcUserId is provided", async () => {
+  const fakeLeague = createFakeLeague();
+  const npcs = [
+    createFakeNpcUser({ id: "npc-a", name: "Alice" }),
+    createFakeNpcUser({ id: "npc-b", name: "Bob" }),
+  ];
+  let addedUserId: string | undefined;
+  const repo = commissionerRepoWith(fakeLeague, {
+    findAvailableNpcUsers: (_leagueId) => Promise.resolve(npcs),
+    addPlayer: (leagueId, userId) => {
+      addedUserId = userId;
+      return Promise.resolve({
+        id: crypto.randomUUID(),
+        leagueId,
+        userId,
+        role: "member" as const,
+        joinedAt: new Date(),
+      });
+    },
+  });
+
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo: createFakeDraftRepo(),
+    draftPoolService: createFakeDraftPoolService(),
+  });
+  const result = await service.addNpcPlayer("commissioner-1", {
+    leagueId: fakeLeague.id,
+    npcUserId: "npc-b",
+  });
+  assertEquals(addedUserId, "npc-b");
+  assertEquals(result.userId, "npc-b");
+  assertEquals(result.name, "Bob");
+});
+
+Deno.test("leagueService.addNpcPlayer: rejects an npcUserId that isn't available", async () => {
+  const fakeLeague = createFakeLeague();
+  const repo = commissionerRepoWith(fakeLeague, {
+    findAvailableNpcUsers: (_leagueId) =>
+      Promise.resolve([createFakeNpcUser({ id: "npc-a" })]),
+  });
+
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo: createFakeDraftRepo(),
+    draftPoolService: createFakeDraftPoolService(),
+  });
+  const error = await assertRejects(
+    () =>
+      service.addNpcPlayer("commissioner-1", {
+        leagueId: fakeLeague.id,
+        npcUserId: "npc-missing",
+      }),
+    TRPCError,
+  );
+  assertEquals(error.code, "BAD_REQUEST");
+});
+
+Deno.test("leagueService.listAvailableNpcs: returns available NPCs for the commissioner", async () => {
+  const fakeLeague = createFakeLeague();
+  const npcs = [
+    createFakeNpcUser({ id: "npc-a", name: "Alice", npcStrategy: "balanced" }),
+    createFakeNpcUser({ id: "npc-b", name: "Bob", npcStrategy: "aggressive" }),
+  ];
+  const repo = commissionerRepoWith(fakeLeague, {
+    findAvailableNpcUsers: (_leagueId) => Promise.resolve(npcs),
+  });
+
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo: createFakeDraftRepo(),
+    draftPoolService: createFakeDraftPoolService(),
+  });
+  const result = await service.listAvailableNpcs("commissioner-1", {
+    leagueId: fakeLeague.id,
+  });
+  assertEquals(result, [
+    { id: "npc-a", name: "Alice", npcStrategy: "balanced" },
+    { id: "npc-b", name: "Bob", npcStrategy: "aggressive" },
+  ]);
+});
+
+Deno.test("leagueService.listAvailableNpcs: forbids non-commissioners", async () => {
+  const fakeLeague = createFakeLeague();
+  const repo = commissionerRepoWith(fakeLeague, {
+    findAvailableNpcUsers: (_leagueId) => Promise.resolve([]),
+  });
+
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo: createFakeDraftRepo(),
+    draftPoolService: createFakeDraftPoolService(),
+  });
+  const error = await assertRejects(
+    () => service.listAvailableNpcs("random-user", { leagueId: fakeLeague.id }),
+    TRPCError,
+  );
+  assertEquals(error.code, "FORBIDDEN");
+});

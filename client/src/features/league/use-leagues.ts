@@ -54,8 +54,18 @@ export function useAddNpcPlayer() {
   return trpc.league.addNpcPlayer.useMutation({
     onSuccess: (_data, variables) => {
       utils.league.listPlayers.invalidate({ leagueId: variables.leagueId });
+      utils.league.listAvailableNpcs.invalidate({
+        leagueId: variables.leagueId,
+      });
     },
   });
+}
+
+export function useAvailableNpcs(leagueId: string, enabled: boolean) {
+  return trpc.league.listAvailableNpcs.useQuery(
+    { leagueId },
+    { enabled },
+  );
 }
 
 export function useDeleteLeague() {

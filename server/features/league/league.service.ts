@@ -260,9 +260,12 @@ export function createLeagueService(
 
     async addNpcPlayer(
       userId: string,
-      input: { leagueId: string },
+      input: { leagueId: string; npcUserId?: string },
     ) {
-      log.debug({ userId, leagueId: input.leagueId }, "adding NPC to league");
+      log.debug(
+        { userId, leagueId: input.leagueId, npcUserId: input.npcUserId },
+        "adding NPC to league",
+      );
       const league = await deps.leagueRepo.findById(input.leagueId);
       if (!league) {
         throw new TRPCError({ code: "NOT_FOUND", message: "League not found" });
@@ -298,13 +301,53 @@ export function createLeagueService(
           message: "No NPC trainers available — all have already joined",
         });
       }
-      const npc = available[0];
+      let npc;
+      if (input.npcUserId) {
+        npc = available.find((n) => n.id === input.npcUserId);
+        if (!npc) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "That NPC trainer isn't available for this league",
+          });
+        }
+      } else {
+        npc = available[Math.floor(Math.random() * available.length)];
+      }
       await deps.leagueRepo.addPlayer(input.leagueId, npc.id);
       log.debug(
         { leagueId: input.leagueId, npcId: npc.id, npcName: npc.name },
         "NPC added to league",
       );
       return { userId: npc.id, name: npc.name };
+    },
+
+    async listAvailableNpcs(
+      userId: string,
+      input: { leagueId: string },
+    ) {
+      log.debug(
+        { userId, leagueId: input.leagueId },
+        "listing available NPCs for league",
+      );
+      const league = await deps.leagueRepo.findById(input.leagueId);
+      if (!league) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "League not found" });
+      }
+      const caller = await deps.leagueRepo.findPlayer(input.leagueId, userId);
+      if (caller?.role !== "commissioner") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only the league commissioner can list available NPCs",
+        });
+      }
+      const available = await deps.leagueRepo.findAvailableNpcUsers(
+        input.leagueId,
+      );
+      return available.map((n) => ({
+        id: n.id,
+        name: n.name,
+        npcStrategy: n.npcStrategy,
+      }));
     },
 
     async removePlayer(

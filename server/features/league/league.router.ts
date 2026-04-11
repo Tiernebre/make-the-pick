@@ -57,9 +57,20 @@ export function createLeagueRouter(leagueService: LeagueService) {
       }),
 
     addNpcPlayer: protectedProcedure
-      .input(object({ leagueId: string().uuid() }))
+      .input(
+        object({
+          leagueId: string().uuid(),
+          npcUserId: string().optional(),
+        }),
+      )
       .mutation(({ ctx, input }) => {
         return leagueService.addNpcPlayer(ctx.user.id, input);
+      }),
+
+    listAvailableNpcs: protectedProcedure
+      .input(object({ leagueId: string().uuid() }))
+      .query(({ ctx, input }) => {
+        return leagueService.listAvailableNpcs(ctx.user.id, input);
       }),
 
     delete: protectedProcedure
