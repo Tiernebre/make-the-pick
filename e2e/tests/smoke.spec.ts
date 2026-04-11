@@ -29,10 +29,11 @@ test.describe("Smoke tests", () => {
     ).toBeVisible();
   });
 
-  test("authenticated user sees the home page", async ({ authenticatedPage }) => {
+  test("authenticated user lands on the leagues list", async ({ authenticatedPage }) => {
     await authenticatedPage.goto("/");
+    await expect(authenticatedPage).toHaveURL(/\/leagues$/);
     await expect(
-      authenticatedPage.getByRole("heading", { name: "Make The Pick" }),
+      authenticatedPage.getByRole("heading", { name: "My Leagues" }),
     ).toBeVisible();
   });
 });

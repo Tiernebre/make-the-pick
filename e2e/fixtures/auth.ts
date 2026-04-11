@@ -1,10 +1,25 @@
+import { createHmac } from "node:crypto";
 import { type Page, test as base } from "@playwright/test";
-import { closeDatabase, resetDatabase, seedTestUser } from "../helpers/db.ts";
+import { resetDatabase, seedTestUser } from "../helpers/db.ts";
 import { SESSION_COOKIE_NAME } from "../helpers/seed-data.ts";
 
 type AuthFixtures = {
   authenticatedPage: Page;
 };
+
+const BETTER_AUTH_SECRET = process.env.BETTER_AUTH_SECRET ??
+  "e2e-test-secret-not-real";
+
+/**
+ * Better Auth (via better-call) stores the session cookie as
+ * `encodeURIComponent("{token}.{base64(HMAC-SHA256(secret, token))}")`.
+ * The fixture must produce a value that passes signature verification or
+ * the server silently drops the cookie and redirects to /login.
+ */
+function signSessionCookie(token: string, secret: string): string {
+  const signature = createHmac("sha256", secret).update(token).digest("base64");
+  return encodeURIComponent(`${token}.${signature}`);
+}
 
 /**
  * Extended test fixture that provides an `authenticatedPage` with a
@@ -15,6 +30,7 @@ export const test = base.extend<AuthFixtures>({
   authenticatedPage: async ({ browser, baseURL }, use) => {
     await resetDatabase();
     const { sessionToken } = await seedTestUser();
+    const signedCookie = signSessionCookie(sessionToken, BETTER_AUTH_SECRET);
 
     const context = await browser.newContext({
       baseURL,
@@ -22,7 +38,7 @@ export const test = base.extend<AuthFixtures>({
         cookies: [
           {
             name: SESSION_COOKIE_NAME,
-            value: sessionToken,
+            value: signedCookie,
             domain: "localhost",
             path: "/",
             httpOnly: true,
