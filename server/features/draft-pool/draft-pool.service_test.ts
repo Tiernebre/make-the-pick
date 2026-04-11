@@ -135,6 +135,8 @@ function createFakeDraftPoolRepo(
           name: item.name as string,
           thumbnailUrl: (item.thumbnailUrl as string) ?? null,
           metadata: item.metadata ?? null,
+          revealOrder: item.revealOrder ?? 0,
+          revealedAt: item.revealedAt ?? null,
         })),
       ),
     findByLeagueId: (_leagueId) => Promise.resolve(null as FakePool),
@@ -167,6 +169,8 @@ Deno.test("draftPoolService.generate: returns pool with correct number of items"
           name: item.name as string,
           thumbnailUrl: (item.thumbnailUrl as string) ?? null,
           metadata: item.metadata ?? null,
+          revealOrder: item.revealOrder ?? 0,
+          revealedAt: item.revealedAt ?? null,
         })),
       );
     },
@@ -464,6 +468,8 @@ Deno.test("draftPoolService.generate: maps Pokemon metadata correctly", async ()
           name: item.name as string,
           thumbnailUrl: (item.thumbnailUrl as string) ?? null,
           metadata: item.metadata ?? null,
+          revealOrder: item.revealOrder ?? 0,
+          revealedAt: item.revealedAt ?? null,
         })),
       );
     },
@@ -550,6 +556,8 @@ Deno.test("draftPoolService.getByLeagueId: returns pool with items", async () =>
       name: "pikachu",
       thumbnailUrl: null,
       metadata: null,
+      revealOrder: 0,
+      revealedAt: null,
     },
   ];
 
@@ -707,6 +715,8 @@ Deno.test("draftPoolService.generate: filters Pokemon by regional dex when gameV
           name: item.name as string,
           thumbnailUrl: (item.thumbnailUrl as string) ?? null,
           metadata: item.metadata ?? null,
+          revealOrder: item.revealOrder ?? 0,
+          revealedAt: item.revealedAt ?? null,
         })),
       );
     },
@@ -846,6 +856,8 @@ Deno.test("draftPoolService.generate: excludes legendary Pokemon when excludeLeg
           name: item.name as string,
           thumbnailUrl: (item.thumbnailUrl as string) ?? null,
           metadata: item.metadata ?? null,
+          revealOrder: item.revealOrder ?? 0,
+          revealedAt: item.revealedAt ?? null,
         })),
       );
     },
@@ -909,6 +921,8 @@ Deno.test("draftPoolService.generate: excludes starter Pokemon when excludeStart
           name: item.name as string,
           thumbnailUrl: (item.thumbnailUrl as string) ?? null,
           metadata: item.metadata ?? null,
+          revealOrder: item.revealOrder ?? 0,
+          revealedAt: item.revealedAt ?? null,
         })),
       );
     },
@@ -964,6 +978,8 @@ Deno.test("draftPoolService.generate: excludes trade evolution Pokemon when excl
           name: item.name as string,
           thumbnailUrl: (item.thumbnailUrl as string) ?? null,
           metadata: item.metadata ?? null,
+          revealOrder: item.revealOrder ?? 0,
+          revealedAt: item.revealedAt ?? null,
         })),
       );
     },
@@ -1030,6 +1046,8 @@ Deno.test("draftPoolService.generate: applies multiple exclusions together", asy
           name: item.name as string,
           thumbnailUrl: (item.thumbnailUrl as string) ?? null,
           metadata: item.metadata ?? null,
+          revealOrder: item.revealOrder ?? 0,
+          revealedAt: item.revealedAt ?? null,
         })),
       );
     },
@@ -1164,6 +1182,8 @@ function createFakeStoredPoolItem(
       },
       generation: "generation-i",
     },
+    revealOrder: 0,
+    revealedAt: null,
   };
 }
 
@@ -1938,6 +1958,8 @@ Deno.test("draftPoolService.generate: drops Pokemon with no wild encounter and n
           name: item.name as string,
           thumbnailUrl: (item.thumbnailUrl as string) ?? null,
           metadata: item.metadata ?? null,
+          revealOrder: item.revealOrder ?? 0,
+          revealedAt: item.revealedAt ?? null,
         })),
       );
     },
@@ -2032,6 +2054,8 @@ Deno.test("draftPoolService.generate: keeps Pokemon whose pre-evolution has a wi
           name: item.name as string,
           thumbnailUrl: (item.thumbnailUrl as string) ?? null,
           metadata: item.metadata ?? null,
+          revealOrder: item.revealOrder ?? 0,
+          revealedAt: item.revealedAt ?? null,
         })),
       );
     },

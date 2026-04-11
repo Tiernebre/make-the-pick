@@ -110,6 +110,8 @@ function createFakePoolItem(
     name: "pikachu",
     thumbnailUrl: null,
     metadata: null,
+    revealOrder: 0,
+    revealedAt: null,
     ...overrides,
   };
 }
