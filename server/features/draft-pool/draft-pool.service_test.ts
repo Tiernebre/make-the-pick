@@ -81,7 +81,7 @@ function createFakePokemonData(count: number): Pokemon[] {
       speed: 50,
     },
     generation: "generation-i",
-    captureRate: 45,
+    captureRate: 190,
     spriteUrl: `https://example.com/sprite-${i + 1}.png`,
   }));
 }
@@ -1450,7 +1450,86 @@ Deno.test("computeEffort: high score when the Pokemon is rare, trade-evo, and la
     },
     isTradeEvolution: true,
   });
+  assertEquals(result.score, 5);
+});
+
+Deno.test("computeEffort: bumps score when pre-evolution must be caught", () => {
+  const result = computeEffort({
+    captureRate: 190,
+    encounter: {
+      primary: { location: "Route 111", method: "Walk" },
+      all: [
+        {
+          location: "Route 111",
+          method: "Walk",
+          minLevel: 18,
+          maxLevel: 22,
+          chance: 20,
+        },
+      ],
+      source: { pokemonId: 111, name: "Rhyhorn" },
+    },
+    evolution: {
+      pokemonId: 112,
+      chainId: 50,
+      evolvesFromId: 111,
+      triggers: [
+        {
+          trigger: "level-up",
+          minLevel: 42,
+          item: null,
+          heldItem: null,
+          knownMove: null,
+          minHappiness: null,
+          timeOfDay: null,
+          needsOverworldRain: false,
+          location: null,
+          tradeSpecies: null,
+        },
+      ],
+    },
+    isTradeEvolution: false,
+  });
   assertEquals(result.score, 4);
+});
+
+Deno.test("computeEffort: mid-level evolution adds one point", () => {
+  const result = computeEffort({
+    captureRate: 190,
+    encounter: {
+      primary: { location: "Route 104", method: "Walk" },
+      all: [
+        {
+          location: "Route 104",
+          method: "Walk",
+          minLevel: 5,
+          maxLevel: 7,
+          chance: 25,
+        },
+      ],
+    },
+    evolution: {
+      pokemonId: 20,
+      chainId: 11,
+      evolvesFromId: 19,
+      triggers: [
+        {
+          trigger: "level-up",
+          minLevel: 31,
+          item: null,
+          heldItem: null,
+          knownMove: null,
+          minHappiness: null,
+          timeOfDay: null,
+          needsOverworldRain: false,
+          location: null,
+          tradeSpecies: null,
+        },
+      ],
+    },
+    isTradeEvolution: false,
+  });
+  assertEquals(result.score, 2);
 });
 
 Deno.test("computeEffort: flags held-item trade evolutions as complex", () => {

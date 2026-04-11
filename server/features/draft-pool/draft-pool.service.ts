@@ -96,25 +96,40 @@ export function computeEffort(deps: {
   const reasons: string[] = [];
   let score = 1;
 
-  const bestChance = deps.encounter?.all.length
-    ? Math.max(...deps.encounter.all.map((e) => e.chance))
-    : null;
-  if (bestChance !== null && bestChance > 0 && bestChance < 10) {
-    reasons.push(`Rare encounter (${bestChance}% best chance)`);
-    score += 1;
+  if (deps.captureRate !== null) {
+    if (deps.captureRate <= 45) {
+      reasons.push(`Low catch rate (${deps.captureRate})`);
+      score += 2;
+    } else if (deps.captureRate <= 120) {
+      reasons.push(`Moderate catch rate (${deps.captureRate})`);
+      score += 1;
+    }
   }
 
   if (!deps.encounter || deps.encounter.all.length === 0) {
     reasons.push("No wild encounters in this version");
-    score += 1;
+    score += 2;
+  } else {
+    const bestChance = Math.max(...deps.encounter.all.map((e) => e.chance));
+    if (bestChance > 0 && bestChance < 5) {
+      reasons.push(`Very rare encounter (${bestChance}% best chance)`);
+      score += 2;
+    } else if (bestChance > 0 && bestChance < 15) {
+      reasons.push(`Rare encounter (${bestChance}% best chance)`);
+      score += 1;
+    }
+    if (deps.encounter.source) {
+      reasons.push(
+        `Must catch ${deps.encounter.source.name} and evolve it`,
+      );
+      score += 1;
+    }
   }
 
   if (deps.isTradeEvolution) {
     reasons.push("Trade evolution required");
-    score += 1;
-  }
-
-  if (deps.evolution && deps.evolution.triggers.length > 0) {
+    score += 2;
+  } else if (deps.evolution && deps.evolution.triggers.length > 0) {
     const hasComplex = deps.evolution.triggers.some(
       (t) => !isSimpleLevelUpTrigger(t),
     );
@@ -126,7 +141,10 @@ export function computeEffort(deps: {
         ...deps.evolution.triggers.map((t) => t.minLevel ?? 0),
         0,
       );
-      if (highestLevel >= 36) {
+      if (highestLevel >= 40) {
+        reasons.push(`Evolves at level ${highestLevel}`);
+        score += 2;
+      } else if (highestLevel >= 30) {
         reasons.push(`Evolves at level ${highestLevel}`);
         score += 1;
       }
@@ -137,7 +155,7 @@ export function computeEffort(deps: {
     reasons.push("Easy to obtain and field");
   }
 
-  return { score: Math.min(score, 5), reasons };
+  return { score: Math.max(1, Math.min(score, 5)), reasons };
 }
 
 export function computeAvailabilityBucket(
@@ -218,8 +236,11 @@ function augmentItems(
     let effort: PoolItemEffort | null = null;
     if (metadata) {
       const pokemon = pokemonById.get(metadata.pokemonId);
+      const captureSource = encounter?.source
+        ? pokemonById.get(encounter.source.pokemonId) ?? pokemon
+        : pokemon;
       effort = computeEffort({
-        captureRate: pokemon?.captureRate ?? null,
+        captureRate: captureSource?.captureRate ?? null,
         encounter,
         evolution,
         isTradeEvolution: ctx.tradeEvolutionIds.has(metadata.pokemonId),
