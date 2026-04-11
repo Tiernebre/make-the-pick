@@ -1,4 +1,12 @@
-import { Alert, Button, Group, Modal, Stack, Text } from "@mantine/core";
+import {
+  Alert,
+  Button,
+  Group,
+  Modal,
+  Stack,
+  Switch,
+  Text,
+} from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import type { DraftPoolItem, DraftState } from "@make-the-pick/shared";
 import {
@@ -12,10 +20,19 @@ export interface CommissionerControlsProps {
   leagueId: string;
   players: Array<{ leaguePlayerId: string; name: string }>;
   poolItemsById: Record<string, DraftPoolItem>;
+  isFastMode?: boolean;
+  onToggleFastMode?: (enabled: boolean) => void;
 }
 
 export function CommissionerControls(
-  { draftState, leagueId, players, poolItemsById }: CommissionerControlsProps,
+  {
+    draftState,
+    leagueId,
+    players,
+    poolItemsById,
+    isFastMode,
+    onToggleFastMode,
+  }: CommissionerControlsProps,
 ) {
   const pause = usePauseDraft(leagueId);
   const resume = useResumeDraft(leagueId);
@@ -97,6 +114,14 @@ export function CommissionerControls(
         <Alert color="red" title="Failed to undo pick">
           {undo.error.message}
         </Alert>
+      )}
+
+      {onToggleFastMode && (
+        <Switch
+          label="Fast mode (skip pick ceremonies)"
+          checked={isFastMode ?? false}
+          onChange={(e) => onToggleFastMode(e.currentTarget.checked)}
+        />
       )}
 
       <Modal

@@ -17,12 +17,14 @@ import { useSession } from "../../auth";
 import { useLeague, useLeaguePlayers } from "../league/use-leagues";
 import { AllRostersPanel } from "./AllRostersPanel";
 import { AvailablePoolTable } from "./AvailablePoolTable";
+import { CeremonyOverlay } from "./CeremonyOverlay";
 import { CommissionerControls } from "./CommissionerControls";
 import { DraftBoard } from "./DraftBoard";
 import { DraftHeader } from "./DraftHeader";
 import { PausedOverlay } from "./PausedOverlay";
 import { WatchlistPanel } from "./WatchlistPanel";
 import { useDraft, useMakePick, useStartDraft } from "./use-draft";
+import { useDraftCeremony } from "./use-draft-ceremony";
 import { useDraftEvents } from "./use-draft-events";
 import { leaguePlayerForPick } from "./snake.ts";
 
@@ -53,7 +55,23 @@ export function DraftPage() {
   const isDraftLive = !!draftState &&
     (draftState.draft.status === "in_progress" ||
       draftState.draft.status === "paused");
-  useDraftEvents(leagueId, { enabled: isDraftLive });
+
+  const ceremony = useDraftCeremony();
+
+  useDraftEvents(leagueId, {
+    enabled: isDraftLive,
+    onEvent: (event) => {
+      if (event.type !== "draft:pick_made") return;
+      const pick = event.data;
+      ceremony.show({
+        id: pick.id,
+        playerName: pick.playerName,
+        pokemonName: pick.itemName,
+        pickNumber: pick.pickNumber,
+        round: pick.round,
+      });
+    },
+  });
 
   const currentTurnPlayerId = draftState
     ? leaguePlayerForPick(
@@ -112,6 +130,12 @@ export function DraftPage() {
           leagueId={leagueId}
         />
       )}
+      <CeremonyOverlay
+        current={ceremony.current}
+        isMuted={ceremony.isMuted}
+        onSkip={ceremony.skip}
+        onToggleMute={ceremony.toggleMute}
+      />
 
       <Anchor
         component={Link}
@@ -171,6 +195,8 @@ export function DraftPage() {
               leagueId={leagueId}
               players={commissionerPlayerList}
               poolItemsById={poolItemsById}
+              isFastMode={ceremony.isFastMode}
+              onToggleFastMode={ceremony.setFastMode}
             />
           )}
           <Grid>
