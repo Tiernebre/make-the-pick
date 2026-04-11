@@ -2,7 +2,6 @@ import {
   ActionIcon,
   AppShell,
   Avatar,
-  Badge,
   Box,
   Burger,
   Button,
@@ -10,7 +9,6 @@ import {
   Group,
   Menu,
   Modal,
-  NavLink,
   ScrollArea,
   Stack,
   Text,
@@ -19,17 +17,10 @@ import {
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { useEffect } from "react";
-import {
-  IconBinoculars,
-  IconChevronLeft,
-  IconChevronRight,
-  IconTrophy,
-  IconUser,
-} from "@tabler/icons-react";
+import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
 import type { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { signOut, useSession } from "../auth";
-import { useLeagues } from "../features/league/use-leagues";
 import { LeagueSidebar, parseLeagueId } from "../features/league/LeagueSidebar";
 import { trpc } from "../trpc";
 
@@ -49,13 +40,11 @@ export function AppLayout({ children }: AppLayoutProps) {
     useDisclosure(false);
   const [deleteOpened, { open: openDelete, close: closeDelete }] =
     useDisclosure(false);
-  const [leaguesOpened, { toggle: toggleLeagues }] = useDisclosure(true);
 
   useEffect(() => {
     closeMobile();
   }, [location, closeMobile]);
 
-  const leagues = useLeagues();
   const deleteAccount = trpc.user.deleteAccount.useMutation({
     onSuccess: () => {
       globalThis.location.replace("/login");
@@ -73,8 +62,6 @@ export function AppLayout({ children }: AppLayoutProps) {
     ? NAVBAR_COLLAPSED_WIDTH
     : NAVBAR_EXPANDED_WIDTH;
 
-  const isLeaguesActive = location.startsWith("/leagues");
-  const leagueItems = leagues.data ?? [];
   const currentLeagueId = parseLeagueId(location);
 
   return (
@@ -109,90 +96,41 @@ export function AppLayout({ children }: AppLayoutProps) {
             {collapsed
               ? (
                 <Tooltip label="Make the Pick" position="right">
-                  <Text fw={800} size="lg" ta="center">
-                    M
-                  </Text>
+                  <UnstyledButton
+                    component={Link}
+                    href="/leagues"
+                    aria-label="Make the Pick"
+                    style={{ display: "block", width: "100%" }}
+                  >
+                    <Text fw={800} size="lg" ta="center">
+                      M
+                    </Text>
+                  </UnstyledButton>
                 </Tooltip>
               )
               : (
-                <Text fw={800} size="lg">
-                  Make the Pick
-                </Text>
+                <UnstyledButton
+                  component={Link}
+                  href="/leagues"
+                  aria-label="Make the Pick"
+                  style={{ display: "block", width: "100%" }}
+                >
+                  <Text fw={800} size="lg">
+                    Make the Pick
+                  </Text>
+                </UnstyledButton>
               )}
           </Box>
           <Divider />
 
           <ScrollArea style={{ flex: 1 }}>
-            {currentLeagueId
-              ? (
-                <LeagueSidebar
-                  leagueId={currentLeagueId}
-                  location={location}
-                  collapsed={collapsed}
-                />
-              )
-              : (
-                <Stack gap={2} py="xs">
-                  {collapsed
-                    ? (
-                      <Tooltip label="Leagues" position="right">
-                        <div>
-                          <SidebarLink
-                            to="/leagues"
-                            label="Leagues"
-                            icon={<IconTrophy size={20} />}
-                            active={isLeaguesActive}
-                            collapsed
-                          />
-                        </div>
-                      </Tooltip>
-                    )
-                    : (
-                      <NavLink
-                        label="Leagues"
-                        leftSection={<IconTrophy size={20} />}
-                        childrenOffset={28}
-                        opened={leaguesOpened}
-                        onClick={toggleLeagues}
-                        active={isLeaguesActive}
-                        variant="filled"
-                      >
-                        {leagueItems.map((league) => (
-                          <NavLink
-                            key={league.id}
-                            component={Link}
-                            href={`/leagues/${league.id}`}
-                            label={league.name}
-                            active={location === `/leagues/${league.id}`}
-                            variant="light"
-                          />
-                        ))}
-                        <NavLink
-                          component={Link}
-                          href="/leagues"
-                          label="Browse all"
-                          c="dimmed"
-                        />
-                      </NavLink>
-                    )}
-
-                  <SidebarLink
-                    label="Research"
-                    icon={<IconBinoculars size={20} />}
-                    collapsed={collapsed}
-                    disabled
-                    badge="Soon"
-                  />
-
-                  <SidebarLink
-                    label="Profile"
-                    icon={<IconUser size={20} />}
-                    collapsed={collapsed}
-                    disabled
-                    badge="Soon"
-                  />
-                </Stack>
-              )}
+            {currentLeagueId && (
+              <LeagueSidebar
+                leagueId={currentLeagueId}
+                location={location}
+                collapsed={collapsed}
+              />
+            )}
           </ScrollArea>
 
           <Divider />
@@ -326,48 +264,6 @@ export function AppLayout({ children }: AppLayoutProps) {
       </Modal>
     </AppShell>
   );
-}
-
-interface SidebarLinkProps {
-  to?: string;
-  label: string;
-  icon: ReactNode;
-  active?: boolean;
-  collapsed: boolean;
-  disabled?: boolean;
-  badge?: string;
-}
-
-function SidebarLink(
-  { to, label, icon, active, collapsed, disabled, badge }: SidebarLinkProps,
-) {
-  const link = (
-    <NavLink
-      component={disabled || !to ? "button" : Link}
-      href={to}
-      label={collapsed ? undefined : label}
-      leftSection={icon}
-      active={active}
-      disabled={disabled}
-      rightSection={!collapsed && badge
-        ? (
-          <Badge size="xs" variant="light" color="gray">
-            {badge}
-          </Badge>
-        )
-        : undefined}
-      variant="filled"
-      aria-label={label}
-    />
-  );
-  if (collapsed) {
-    return (
-      <Tooltip label={label} position="right">
-        <div>{link}</div>
-      </Tooltip>
-    );
-  }
-  return link;
 }
 
 function breadcrumbForLocation(location: string): string {
