@@ -676,7 +676,7 @@ export function DraftPoolPage() {
               <Group justify="space-between" align="center" wrap="wrap">
                 <Stack gap={4} style={{ flex: 1, minWidth: 240 }}>
                   <Group gap="sm" align="center">
-                    <Text fw={700} size="md">
+                    <Text fw={700} size="md" c="mint-green-9">
                       Live pool reveal in progress
                     </Text>
                     <Badge color="mint-green" variant="filled" size="lg">
@@ -684,7 +684,7 @@ export function DraftPoolPage() {
                       {draftPool.data?.totalItems ?? 0} revealed
                     </Badge>
                   </Group>
-                  <Text size="sm" c="dimmed">
+                  <Text size="sm" c="dark.6">
                     {isCommissioner
                       ? "Reveal Pokémon one at a time for everyone watching. The showcase finishes automatically when the last one is revealed."
                       : "Waiting on the commissioner to reveal the next Pokémon. The rest are hidden until then."}
@@ -694,8 +694,8 @@ export function DraftPoolPage() {
                   <Group gap="sm">
                     <Button
                       size="md"
-                      variant="subtle"
-                      color="gray"
+                      variant="outline"
+                      color="mint-green.9"
                       loading={advanceStatus.isPending}
                       onClick={() => advanceStatus.mutate({ leagueId: id! })}
                     >
