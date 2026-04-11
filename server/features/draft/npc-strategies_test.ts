@@ -6,6 +6,7 @@ interface FakeItem {
   metadata: {
     pokemonId: number;
     types: string[];
+    generation?: string;
     baseStats: {
       hp: number;
       attack: number;
@@ -22,6 +23,7 @@ function item(
   pokemonId: number,
   types: string[],
   bstTotal: number,
+  generation?: string,
 ): FakeItem {
   const per = Math.floor(bstTotal / 6);
   return {
@@ -29,6 +31,7 @@ function item(
     metadata: {
       pokemonId,
       types,
+      generation,
       baseStats: {
         hp: per,
         attack: per,
@@ -144,6 +147,35 @@ Deno.test("pickWithStrategy: balanced uses BST when types are equally represente
   ];
   const chosen = pickWithStrategy({
     rawStrategy: "balanced",
+    availableItems: items,
+    myPicks: [],
+    randomFn: fixedRandom,
+  });
+  assertEquals(chosen?.id, "b");
+});
+
+Deno.test("pickWithStrategy: regional prefers the configured generation", () => {
+  const items = [
+    item("a", 6, ["fire", "flying"], 600, "generation-i"),
+    item("b", 257, ["fire", "fighting"], 530, "generation-iii"),
+    item("c", 260, ["water", "ground"], 535, "generation-iii"),
+  ];
+  const chosen = pickWithStrategy({
+    rawStrategy: "regional:generation-iii",
+    availableItems: items,
+    myPicks: [],
+    randomFn: fixedRandom,
+  });
+  assertEquals(chosen?.id, "c");
+});
+
+Deno.test("pickWithStrategy: regional falls back to best-available when no match", () => {
+  const items = [
+    item("a", 1, ["grass"], 400, "generation-i"),
+    item("b", 2, ["water"], 550, "generation-ii"),
+  ];
+  const chosen = pickWithStrategy({
+    rawStrategy: "regional:generation-iii",
     availableItems: items,
     myPicks: [],
     randomFn: fixedRandom,
