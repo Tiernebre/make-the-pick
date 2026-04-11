@@ -10,7 +10,29 @@ import {
   type DraftRepository,
 } from "./draft.repository.ts";
 import type { DraftEventPublisher } from "./draft.events.ts";
+import type { WatchlistRepository } from "../watchlist/watchlist.repository.ts";
 import { createDraftService } from "./draft.service.ts";
+
+function createFakeWatchlistRepo(
+  overrides: Partial<WatchlistRepository> = {},
+): WatchlistRepository {
+  return {
+    findByLeaguePlayerId: (_leaguePlayerId) => Promise.resolve([]),
+    findByLeaguePlayerIdAndDraftPoolItemId: (_l, _d) => Promise.resolve(null),
+    getMaxPosition: (_leaguePlayerId) => Promise.resolve(null),
+    create: (data) =>
+      Promise.resolve({
+        id: crypto.randomUUID(),
+        leaguePlayerId: data.leaguePlayerId,
+        draftPoolItemId: data.draftPoolItemId,
+        position: data.position,
+        createdAt: new Date(),
+      }),
+    deleteByLeaguePlayerIdAndDraftPoolItemId: (_l, _d) => Promise.resolve(),
+    replaceAllPositions: (_l, _ids) => Promise.resolve(),
+    ...overrides,
+  };
+}
 
 interface PublishedEvent {
   leagueId: string;
@@ -1721,6 +1743,228 @@ Deno.test("draftService.runAutoPick: completing auto-pick publishes draft:comple
     true,
   );
   assertEquals(scheduler.cancelled, [draft.id]);
+});
+
+Deno.test("draftService.runAutoPick: picks top available item from current player's queue before BST fallback", async () => {
+  const fx = setupMakePickFakes({ currentPick: 0 });
+  fx.league.rulesConfig = {
+    draftFormat: "snake",
+    numberOfRounds: 2,
+    pickTimeLimitSeconds: 10,
+    poolSizeMultiplier: 2,
+  };
+  const weakBut = {
+    ...fx.poolItems[2],
+    metadata: {
+      pokemonId: 10,
+      types: ["bug"],
+      baseStats: {
+        hp: 10,
+        attack: 10,
+        defense: 10,
+        specialAttack: 10,
+        specialDefense: 10,
+        speed: 10,
+      },
+      generation: "gen-1",
+    },
+  };
+  const strongBstItem = {
+    ...fx.poolItems[1],
+    metadata: {
+      pokemonId: 150,
+      types: ["psychic"],
+      baseStats: {
+        hp: 106,
+        attack: 110,
+        defense: 90,
+        specialAttack: 154,
+        specialDefense: 90,
+        speed: 130,
+      },
+      generation: "gen-1",
+    },
+  };
+  const items = [fx.poolItems[0], strongBstItem, weakBut, fx.poolItems[3]];
+
+  const draftWithDeadline = {
+    ...fx.draft,
+    currentTurnDeadline: new Date(Date.now() - 1000),
+  };
+
+  let createdPickInput:
+    | { poolItemId: string; autoPicked?: boolean; leaguePlayerId: string }
+    | null = null;
+  const draftRepo = createFakeDraftRepo({
+    findByLeagueId: () => Promise.resolve(draftWithDeadline),
+    listPicks: () => Promise.resolve([]),
+    createPick: (input) => {
+      createdPickInput = input;
+      return Promise.resolve({
+        id: crypto.randomUUID(),
+        draftId: input.draftId,
+        leaguePlayerId: input.leaguePlayerId,
+        poolItemId: input.poolItemId,
+        pickNumber: input.pickNumber,
+        pickedAt: new Date(),
+        autoPicked: input.autoPicked ?? false,
+      });
+    },
+    incrementCurrentPick: () => Promise.resolve(1),
+    updateTurnDeadline: () => Promise.resolve(),
+  });
+  const leagueRepo = createFakeLeagueRepo({
+    findById: () => Promise.resolve(fx.league),
+    findPlayersByLeagueId: () => Promise.resolve([fx.playerA, fx.playerB]),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    findByLeagueId: () => Promise.resolve(fx.pool),
+    findItemsByPoolId: () => Promise.resolve(items),
+  });
+  const watchlistRepo = createFakeWatchlistRepo({
+    findByLeaguePlayerId: (leaguePlayerId) => {
+      if (leaguePlayerId !== fx.playerA.id) return Promise.resolve([]);
+      return Promise.resolve([
+        {
+          id: crypto.randomUUID(),
+          leaguePlayerId: fx.playerA.id,
+          draftPoolItemId: weakBut.id,
+          position: 0,
+          createdAt: new Date(),
+        },
+        {
+          id: crypto.randomUUID(),
+          leaguePlayerId: fx.playerA.id,
+          draftPoolItemId: strongBstItem.id,
+          position: 1,
+          createdAt: new Date(),
+        },
+      ]);
+    },
+  });
+  const publisher = createRecordingPublisher();
+  const scheduler = createRecordingScheduler();
+  const service = createDraftService({
+    draftRepo,
+    leagueRepo,
+    draftPoolRepo,
+    watchlistRepo,
+    draftEventPublisher: publisher,
+    timerScheduler: scheduler,
+  });
+
+  await service.runAutoPick({ leagueId: fx.league.id });
+
+  assertEquals(
+    (createdPickInput as unknown as { poolItemId: string } | null)?.poolItemId,
+    weakBut.id,
+  );
+  assertEquals(
+    (createdPickInput as unknown as { autoPicked?: boolean } | null)
+      ?.autoPicked,
+    true,
+  );
+});
+
+Deno.test("draftService.runAutoPick: falls back to highest-BST when queue has no available items", async () => {
+  const fx = setupMakePickFakes({ currentPick: 1 });
+  fx.league.rulesConfig = {
+    draftFormat: "snake",
+    numberOfRounds: 2,
+    pickTimeLimitSeconds: 10,
+    poolSizeMultiplier: 2,
+  };
+  const strongBstItem = {
+    ...fx.poolItems[2],
+    metadata: {
+      pokemonId: 6,
+      types: ["fire"],
+      baseStats: {
+        hp: 78,
+        attack: 84,
+        defense: 78,
+        specialAttack: 109,
+        specialDefense: 85,
+        speed: 100,
+      },
+      generation: "gen-1",
+    },
+  };
+  const items = [
+    fx.poolItems[0],
+    fx.poolItems[1],
+    strongBstItem,
+    fx.poolItems[3],
+  ];
+
+  const draftWithDeadline = {
+    ...fx.draft,
+    currentTurnDeadline: new Date(Date.now() - 1000),
+  };
+  const existingPicks: FakeDraftPick[] = [
+    {
+      id: crypto.randomUUID(),
+      draftId: fx.draft.id,
+      leaguePlayerId: fx.playerA.id,
+      poolItemId: fx.poolItems[0].id,
+      pickNumber: 0,
+      pickedAt: new Date(),
+      autoPicked: false,
+    },
+  ];
+  let createdPoolItemId: string | null = null;
+  const draftRepo = createFakeDraftRepo({
+    findByLeagueId: () => Promise.resolve(draftWithDeadline),
+    listPicks: () => Promise.resolve(existingPicks),
+    createPick: (input) => {
+      createdPoolItemId = input.poolItemId;
+      return Promise.resolve({
+        id: crypto.randomUUID(),
+        draftId: input.draftId,
+        leaguePlayerId: input.leaguePlayerId,
+        poolItemId: input.poolItemId,
+        pickNumber: input.pickNumber,
+        pickedAt: new Date(),
+        autoPicked: input.autoPicked ?? false,
+      });
+    },
+    incrementCurrentPick: () => Promise.resolve(2),
+    updateTurnDeadline: () => Promise.resolve(),
+  });
+  const leagueRepo = createFakeLeagueRepo({
+    findById: () => Promise.resolve(fx.league),
+    findPlayersByLeagueId: () => Promise.resolve([fx.playerA, fx.playerB]),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    findByLeagueId: () => Promise.resolve(fx.pool),
+    findItemsByPoolId: () => Promise.resolve(items),
+  });
+  const watchlistRepo = createFakeWatchlistRepo({
+    findByLeaguePlayerId: (leaguePlayerId) => {
+      if (leaguePlayerId !== fx.playerB.id) return Promise.resolve([]);
+      return Promise.resolve([
+        {
+          id: crypto.randomUUID(),
+          leaguePlayerId: fx.playerB.id,
+          draftPoolItemId: fx.poolItems[0].id,
+          position: 0,
+          createdAt: new Date(),
+        },
+      ]);
+    },
+  });
+  const service = createDraftService({
+    draftRepo,
+    leagueRepo,
+    draftPoolRepo,
+    watchlistRepo,
+    draftEventPublisher: createRecordingPublisher(),
+    timerScheduler: createRecordingScheduler(),
+  });
+
+  await service.runAutoPick({ leagueId: fx.league.id });
+
+  assertEquals(createdPoolItemId, strongBstItem.id);
 });
 
 // --- pauseDraft ----------------------------------------------------------

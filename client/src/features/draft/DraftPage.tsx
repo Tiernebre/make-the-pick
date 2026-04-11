@@ -187,6 +187,11 @@ export function DraftPage() {
               <WatchlistPanel
                 leagueId={leagueId}
                 poolItems={draftState.poolItems}
+                title="Queue"
+                emptyMessage="Star players from the pool to queue them up. The top of your queue auto-picks if your timer runs out."
+                onQuickDraft={handlePick}
+                quickDraftEnabled={isMyTurn}
+                isPicking={makePick.isPending}
               />
             </Grid.Col>
           </Grid>

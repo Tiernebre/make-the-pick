@@ -3,6 +3,7 @@ import type { DraftEvent, DraftState } from "@make-the-pick/shared";
 import { logger } from "../../logger.ts";
 import type { DraftPoolRepository } from "../draft-pool/draft-pool.repository.ts";
 import type { LeagueRepository } from "../league/league.repository.ts";
+import type { WatchlistRepository } from "../watchlist/watchlist.repository.ts";
 import {
   DraftPickConflictError,
   type DraftRepository,
@@ -192,6 +193,7 @@ export function createDraftService(deps: {
   draftRepo: DraftRepository;
   leagueRepo: LeagueRepository;
   draftPoolRepo: DraftPoolRepository;
+  watchlistRepo?: WatchlistRepository;
   draftEventPublisher?: DraftEventPublisher;
   clock?: Clock;
   timerScheduler?: DraftTimerScheduler;
@@ -202,7 +204,40 @@ export function createDraftService(deps: {
   const clock: Clock = deps.clock ?? { now: () => new Date() };
   const scheduler = deps.timerScheduler;
   const npcScheduler = deps.npcScheduler;
+  const watchlistRepo = deps.watchlistRepo;
   const randomFn = deps.randomFn ?? Math.random;
+
+  /**
+   * Auto-pick selection with the user's queue (watchlist) taking priority:
+   * pick the highest-ranked queue item that is still in the available pool.
+   * If the queue is empty or all queued items have been taken, fall back to
+   * `selectAutoPickItem` (highest BST). The queue lookup is best-effort —
+   * any error or missing repo silently degrades to BST so a stuck queue
+   * can never stall the draft.
+   */
+  async function selectQueueOrBstPick<
+    T extends PoolItemWithMetadata & { id: string },
+  >(
+    leaguePlayerId: string,
+    available: T[],
+  ): Promise<T | null> {
+    if (watchlistRepo) {
+      try {
+        const queue = await watchlistRepo.findByLeaguePlayerId(leaguePlayerId);
+        const availableById = new Map(available.map((item) => [item.id, item]));
+        for (const entry of queue) {
+          const match = availableById.get(entry.draftPoolItemId);
+          if (match) return match;
+        }
+      } catch (err) {
+        log.warn(
+          { err, leaguePlayerId },
+          "queue lookup failed during auto-pick — falling back to BST",
+        );
+      }
+    }
+    return selectAutoPickItem(available);
+  }
 
   function publishTurnChange(
     leagueId: string,
@@ -595,7 +630,7 @@ export function createDraftService(deps: {
       const picks = await deps.draftRepo.listPicks(draftRow.id);
       const pickedItemIds = new Set(picks.map((p) => p.poolItemId));
       const available = poolItems.filter((item) => !pickedItemIds.has(item.id));
-      const chosen = selectAutoPickItem(available);
+      const chosen = await selectQueueOrBstPick(currentPlayer.id, available);
       if (!chosen) return;
 
       let createdPickRow: Awaited<

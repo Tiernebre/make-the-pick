@@ -1,6 +1,7 @@
 import {
   ActionIcon,
   Avatar,
+  Button,
   Card,
   Group,
   Stack,
@@ -41,6 +42,9 @@ interface SortableWatchlistItemProps {
   note: string | undefined;
   leagueId: string;
   onRemove: (draftPoolItemId: string) => void;
+  onQuickDraft?: (draftPoolItemId: string) => void;
+  quickDraftDisabled?: boolean;
+  isPicking?: boolean;
 }
 
 function SortableWatchlistItem({
@@ -49,6 +53,9 @@ function SortableWatchlistItem({
   poolItem,
   note,
   onRemove,
+  onQuickDraft,
+  quickDraftDisabled,
+  isPicking,
 }: SortableWatchlistItemProps) {
   const {
     attributes,
@@ -103,6 +110,18 @@ function SortableWatchlistItem({
           </Text>
         )}
       </Stack>
+      {onQuickDraft && (
+        <Button
+          size="compact-xs"
+          variant="filled"
+          color="blue"
+          disabled={quickDraftDisabled}
+          loading={isPicking}
+          onClick={() => onQuickDraft(item.draftPoolItemId)}
+        >
+          Draft
+        </Button>
+      )}
       <ActionIcon
         variant="subtle"
         color="yellow"
@@ -118,9 +137,32 @@ function SortableWatchlistItem({
 interface WatchlistPanelProps {
   leagueId: string;
   poolItems: DraftPoolItem[];
+  /** Title shown at the top of the panel. Defaults to "Watchlist". */
+  title?: string;
+  /** Hint text shown when the list is empty. */
+  emptyMessage?: string;
+  /**
+   * When provided, renders a quick-draft button on each row that calls
+   * `onQuickDraft` with the pool item id. Use to turn the panel into a
+   * draftable queue during a live draft.
+   */
+  onQuickDraft?: (poolItemId: string) => void | Promise<void>;
+  /** Whether quick-draft buttons should be enabled (true on the user's turn). */
+  quickDraftEnabled?: boolean;
+  /** Whether a pick is currently in flight (renders the button as loading). */
+  isPicking?: boolean;
 }
 
-export function WatchlistPanel({ leagueId, poolItems }: WatchlistPanelProps) {
+export function WatchlistPanel({
+  leagueId,
+  poolItems,
+  title = "Watchlist",
+  emptyMessage =
+    "Click the star icon on any player to add them to your watchlist.",
+  onQuickDraft,
+  quickDraftEnabled = false,
+  isPicking = false,
+}: WatchlistPanelProps) {
   const watchlist = useWatchlist(leagueId);
   const removeFromWatchlist = useRemoveFromWatchlist();
   const reorderWatchlist = useReorderWatchlist();
@@ -166,12 +208,12 @@ export function WatchlistPanel({ leagueId, poolItems }: WatchlistPanelProps) {
   return (
     <Card withBorder p="md">
       <Title order={4} mb="sm">
-        Watchlist ({items.length})
+        {title} ({items.length})
       </Title>
       {items.length === 0
         ? (
           <Text size="sm" c="dimmed">
-            Click the star icon on any player to add them to your watchlist.
+            {emptyMessage}
           </Text>
         )
         : (
@@ -200,6 +242,13 @@ export function WatchlistPanel({ leagueId, poolItems }: WatchlistPanelProps) {
                       note={note}
                       leagueId={leagueId}
                       onRemove={handleRemove}
+                      onQuickDraft={onQuickDraft
+                        ? (id) => {
+                          void onQuickDraft(id);
+                        }
+                        : undefined}
+                      quickDraftDisabled={!quickDraftEnabled}
+                      isPicking={isPicking}
                     />
                   );
                 })}

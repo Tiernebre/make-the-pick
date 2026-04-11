@@ -104,10 +104,12 @@ export function createFeatureRouters(db: Database) {
   // without resorting to `any` casts or module-level globals.
   const draftTimerScheduler = createDraftTimerScheduler({ draftRepo });
   const npcScheduler = createNpcScheduler();
+  const watchlistRepo = createWatchlistRepository(db);
   const draftService = createDraftService({
     draftRepo,
     leagueRepo,
     draftPoolRepo,
+    watchlistRepo,
     draftEventPublisher,
     timerScheduler: draftTimerScheduler,
     npcScheduler,
@@ -138,7 +140,6 @@ export function createFeatureRouters(db: Database) {
     pokemonVersionsJson as PokemonVersion[],
   );
 
-  const watchlistRepo = createWatchlistRepository(db);
   const watchlistService = createWatchlistService({
     watchlistRepo,
     leagueRepo,
