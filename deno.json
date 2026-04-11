@@ -10,7 +10,6 @@
     "setup": "./bin/setup",
     "dev": "./bin/dev",
     "db:migrate:dev": "cd server && deno run --allow-net --allow-env --allow-read --allow-sys --env=../.env db/migrate.ts",
-    "seed:dev": "cd server && deno run --allow-net --allow-env --allow-read --allow-sys --env=../.env cli.ts seed dev",
     "dev:server": "cd server && deno run --watch --allow-net --allow-env --allow-read --allow-sys --env main.ts | deno run -A npm:pino-pretty",
     "dev:client": "cd client && deno run -A npm:vite",
     "test": "./bin/test",
