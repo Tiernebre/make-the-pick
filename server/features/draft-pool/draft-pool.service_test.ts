@@ -7,6 +7,7 @@ import type {
   PokemonGiftsData,
   PokemonVersion,
   RegionalPokedexEntry,
+  SpeciesPoolItemMetadata,
 } from "@make-the-pick/shared";
 import type { LeagueRepository } from "../league/league.repository.ts";
 import type { DraftPoolRepository } from "./draft-pool.repository.ts";
@@ -2452,4 +2453,260 @@ Deno.test("draftPoolService.getByLeagueId: does not filter during scouting", asy
 
   await service.getByLeagueId("user-1", fakeLeague.id);
   assertEquals(capturedOpts?.onlyRevealed, false);
+});
+
+// --- generate: species mode ---
+
+// Three-species fixture:
+//   pokemon-1 — single-stage terminal → species {1}
+//   pokemon-2 → pokemon-3            → species {3} owning {2, 3}
+//   pokemon-4 — single-stage terminal → species {4}
+function createSpeciesFixture(): {
+  pokemonData: Pokemon[];
+  pokemonEvolutions: PokemonEvolutionsData;
+} {
+  const base = createFakePokemonData(4);
+  const pokemonEvolutions: PokemonEvolutionsData = {
+    "1": { pokemonId: 1, chainId: 1, evolvesFromId: null, triggers: [] },
+    "2": { pokemonId: 2, chainId: 2, evolvesFromId: null, triggers: [] },
+    "3": { pokemonId: 3, chainId: 2, evolvesFromId: 2, triggers: [] },
+    "4": { pokemonId: 4, chainId: 3, evolvesFromId: null, triggers: [] },
+  };
+  return { pokemonData: base, pokemonEvolutions };
+}
+
+Deno.test("draftPoolService.generate: species mode emits species-shaped pool items", async () => {
+  const fakeLeague = createFakeLeague({
+    rulesConfig: {
+      draftFormat: "snake",
+      numberOfRounds: 1,
+      pickTimeLimitSeconds: null,
+      poolSizeMultiplier: 1.5,
+      draftMode: "species",
+    },
+  });
+  const { pokemonData, pokemonEvolutions } = createSpeciesFixture();
+
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve(createCommissionerPlayer(fakeLeague.id)),
+    countPlayers: (_leagueId) => Promise.resolve(2),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo();
+
+  const service = createDraftPoolService({
+    draftPoolRepo,
+    leagueRepo,
+    pokemonData,
+    pokemonEvolutions,
+  });
+
+  const result = await service.generate("user-1", {
+    leagueId: fakeLeague.id,
+  });
+
+  // 1 round * 2 players * 1.5 multiplier = 3, clamped against 3 species.
+  assertEquals(result.items.length, 3);
+
+  for (const item of result.items) {
+    const metadata = item.metadata as SpeciesPoolItemMetadata;
+    assertEquals(metadata.mode, "species");
+    assertEquals(metadata.finals.length >= 1, true);
+    const terminalName = metadata.finals[0].name;
+    assertEquals(item.name, terminalName);
+    // Non-terminal base forms must never become pool items.
+    assertEquals(item.name === "pokemon-2", false);
+  }
+
+  // Species universe shape: {1}, {3 owning 2,3}, {4}.
+  const names = new Set(result.items.map((i) => i.name));
+  assertEquals(names.has("pokemon-1"), true);
+  assertEquals(names.has("pokemon-3"), true);
+  assertEquals(names.has("pokemon-4"), true);
+});
+
+Deno.test("draftPoolService.generate: species mode includes members for branching/linear chains", async () => {
+  const fakeLeague = createFakeLeague({
+    rulesConfig: {
+      draftFormat: "snake",
+      numberOfRounds: 10,
+      pickTimeLimitSeconds: null,
+      poolSizeMultiplier: 3,
+      draftMode: "species",
+    },
+  });
+  const { pokemonData, pokemonEvolutions } = createSpeciesFixture();
+
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve(createCommissionerPlayer(fakeLeague.id)),
+    countPlayers: (_leagueId) => Promise.resolve(4),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo();
+
+  const service = createDraftPoolService({
+    draftPoolRepo,
+    leagueRepo,
+    pokemonData,
+    pokemonEvolutions,
+  });
+
+  const result = await service.generate("user-1", {
+    leagueId: fakeLeague.id,
+  });
+
+  const byName = new Map(
+    result.items.map((i) => [
+      i.name,
+      i.metadata as SpeciesPoolItemMetadata,
+    ]),
+  );
+
+  const linear = byName.get("pokemon-3");
+  assertEquals(linear !== undefined, true);
+  assertEquals(linear!.members.length, 2);
+  assertEquals(linear!.members.map((m) => m.pokemonId).sort(), [2, 3]);
+  assertEquals(linear!.members.find((m) => m.pokemonId === 3)?.stage, "final");
+  assertEquals(linear!.members.find((m) => m.pokemonId === 2)?.stage, "base");
+
+  const single = byName.get("pokemon-1");
+  assertEquals(single!.members.length, 1);
+  assertEquals(single!.members[0].stage, "final");
+});
+
+Deno.test("draftPoolService.generate: species mode clamps pool size to the species universe", async () => {
+  const fakeLeague = createFakeLeague({
+    rulesConfig: {
+      draftFormat: "snake",
+      numberOfRounds: 100,
+      pickTimeLimitSeconds: null,
+      poolSizeMultiplier: 3,
+      draftMode: "species",
+    },
+  });
+  const { pokemonData, pokemonEvolutions } = createSpeciesFixture();
+
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve(createCommissionerPlayer(fakeLeague.id)),
+    countPlayers: (_leagueId) => Promise.resolve(10),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo();
+
+  const service = createDraftPoolService({
+    draftPoolRepo,
+    leagueRepo,
+    pokemonData,
+    pokemonEvolutions,
+  });
+
+  const result = await service.generate("user-1", {
+    leagueId: fakeLeague.id,
+  });
+
+  // 100 * 10 * 3 = 3000 — clamped to 3 species, not 4 pokemon.
+  assertEquals(result.items.length, 3);
+});
+
+Deno.test("draftPoolService.generate: species mode thumbnailUrl comes from the terminal final", async () => {
+  const fakeLeague = createFakeLeague({
+    rulesConfig: {
+      draftFormat: "snake",
+      numberOfRounds: 10,
+      pickTimeLimitSeconds: null,
+      poolSizeMultiplier: 3,
+      draftMode: "species",
+    },
+  });
+  const { pokemonData, pokemonEvolutions } = createSpeciesFixture();
+
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve(createCommissionerPlayer(fakeLeague.id)),
+    countPlayers: (_leagueId) => Promise.resolve(4),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo();
+
+  const service = createDraftPoolService({
+    draftPoolRepo,
+    leagueRepo,
+    pokemonData,
+    pokemonEvolutions,
+  });
+
+  const result = await service.generate("user-1", {
+    leagueId: fakeLeague.id,
+  });
+
+  // pokemon-3 is a linear-chain terminal — its thumbnail must be the
+  // terminal final's sprite, not the base form (pokemon-2)'s.
+  const pokemon3 = result.items.find((i) => i.name === "pokemon-3");
+  assertEquals(pokemon3?.thumbnailUrl, "https://example.com/sprite-3.png");
+});
+
+Deno.test("draftPoolService.generate: species mode throws when evolution data is missing", async () => {
+  const fakeLeague = createFakeLeague({
+    rulesConfig: {
+      draftFormat: "snake",
+      numberOfRounds: 1,
+      pickTimeLimitSeconds: null,
+      poolSizeMultiplier: 2,
+      draftMode: "species",
+    },
+  });
+  const { pokemonData } = createSpeciesFixture();
+
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve(createCommissionerPlayer(fakeLeague.id)),
+    countPlayers: (_leagueId) => Promise.resolve(2),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo();
+
+  const service = createDraftPoolService({
+    draftPoolRepo,
+    leagueRepo,
+    pokemonData,
+    // intentionally omit pokemonEvolutions
+  });
+
+  const error = await assertRejects(
+    () => service.generate("user-1", { leagueId: fakeLeague.id }),
+    TRPCError,
+  );
+  assertEquals(error.code, "BAD_REQUEST");
+});
+
+Deno.test("draftPoolService.generate: individual mode (default) emits mode: 'individual' metadata", async () => {
+  const fakeLeague = createFakeLeague();
+  const pokemonData = createFakePokemonData(10);
+
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve(createCommissionerPlayer(fakeLeague.id)),
+    countPlayers: (_leagueId) => Promise.resolve(2),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo();
+
+  const service = createDraftPoolService({
+    draftPoolRepo,
+    leagueRepo,
+    pokemonData,
+  });
+
+  const result = await service.generate("user-1", {
+    leagueId: fakeLeague.id,
+  });
+
+  for (const item of result.items) {
+    const metadata = item.metadata as { mode: string; pokemonId: number };
+    assertEquals(metadata.mode, "individual");
+    assertEquals(typeof metadata.pokemonId, "number");
+  }
 });

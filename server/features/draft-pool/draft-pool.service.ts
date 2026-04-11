@@ -11,8 +11,10 @@ import type {
   PoolItemEffort,
   PoolItemEncounter,
   RegionalPokedexEntry,
+  Species,
+  SpeciesPoolItemMetadata,
 } from "@make-the-pick/shared";
-import { LEAGUE_STATUS_TRANSITIONS } from "@make-the-pick/shared";
+import { buildSpecies, LEAGUE_STATUS_TRANSITIONS } from "@make-the-pick/shared";
 import { TRPCError } from "@trpc/server";
 import { logger } from "../../logger.ts";
 import type { DraftEventPublisher } from "../draft/draft.events.ts";
@@ -30,6 +32,7 @@ interface RulesConfig {
   excludeLegendaries?: boolean;
   excludeStarters?: boolean;
   excludeTradeEvolutions?: boolean;
+  draftMode?: "individual" | "species";
 }
 
 interface StoredPoolItem {
@@ -523,10 +526,47 @@ export function createDraftPoolService(deps: {
 
       const multiplier = rulesConfig.poolSizeMultiplier ??
         DEFAULT_POOL_SIZE_MULTIPLIER;
+      const draftMode = rulesConfig.draftMode ?? "individual";
+
+      // In species mode the pool universe is the set of draftable species,
+      // not individual Pokemon, so compute both the universe and the per-
+      // species filter verdict up front. A species is eligible if *any* of
+      // its terminal finals survived the individual-level filters above —
+      // see species-draft.md invariant 5.
+      let speciesUniverse: Species[] = [];
+      if (draftMode === "species") {
+        if (!deps.pokemonEvolutions) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message:
+              "Species drafting requires Pokemon evolution data to be loaded",
+          });
+        }
+        const eligibleIds = new Set(eligiblePokemon.map((p) => p.id));
+        const allSpecies = buildSpecies(
+          deps.pokemonData,
+          deps.pokemonEvolutions,
+        );
+        speciesUniverse = allSpecies.filter((species) =>
+          species.finals.some((final) => eligibleIds.has(final.pokemonId))
+        );
+
+        if (speciesUniverse.length === 0) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message:
+              "No eligible species remain after applying the league's filter rules",
+          });
+        }
+      }
+
+      const universeSize = draftMode === "species"
+        ? speciesUniverse.length
+        : eligiblePokemon.length;
       const rawPoolSize = Math.floor(
         rulesConfig.numberOfRounds * playerCount * multiplier,
       );
-      const poolSize = Math.min(rawPoolSize, eligiblePokemon.length);
+      const poolSize = Math.min(rawPoolSize, universeSize);
 
       log.debug(
         {
@@ -534,6 +574,8 @@ export function createDraftPoolService(deps: {
           playerCount,
           numberOfRounds: rulesConfig.numberOfRounds,
           multiplier,
+          draftMode,
+          universeSize,
           poolSize,
         },
         "calculated pool size",
@@ -542,32 +584,64 @@ export function createDraftPoolService(deps: {
       // Delete existing pool (re-roll support)
       await deps.draftPoolRepo.deleteByLeagueId(input.leagueId);
 
-      // Shuffle and select
-      const shuffled = fisherYatesShuffle(eligiblePokemon);
-      const selected = shuffled.slice(0, poolSize);
-
       // Create pool
       const pool = await deps.draftPoolRepo.create(
         input.leagueId,
         "Draft Pool",
       );
 
-      // Map to pool items. `selected` is already fisher-yates shuffled, so
-      // using the array index as reveal_order gives a deterministic but
-      // random-looking showcase sequence without a second shuffle.
-      const poolItems = selected.map((pokemon, index) => ({
-        draftPoolId: pool.id,
-        name: pokemon.name,
-        thumbnailUrl: pokemon.spriteUrl,
-        metadata: {
-          pokemonId: pokemon.id,
-          types: pokemon.types,
-          baseStats: pokemon.baseStats,
-          generation: pokemon.generation,
-        },
-        revealOrder: index,
-        revealedAt: null,
-      }));
+      // Map to pool items. In both modes the source array is already
+      // fisher-yates shuffled, so using the array index as reveal_order
+      // gives a deterministic but random-looking showcase sequence without
+      // a second shuffle.
+      let poolItems: Array<{
+        draftPoolId: string;
+        name: string;
+        thumbnailUrl: string | null;
+        metadata: IndividualPoolItemMetadata | SpeciesPoolItemMetadata;
+        revealOrder: number;
+        revealedAt: null;
+      }>;
+      if (draftMode === "species") {
+        const shuffled = fisherYatesShuffle(speciesUniverse);
+        const selected = shuffled.slice(0, poolSize);
+        poolItems = selected.map((species, index) => {
+          const firstFinal = species.finals[0];
+          const metadata: SpeciesPoolItemMetadata = {
+            mode: "species",
+            finals: species.finals,
+            members: species.members,
+          };
+          return {
+            draftPoolId: pool.id,
+            name: species.name,
+            thumbnailUrl: firstFinal?.spriteUrl ?? null,
+            metadata,
+            revealOrder: index,
+            revealedAt: null,
+          };
+        });
+      } else {
+        const shuffled = fisherYatesShuffle(eligiblePokemon);
+        const selected = shuffled.slice(0, poolSize);
+        poolItems = selected.map((pokemon, index) => {
+          const metadata: IndividualPoolItemMetadata = {
+            mode: "individual",
+            pokemonId: pokemon.id,
+            types: pokemon.types,
+            baseStats: pokemon.baseStats,
+            generation: pokemon.generation,
+          };
+          return {
+            draftPoolId: pool.id,
+            name: pokemon.name,
+            thumbnailUrl: pokemon.spriteUrl,
+            metadata,
+            revealOrder: index,
+            revealedAt: null,
+          };
+        });
+      }
 
       const items = await deps.draftPoolRepo.createItems(poolItems);
 
