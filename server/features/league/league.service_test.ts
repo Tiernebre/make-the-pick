@@ -929,6 +929,101 @@ Deno.test("leagueService.advanceStatus: starts the draft after advancing from sc
   assertEquals(startDraftCalledWith?.leagueId, fakeLeague.id);
 });
 
+Deno.test("leagueService.advanceStatus: full lifecycle setup → pooling → scouting → drafting calls the right side effects in order", async () => {
+  const calls: string[] = [];
+  let currentStatus: "setup" | "pooling" | "scouting" | "drafting" = "setup";
+  const leagueId = crypto.randomUUID();
+  const fakePool = {
+    id: crypto.randomUUID(),
+    leagueId,
+    name: "Draft Pool",
+    createdAt: new Date(),
+  };
+
+  const repo = createFakeRepo({
+    findById: (_id) =>
+      Promise.resolve(
+        createFakeLeague({
+          id: leagueId,
+          status: currentStatus,
+          sportType: "pokemon",
+          maxPlayers: 4,
+          rulesConfig: {
+            draftFormat: "snake",
+            numberOfRounds: 3,
+            pickTimeLimitSeconds: null,
+            poolSizeMultiplier: 2,
+          },
+        }),
+      ),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve({
+        id: crypto.randomUUID(),
+        leagueId,
+        userId: "user-1",
+        role: "commissioner" as const,
+        joinedAt: new Date(),
+      }),
+    updateStatus: (_id, status) => {
+      calls.push(`updateStatus:${status}`);
+      currentStatus = status as typeof currentStatus;
+      return Promise.resolve(
+        createFakeLeague({ id: leagueId, status: currentStatus }),
+      );
+    },
+  });
+
+  const draftPoolService = createFakeDraftPoolService({
+    generate: (_userId, _input) => {
+      calls.push("generate");
+      return Promise.resolve({
+        id: fakePool.id,
+        leagueId,
+        name: "Draft Pool",
+        createdAt: new Date(),
+        items: [],
+      });
+    },
+  });
+
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    findByLeagueId: (_leagueId) => Promise.resolve(fakePool),
+    revealAllItems: (_poolId, _now) => {
+      calls.push("revealAll");
+      return Promise.resolve(5);
+    },
+  });
+
+  const draftRepo = createFakeDraftRepo();
+
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo,
+    draftPoolRepo,
+    draftPoolService,
+    startDraft: (_input) => {
+      calls.push("startDraft");
+      return Promise.resolve();
+    },
+  });
+
+  // setup → pooling: generate pool, no startDraft.
+  await service.advanceStatus("user-1", { leagueId });
+  // pooling → scouting: reveal remaining, no startDraft.
+  await service.advanceStatus("user-1", { leagueId });
+  // scouting → drafting: startDraft fires.
+  await service.advanceStatus("user-1", { leagueId });
+
+  assertEquals(calls, [
+    "generate",
+    "updateStatus:pooling",
+    "revealAll",
+    "updateStatus:scouting",
+    "updateStatus:drafting",
+    "startDraft",
+  ]);
+});
+
 Deno.test("leagueService.advanceStatus: reveals remaining pool items when advancing from pooling to scouting", async () => {
   const fakeLeague = createFakeLeague({ status: "pooling" });
   const fakePool = {

@@ -11,6 +11,7 @@ import type {
   PoolItemEncounter,
   RegionalPokedexEntry,
 } from "@make-the-pick/shared";
+import { LEAGUE_STATUS_TRANSITIONS } from "@make-the-pick/shared";
 import { TRPCError } from "@trpc/server";
 import { logger } from "../../logger.ts";
 import type { DraftEventPublisher } from "../draft/draft.events.ts";
@@ -684,11 +685,17 @@ export function createDraftPoolService(deps: {
       // Auto-advance to scouting when the last item has just been revealed.
       // Avoids making the commissioner click "Advance" right after clicking
       // "Reveal" — the showcase is done, so there is nothing left to wait
-      // for. Done in the repo layer directly rather than by calling
-      // leagueService.advanceStatus to avoid re-running revealAllItems on an
-      // already-fully-revealed pool.
+      // for. Done via the direct repo call rather than by re-entering
+      // leagueService.advanceStatus so we don't run revealAllItems again on
+      // a pool that is already fully revealed. The next status is looked up
+      // from the shared transition map instead of hard-coding "scouting"
+      // so that if the lifecycle is ever reshuffled this auto-advance
+      // follows the same chain the manual "Advance" button walks.
       if (result.remaining === 0) {
-        await deps.leagueRepo.updateStatus(input.leagueId, "scouting");
+        const nextStatus = LEAGUE_STATUS_TRANSITIONS.pooling;
+        if (nextStatus) {
+          await deps.leagueRepo.updateStatus(input.leagueId, nextStatus);
+        }
         deps.eventPublisher?.publish(input.leagueId, {
           type: "draftPool:reveal_completed",
         });
