@@ -607,7 +607,13 @@ export function LeagueDetailPage() {
                   >
                     <Group justify="space-between" wrap="nowrap">
                       <Group gap="sm">
-                        <Avatar radius="xl" size="sm" color="mint-green">
+                        <Avatar
+                          src={npc.image}
+                          alt={npc.name}
+                          radius="xl"
+                          size="sm"
+                          color="mint-green"
+                        >
                           {npc.name
                             .split(" ")
                             .map((n) => n[0])

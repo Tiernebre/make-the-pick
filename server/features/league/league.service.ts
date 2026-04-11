@@ -347,6 +347,7 @@ export function createLeagueService(
         id: n.id,
         name: n.name,
         npcStrategy: n.npcStrategy,
+        image: n.image,
       }));
     },
 
