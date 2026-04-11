@@ -84,6 +84,17 @@ export {
   regionalPokedexEntrySchema,
 } from "./pokemon.ts";
 export {
+  buildSpecies,
+  type Species,
+  type SpeciesFinal,
+  speciesFinalSchema,
+  type SpeciesMember,
+  speciesMemberSchema,
+  type SpeciesMemberStage,
+  speciesMemberStageSchema,
+  speciesSchema,
+} from "./species.ts";
+export {
   type PokemonEncounterPrimary,
   pokemonEncounterPrimarySchema,
   type PokemonEncountersData,

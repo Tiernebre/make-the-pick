@@ -83,6 +83,17 @@ export {
   regionalPokedexEntrySchema,
 } from "./schemas/mod.ts";
 export {
+  buildSpecies,
+  type Species,
+  type SpeciesFinal,
+  speciesFinalSchema,
+  type SpeciesMember,
+  speciesMemberSchema,
+  type SpeciesMemberStage,
+  speciesMemberStageSchema,
+  speciesSchema,
+} from "./schemas/mod.ts";
+export {
   type EvolutionTrigger,
   evolutionTriggerSchema,
   type PokemonEncounterPrimary,
