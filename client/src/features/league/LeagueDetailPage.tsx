@@ -277,72 +277,82 @@ export function LeagueDetailPage() {
                       const strategy = parseNpcStrategy(
                         player.npcStrategy ?? null,
                       );
+                      const hasMetaBadges = player.isNpc || !!strategy;
                       return (
-                        <Group
-                          key={player.id}
-                          justify="space-between"
-                          wrap="nowrap"
-                          align="flex-start"
-                        >
+                        <Stack key={player.id} gap={4}>
                           <Group
-                            gap="xs"
-                            wrap="wrap"
-                            style={{ flex: 1, minWidth: 0 }}
+                            justify="space-between"
+                            wrap="nowrap"
+                            align="center"
                           >
-                            {player.isNpc
-                              ? (
-                                <NpcAvatar
-                                  name={player.name}
-                                  image={player.image}
-                                  radius="xl"
-                                  size="sm"
-                                />
-                              )
-                              : (
-                                <Avatar
-                                  src={player.image}
-                                  alt={player.name}
-                                  radius="xl"
-                                  size="sm"
-                                  color="mint-green"
-                                >
-                                  {player.name
-                                    .split(" ")
-                                    .map((n) => n[0])
-                                    .join("")
-                                    .toUpperCase()
-                                    .slice(0, 2)}
-                                </Avatar>
-                              )}
-                            <Text size="sm" style={{ minWidth: 0 }} truncate>
-                              {player.name}
-                            </Text>
-                            {player.isNpc && (
-                              <Badge variant="light" color="grape" size="xs">
-                                NPC
-                              </Badge>
-                            )}
-                            {strategy && (
-                              <Tooltip label={strategy.description}>
+                            <Group
+                              gap="xs"
+                              wrap="nowrap"
+                              style={{ flex: 1, minWidth: 0 }}
+                            >
+                              {player.isNpc
+                                ? (
+                                  <NpcAvatar
+                                    name={player.name}
+                                    image={player.image}
+                                    radius="xl"
+                                    size="sm"
+                                  />
+                                )
+                                : (
+                                  <Avatar
+                                    src={player.image}
+                                    alt={player.name}
+                                    radius="xl"
+                                    size="sm"
+                                    color="mint-green"
+                                  >
+                                    {player.name
+                                      .split(" ")
+                                      .map((n) => n[0])
+                                      .join("")
+                                      .toUpperCase()
+                                      .slice(0, 2)}
+                                  </Avatar>
+                                )}
+                              <Text size="sm" style={{ minWidth: 0 }} truncate>
+                                {player.name}
+                              </Text>
+                            </Group>
+                            <Badge
+                              variant="light"
+                              size="sm"
+                              tt="capitalize"
+                              style={{ flexShrink: 0 }}
+                            >
+                              {player.role}
+                            </Badge>
+                          </Group>
+                          {hasMetaBadges && (
+                            <Group gap="xs" wrap="wrap" pl={34}>
+                              {player.isNpc && (
                                 <Badge
-                                  variant="outline"
-                                  color={npcStrategyColor(strategy)}
+                                  variant="light"
+                                  color="grape"
                                   size="xs"
                                 >
-                                  {strategy.label}
+                                  NPC
                                 </Badge>
-                              </Tooltip>
-                            )}
-                          </Group>
-                          <Badge
-                            variant="light"
-                            size="sm"
-                            tt="capitalize"
-                            style={{ flexShrink: 0 }}
-                          >
-                            {player.role}
-                          </Badge>
-                        </Group>
+                              )}
+                              {strategy && (
+                                <Tooltip label={strategy.description}>
+                                  <Badge
+                                    variant="outline"
+                                    color={npcStrategyColor(strategy)}
+                                    size="xs"
+                                  >
+                                    {strategy.label}
+                                  </Badge>
+                                </Tooltip>
+                              )}
+                            </Group>
+                          )}
+                        </Stack>
                       );
                     })}
                     {(!players.data || players.data.length === 0) && (
