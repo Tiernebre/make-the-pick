@@ -103,6 +103,10 @@ export {
   pokemonEvolutionsDataSchema,
 } from "./pokemon-evolutions.ts";
 export {
+  type PokemonGiftsData,
+  pokemonGiftsDataSchema,
+} from "./pokemon-gifts.ts";
+export {
   type PokemonMovesEntry,
   pokemonMovesEntrySchema,
 } from "./pokemon-moves.ts";
