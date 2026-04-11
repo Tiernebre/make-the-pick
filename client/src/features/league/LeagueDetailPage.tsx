@@ -28,7 +28,7 @@ import {
   IconSettings,
   IconSparkles,
 } from "@tabler/icons-react";
-import { parseNpcStrategy } from "@make-the-pick/shared";
+import { npcStrategyColor, parseNpcStrategy } from "@make-the-pick/shared";
 import { useMemo } from "react";
 import { Link, useLocation, useParams } from "wouter";
 import { useSession } from "../../auth";
@@ -275,7 +275,7 @@ export function LeagueDetailPage() {
                               <Tooltip label={strategy.description}>
                                 <Badge
                                   variant="outline"
-                                  color="grape"
+                                  color={npcStrategyColor(strategy)}
                                   size="xs"
                                 >
                                   {strategy.label}
@@ -627,7 +627,7 @@ export function LeagueDetailPage() {
                         <Tooltip label={strategy.description} withinPortal>
                           <Badge
                             variant="outline"
-                            color="grape"
+                            color={npcStrategyColor(strategy)}
                             size="xs"
                           >
                             {strategy.label}

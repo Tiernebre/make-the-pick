@@ -11,6 +11,7 @@ import {
 import {
   type DraftPoolItem,
   type DraftState,
+  npcStrategyColor,
   parseNpcStrategy,
 } from "@make-the-pick/shared";
 import { useMemo } from "react";
@@ -55,7 +56,7 @@ export function AllRostersPanel({
                     {strategy && (
                       <Badge
                         variant="outline"
-                        color="grape"
+                        color={npcStrategyColor(strategy)}
                         size="xs"
                         title={strategy.description}
                       >
