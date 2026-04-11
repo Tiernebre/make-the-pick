@@ -3,7 +3,15 @@ import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "../../db/schema.ts";
-import { league, leaguePlayer, user } from "../../db/schema.ts";
+import {
+  draft,
+  draftPick,
+  draftPool,
+  draftPoolItem,
+  league,
+  leaguePlayer,
+  user,
+} from "../../db/schema.ts";
 import { createLeagueRepository } from "./league.repository.ts";
 
 function createTestDb() {
@@ -274,6 +282,66 @@ Deno.test({
         eq(leaguePlayer.leagueId, created.id),
       );
       assertEquals(players.length, 0);
+    } finally {
+      await db.delete(leaguePlayer);
+      await db.delete(league);
+      await db.delete(user).where(eq(user.id, userId));
+      await client.end();
+    }
+  },
+});
+
+Deno.test({
+  name:
+    "leagueRepository.deleteById: cascades through draft picks (regression)",
+  sanitizeResources: false,
+  sanitizeOps: false,
+  fn: async () => {
+    const { db, client } = createTestDb();
+    const repo = createLeagueRepository(db);
+    const userId = crypto.randomUUID();
+
+    try {
+      await createTestUser(db, userId);
+      const created = await repo.createWithCommissioner(userId, {
+        name: "Cascade Test",
+        inviteCode: "CASCADE1",
+        ...defaultSettings,
+      });
+
+      const [player] = await db.select().from(leaguePlayer).where(
+        eq(leaguePlayer.leagueId, created.id),
+      );
+
+      const [pool] = await db.insert(draftPool).values({
+        leagueId: created.id,
+        name: "Test Pool",
+      }).returning();
+
+      const [poolItem] = await db.insert(draftPoolItem).values({
+        draftPoolId: pool.id,
+        name: "Pikachu",
+        revealOrder: 0,
+      }).returning();
+
+      const [draftRow] = await db.insert(draft).values({
+        leagueId: created.id,
+        poolId: pool.id,
+        format: "snake",
+        pickOrder: [player.id],
+      }).returning();
+
+      await db.insert(draftPick).values({
+        draftId: draftRow.id,
+        leaguePlayerId: player.id,
+        poolItemId: poolItem.id,
+        pickNumber: 1,
+      });
+
+      await repo.deleteById(created.id);
+
+      const found = await repo.findById(created.id);
+      assertEquals(found, null);
     } finally {
       await db.delete(leaguePlayer);
       await db.delete(league);

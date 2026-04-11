@@ -162,6 +162,13 @@
       "when": 1776340000000,
       "tag": "0022_smogon_npc_avatars",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1776350000000,
+      "tag": "0023_powerful_albert_cleary",
+      "breakpoints": true
     }
   ]
 }
