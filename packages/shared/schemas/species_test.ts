@@ -73,6 +73,12 @@ Deno.test("buildSpecies: linear 3-stage line collapses to one species", () => {
     charizard.members.map((m) => m.stage),
     ["base", "middle", "final"],
   );
+  // Each member carries its own sprite so the UI can render an evolution
+  // chain like "<charmander> <charmeleon> <charizard> Charizard Line".
+  assertEquals(
+    charizard.members.map((m) => m.spriteUrl),
+    ["sprite/4.png", "sprite/5.png", "sprite/6.png"],
+  );
 });
 
 Deno.test("buildSpecies: single-stage pokemon is its own species", () => {
@@ -156,6 +162,7 @@ Deno.test("buildSpecies: regional variants of a terminal collapse into one speci
   if (!alolaVulpix) throw new Error("missing alolan vulpix");
   assertEquals(alolaVulpix.regionalForm, "alola");
   assertEquals(alolaVulpix.stage, "base");
+  assertEquals(alolaVulpix.spriteUrl, "sprite/10103.png");
 });
 
 Deno.test("buildSpecies: linear chain with Galarian pre-evos collapses to one species (Obstagoon)", () => {

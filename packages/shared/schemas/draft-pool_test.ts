@@ -66,24 +66,28 @@ const speciesMetadata = {
       name: "vulpix",
       regionalForm: null,
       stage: "base" as const,
+      spriteUrl: null,
     },
     {
       pokemonId: 38,
       name: "ninetales",
       regionalForm: null,
       stage: "final" as const,
+      spriteUrl: null,
     },
     {
       pokemonId: 10228,
       name: "vulpix-alola",
       regionalForm: "alola",
       stage: "base" as const,
+      spriteUrl: null,
     },
     {
       pokemonId: 10229,
       name: "ninetales-alola",
       regionalForm: "alola",
       stage: "final" as const,
+      spriteUrl: null,
     },
   ],
 };

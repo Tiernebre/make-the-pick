@@ -209,11 +209,36 @@ export function AvailablePoolTable({
       {
         accessorKey: "name",
         header: "Name",
-        Cell: ({ renderedCellValue }) => (
-          <span style={{ fontWeight: 500, textTransform: "capitalize" }}>
-            {renderedCellValue}
-          </span>
-        ),
+        Cell: ({ row, renderedCellValue }) => {
+          const display = getPoolItemDisplay(row.original);
+          if (display?.mode === "species" && display.chain.length > 0) {
+            return (
+              <Group gap={4} wrap="nowrap" align="center">
+                {display.chain.map((stage) => (
+                  <img
+                    key={stage.pokemonId}
+                    src={stage.spriteUrl ?? undefined}
+                    alt={stage.name}
+                    width={32}
+                    height={32}
+                    style={{
+                      objectFit: "contain",
+                      imageRendering: "pixelated",
+                    }}
+                  />
+                ))}
+                <span style={{ fontWeight: 500, textTransform: "capitalize" }}>
+                  {row.original.name} Line
+                </span>
+              </Group>
+            );
+          }
+          return (
+            <span style={{ fontWeight: 500, textTransform: "capitalize" }}>
+              {renderedCellValue}
+            </span>
+          );
+        },
       },
       {
         id: "types",

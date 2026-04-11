@@ -45,11 +45,13 @@ export const speciesMemberSchema: z.ZodObject<{
   name: z.ZodString;
   regionalForm: z.ZodNullable<z.ZodString>;
   stage: typeof speciesMemberStageSchema;
+  spriteUrl: z.ZodNullable<z.ZodString>;
 }> = object({
   pokemonId: number(),
   name: string(),
   regionalForm: nullable(string()),
   stage: speciesMemberStageSchema,
+  spriteUrl: nullable(string()),
 });
 
 export type SpeciesMember = z.infer<typeof speciesMemberSchema>;
@@ -158,6 +160,7 @@ export function buildSpecies(
         name: cursorMon.name,
         regionalForm: null,
         stage,
+        spriteUrl: cursorMon.spriteUrl,
       });
       cursorId = cursorNode.evolvesFromId;
     }
@@ -212,6 +215,7 @@ export function buildSpecies(
           name: p.name,
           regionalForm: parsed.form,
           stage,
+          spriteUrl: p.spriteUrl,
         });
         draft.memberIds.add(p.id);
       }
