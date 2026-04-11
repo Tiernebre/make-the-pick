@@ -468,7 +468,7 @@ export function DraftPoolPage() {
         accessorFn: (row) => row.effort?.score ?? null,
         header: "Effort",
         grow: false,
-        size: 90,
+        size: 140,
         filterVariant: "range",
         Header: () => (
           <Group gap={4} wrap="nowrap">
