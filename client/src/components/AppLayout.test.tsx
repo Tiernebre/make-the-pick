@@ -112,12 +112,11 @@ describe("AppLayout shell", () => {
     expect(screen.getByRole("navigation")).toBeInTheDocument();
   });
 
-  it("has a Home nav link pointing to /", () => {
+  it("does not render a Home nav link (root redirects to /leagues)", () => {
     setupMocks();
     renderLayout();
     const nav = screen.getByRole("navigation");
-    const homeLink = within(nav).getByRole("link", { name: /home/i });
-    expect(homeLink).toHaveAttribute("href", "/");
+    expect(within(nav).queryByRole("link", { name: /^home$/i })).toBeNull();
   });
 
   it("has a Leagues section in the sidebar", () => {

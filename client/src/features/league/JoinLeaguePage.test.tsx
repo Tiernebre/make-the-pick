@@ -93,7 +93,7 @@ describe("JoinLeaguePage", () => {
     expect(screen.getByText(/league is full/i)).toBeInTheDocument();
   });
 
-  it("shows a link to go home when there is an error", () => {
+  it("shows a link back to the leagues list when there is an error", () => {
     mockUseJoinLeague.mockReturnValue({
       mutate: mockMutate,
       isPending: false,
@@ -102,9 +102,7 @@ describe("JoinLeaguePage", () => {
     });
     renderPage();
 
-    expect(screen.getByRole("link", { name: /go home/i })).toHaveAttribute(
-      "href",
-      "/",
-    );
+    expect(screen.getByRole("link", { name: /back to leagues/i }))
+      .toHaveAttribute("href", "/leagues");
   });
 });
