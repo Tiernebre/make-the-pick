@@ -30,3 +30,5 @@ export type {
 } from "./draft.timers.ts";
 export { createNpcScheduler } from "./npc-scheduler.ts";
 export type { NpcScheduler } from "./npc-scheduler.ts";
+export { createNpcPickService } from "./npc-pick.service.ts";
+export type { NpcPickService } from "./npc-pick.service.ts";

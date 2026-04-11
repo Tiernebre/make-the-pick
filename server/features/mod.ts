@@ -40,6 +40,7 @@ import {
   createDraftRouter,
   createDraftService,
   createDraftTimerScheduler,
+  createNpcPickService,
   createNpcScheduler,
   type DraftEventPublisher,
   type DraftService,
@@ -105,6 +106,7 @@ export function createFeatureRouters(db: Database) {
   const draftTimerScheduler = createDraftTimerScheduler({ draftRepo });
   const npcScheduler = createNpcScheduler();
   const watchlistRepo = createWatchlistRepository(db);
+  const npcPickService = createNpcPickService();
   const draftService = createDraftService({
     draftRepo,
     leagueRepo,
@@ -113,6 +115,7 @@ export function createFeatureRouters(db: Database) {
     draftEventPublisher,
     timerScheduler: draftTimerScheduler,
     npcScheduler,
+    npcPickService,
   });
   draftTimerScheduler.setAutoPickHandler(({ leagueId }) =>
     draftService.runAutoPick({ leagueId })
