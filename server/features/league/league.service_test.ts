@@ -185,6 +185,7 @@ const validCreateInput = {
     numberOfRounds: 6,
     pickTimeLimitSeconds: 60,
     poolSizeMultiplier: 2,
+    draftMode: "individual" as const,
   },
 };
 
