@@ -100,6 +100,10 @@ export {
   poolItemEncounterSourceSchema,
 } from "./schemas/mod.ts";
 export {
+  type PokemonGiftsData,
+  pokemonGiftsDataSchema,
+} from "./schemas/mod.ts";
+export {
   type PokemonMovesEntry,
   pokemonMovesEntrySchema,
 } from "./schemas/mod.ts";

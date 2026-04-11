@@ -4,6 +4,7 @@ import type {
   Pokemon,
   PokemonEncountersData,
   PokemonEvolutionsData,
+  PokemonGiftsData,
   PokemonVersion,
   RegionalPokedexEntry,
 } from "@make-the-pick/shared";
@@ -1789,4 +1790,232 @@ Deno.test("draftPoolService.generate: throws when all Pokemon are excluded by fi
     TRPCError,
   );
   assertEquals(error.code, "BAD_REQUEST");
+});
+
+// --- generate: catchability filter (regional-dex-present but not catchable) ---
+//
+// The Hoenn regional dex is shared by Ruby / Sapphire / Emerald, but each
+// version locks some species behind the other cartridge's wild encounters
+// (Zangoose is Ruby-only, Seviper is Sapphire-only, etc.). The generator
+// must drop those species in favor of ones the player can actually obtain,
+// while still keeping Pokemon that are only available via gift / static /
+// in-game-trade (Beldum, Castform, fossils, Lapras, Eevee, etc.) since
+// PokeAPI's encounter endpoint does not expose those sources.
+
+Deno.test("draftPoolService.generate: drops Pokemon with no wild encounter and no gift entry in the chosen version", async () => {
+  const fakeLeague = createFakeLeague({
+    rulesConfig: {
+      draftFormat: "snake",
+      numberOfRounds: 1,
+      pickTimeLimitSeconds: null,
+      poolSizeMultiplier: 1,
+      gameVersion: "emerald",
+    },
+  });
+  // Pokemon ids 10, 20, 30 are all in the "emerald" regional dex below.
+  // 10 has a wild encounter in emerald.
+  // 20 has NO wild encounter and NO gift entry -> should be dropped.
+  // 30 has NO wild encounter but IS in the gift list -> should be kept.
+  const pokemonData = createFakePokemonData(40);
+  const regionalPokedexes: Record<string, RegionalPokedexEntry[]> = {
+    "emerald": [
+      { pokemonId: 10, dexNumber: 1 },
+      { pokemonId: 20, dexNumber: 2 },
+      { pokemonId: 30, dexNumber: 3 },
+    ],
+  };
+  const encounters: PokemonEncountersData = {
+    emerald: {
+      "10": {
+        primary: { location: "Route 101", method: "Walk" },
+        encounters: [{
+          location: "Route 101",
+          method: "Walk",
+          minLevel: 3,
+          maxLevel: 5,
+          chance: 30,
+        }],
+      },
+    },
+  };
+  const gifts: PokemonGiftsData = {
+    emerald: [30],
+  };
+
+  let capturedItems: unknown[] = [];
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve(createCommissionerPlayer(fakeLeague.id)),
+    countPlayers: (_leagueId) => Promise.resolve(2),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    createItems: (items) => {
+      capturedItems = items;
+      return Promise.resolve(
+        items.map((item) => ({
+          id: crypto.randomUUID(),
+          draftPoolId: item.draftPoolId as string,
+          name: item.name as string,
+          thumbnailUrl: (item.thumbnailUrl as string) ?? null,
+          metadata: item.metadata ?? null,
+        })),
+      );
+    },
+  });
+
+  const service = createDraftPoolService({
+    draftPoolRepo,
+    leagueRepo,
+    pokemonData,
+    pokemonVersions: fakePokemonVersions,
+    regionalPokedexes,
+    pokemonEncounters: encounters,
+    pokemonGifts: gifts,
+  });
+
+  await service.generate("user-1", { leagueId: fakeLeague.id });
+
+  const pickedIds = capturedItems
+    .map((i) => (i as { metadata: { pokemonId: number } }).metadata.pokemonId)
+    .sort((a, b) => a - b);
+  assertEquals(pickedIds, [10, 30]);
+});
+
+Deno.test("draftPoolService.generate: keeps Pokemon whose pre-evolution has a wild encounter in the chosen version", async () => {
+  const fakeLeague = createFakeLeague({
+    rulesConfig: {
+      draftFormat: "snake",
+      numberOfRounds: 1,
+      pickTimeLimitSeconds: null,
+      poolSizeMultiplier: 1,
+      gameVersion: "emerald",
+    },
+  });
+  // Pokemon 2 has no direct encounter, but evolves from 1 which does.
+  // It should still be eligible for the draft pool.
+  const pokemonData = createFakePokemonData(5);
+  const regionalPokedexes: Record<string, RegionalPokedexEntry[]> = {
+    "emerald": [
+      { pokemonId: 1, dexNumber: 1 },
+      { pokemonId: 2, dexNumber: 2 },
+    ],
+  };
+  const encounters: PokemonEncountersData = {
+    emerald: {
+      "1": {
+        primary: { location: "Route 101", method: "Walk" },
+        encounters: [{
+          location: "Route 101",
+          method: "Walk",
+          minLevel: 3,
+          maxLevel: 5,
+          chance: 30,
+        }],
+      },
+    },
+  };
+  const evolutions: PokemonEvolutionsData = {
+    "1": { pokemonId: 1, chainId: 1, evolvesFromId: null, triggers: [] },
+    "2": {
+      pokemonId: 2,
+      chainId: 1,
+      evolvesFromId: 1,
+      triggers: [{
+        trigger: "level-up",
+        minLevel: 16,
+        item: null,
+        heldItem: null,
+        knownMove: null,
+        minHappiness: null,
+        timeOfDay: null,
+        needsOverworldRain: false,
+        location: null,
+        tradeSpecies: null,
+      }],
+    },
+  };
+
+  let capturedItems: unknown[] = [];
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve(createCommissionerPlayer(fakeLeague.id)),
+    countPlayers: (_leagueId) => Promise.resolve(2),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    createItems: (items) => {
+      capturedItems = items;
+      return Promise.resolve(
+        items.map((item) => ({
+          id: crypto.randomUUID(),
+          draftPoolId: item.draftPoolId as string,
+          name: item.name as string,
+          thumbnailUrl: (item.thumbnailUrl as string) ?? null,
+          metadata: item.metadata ?? null,
+        })),
+      );
+    },
+  });
+
+  const service = createDraftPoolService({
+    draftPoolRepo,
+    leagueRepo,
+    pokemonData,
+    pokemonVersions: fakePokemonVersions,
+    regionalPokedexes,
+    pokemonEncounters: encounters,
+    pokemonEvolutions: evolutions,
+  });
+
+  await service.generate("user-1", { leagueId: fakeLeague.id });
+
+  const pickedIds = capturedItems
+    .map((i) => (i as { metadata: { pokemonId: number } }).metadata.pokemonId)
+    .sort((a, b) => a - b);
+  assertEquals(pickedIds, [1, 2]);
+});
+
+Deno.test("draftPoolService.generate: catchability filter is a no-op when pokemonEncounters is not provided", async () => {
+  // Back-compat: legacy tests instantiate the service without encounter data;
+  // they should still succeed even with a gameVersion set.
+  const fakeLeague = createFakeLeague({
+    rulesConfig: {
+      draftFormat: "snake",
+      numberOfRounds: 1,
+      pickTimeLimitSeconds: null,
+      poolSizeMultiplier: 1,
+      gameVersion: "emerald",
+    },
+  });
+  const pokemonData = createFakePokemonData(10);
+  const regionalPokedexes: Record<string, RegionalPokedexEntry[]> = {
+    "emerald": [
+      { pokemonId: 1, dexNumber: 1 },
+      { pokemonId: 2, dexNumber: 2 },
+      { pokemonId: 3, dexNumber: 3 },
+    ],
+  };
+
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve(createCommissionerPlayer(fakeLeague.id)),
+    countPlayers: (_leagueId) => Promise.resolve(2),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo();
+
+  const service = createDraftPoolService({
+    draftPoolRepo,
+    leagueRepo,
+    pokemonData,
+    pokemonVersions: fakePokemonVersions,
+    regionalPokedexes,
+    // no pokemonEncounters, no pokemonGifts
+  });
+
+  const result = await service.generate("user-1", {
+    leagueId: fakeLeague.id,
+  });
+  assertEquals(result.items.length, 2);
 });

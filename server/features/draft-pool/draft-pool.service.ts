@@ -4,6 +4,7 @@ import type {
   PokemonEncountersData,
   PokemonEvolution,
   PokemonEvolutionsData,
+  PokemonGiftsData,
   PokemonVersion,
   PoolItemAvailability,
   PoolItemEffort,
@@ -70,6 +71,36 @@ interface AugmentContext {
     | undefined;
   evolutions: PokemonEvolutionsData | undefined;
   tradeEvolutionIds: Set<number>;
+}
+
+type EncountersForVersion = NonNullable<
+  PokemonEncountersData[string]
+>;
+
+export function isCatchableInVersion(
+  pokemonId: number,
+  encountersForVersion: EncountersForVersion,
+  evolutions: PokemonEvolutionsData | undefined,
+  giftIds: Set<number>,
+): boolean {
+  if (giftIds.has(pokemonId)) return true;
+  if ((encountersForVersion[String(pokemonId)]?.encounters.length ?? 0) > 0) {
+    return true;
+  }
+  if (!evolutions) return false;
+  // Walk the pre-evolution chain: an evolved form is obtainable as long as
+  // some stage below it can be caught in this version.
+  const seen = new Set<number>([pokemonId]);
+  let cursor = evolutions[String(pokemonId)]?.evolvesFromId ?? null;
+  while (cursor !== null && !seen.has(cursor)) {
+    if (giftIds.has(cursor)) return true;
+    if ((encountersForVersion[String(cursor)]?.encounters.length ?? 0) > 0) {
+      return true;
+    }
+    seen.add(cursor);
+    cursor = evolutions[String(cursor)]?.evolvesFromId ?? null;
+  }
+  return false;
 }
 
 function isSimpleLevelUpTrigger(
@@ -276,6 +307,7 @@ export function createDraftPoolService(deps: {
   tradeEvolutionPokemonIds?: number[];
   pokemonEncounters?: PokemonEncountersData;
   pokemonEvolutions?: PokemonEvolutionsData;
+  pokemonGifts?: PokemonGiftsData;
 }) {
   const pokemonById = new Map<number, Pokemon>(
     deps.pokemonData.map((p) => [p.id, p]),
@@ -387,6 +419,40 @@ export function createDraftPoolService(deps: {
           },
           "filtered Pokemon by regional dex",
         );
+
+        // Some Pokemon are in the regional dex for a version group but are
+        // not actually obtainable in the specific version the league picked
+        // — e.g. Zangoose/Seviper are Ruby/Sapphire-locked, but both ship
+        // with the shared Hoenn dex. Drop anything that has no wild
+        // encounter (direct or via pre-evolution chain) and is not listed
+        // in the hand-curated gift / static / in-game-trade data for the
+        // version. When the encounter dataset is missing entirely (legacy
+        // tests, disabled feature) we skip this filter to stay back-compat.
+        const encountersForVersion = deps.pokemonEncounters?.[
+          rulesConfig.gameVersion
+        ];
+        if (encountersForVersion) {
+          const giftIds = new Set<number>(
+            deps.pokemonGifts?.[rulesConfig.gameVersion] ?? [],
+          );
+          const beforeCount = eligiblePokemon.length;
+          eligiblePokemon = eligiblePokemon.filter((p) =>
+            isCatchableInVersion(
+              p.id,
+              encountersForVersion,
+              deps.pokemonEvolutions,
+              giftIds,
+            )
+          );
+          log.debug(
+            {
+              gameVersion: rulesConfig.gameVersion,
+              droppedCount: beforeCount - eligiblePokemon.length,
+              eligibleCount: eligiblePokemon.length,
+            },
+            "filtered Pokemon by catchability",
+          );
+        }
       }
 
       // Apply category exclusions
