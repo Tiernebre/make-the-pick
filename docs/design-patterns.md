@@ -146,3 +146,91 @@ require authentication.
 | Server services     | `Deno.test`              | Business logic with injected fakes  |
 | Client components   | Vitest + Testing Library | UI rendering, interactions          |
 | E2E                 | Playwright               | Full-stack user flows               |
+
+## Feature Inventory
+
+Each row was verified against the actual directory contents under
+`server/features/` and `client/src/features/`.
+
+| Feature           | Router | Service | Repository | Client UI?                              | Notes                                                                                                                   |
+| ----------------- | :----: | :-----: | :--------: | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `draft`           |   ✓    |    ✓    |     ✓      | `client/src/features/draft/`            | Full stack. Includes SSE push, NPC scheduler, and timer logic as extra files alongside the three core layers.           |
+| `draft-pool`      |   ✓    |    ✓    |     ✓      | No dedicated folder — consumed by draft | Pool generation and scouting reveal. Client UI lives inside `client/src/features/draft/` (e.g. `DraftPoolPage.tsx`).    |
+| `league`          |   ✓    |    ✓    |     ✓      | `client/src/features/league/`           | Full stack. Covers league CRUD, player management, and league lifecycle.                                                |
+| `pool-item-note`  |   ✓    |    ✓    |     ✓      | Server-only                             | Notes attached to draft pool items. Client hook `use-pool-item-notes.ts` lives inside `client/src/features/draft/`.     |
+| `user`            |   ✓    |    ✓    |     ✓      | Server-only                             | User profile and account management. No dedicated client feature folder.                                                |
+| `watchlist`       |   ✓    |    ✓    |     ✓      | Server-only                             | Per-player watchlists. Client hook `use-watchlist.ts` lives inside `client/src/features/draft/`.                        |
+| `pokemon-version` |   ✓    |    —    |     —      | Hook only (`use-pokemon-versions.ts`)   | Exception to the layered pattern. Returns a static in-memory list of Pokémon versions; no service or repository needed. |
+
+**Key observation:** `pool-item-note`, `watchlist`, and `user` have no client
+feature folder. Their client-side access hooks live inside
+`client/src/features/draft/` because they are consumed exclusively from the
+draft room. Search there first when looking for their client-side code.
+
+## Request Flow Example: `draft.makePick`
+
+This walks a single tRPC mutation from the browser call through every layer to
+the database write. Use it as a navigation template for any other procedure.
+
+### 1. Client call site
+
+```ts
+// client/src/features/draft/use-draft.ts
+trpc.draft.makePick.useMutation(...)
+```
+
+The tRPC React client resolves `draft.makePick` through the `AppRouter` type
+imported directly from the server — no code generation.
+
+### 2. Router (`server/features/draft/draft.router.ts`)
+
+```ts
+makePick: protectedProcedure
+  .input(makePickInputSchema)          // Zod schema from @make-the-pick/shared
+  .mutation(({ ctx, input }) => {
+    return draftService.makePick({
+      userId: ctx.user.id,
+      leagueId: input.leagueId,
+      poolItemId: input.poolItemId,
+    });
+  }),
+```
+
+The router enforces auth (`protectedProcedure`), declares the input schema, and
+delegates immediately to the service. No business logic here.
+
+### 3. Service (`server/features/draft/draft.service.ts`)
+
+```ts
+async makePick({ userId, leagueId, poolItemId }) {
+  // ... guard checks: draft exists, status is in_progress, caller's turn ...
+  createdPickRow = await deps.draftRepo.createPick({ draftId, leaguePlayerId, poolItemId, pickNumber });
+  await deps.draftRepo.incrementCurrentPick(draftRow.id);
+  // ... broadcast SSE event, handle end-of-draft ...
+}
+```
+
+All business rules live here: turn validation, duplicate-pick detection,
+end-of-draft detection, and SSE broadcast. Dependencies (`draftRepo`,
+`leagueRepo`, etc.) are injected via the factory function — never imported
+directly.
+
+### 4. Repository (`server/features/draft/draft.repository.ts`)
+
+```ts
+async createPick(input: CreatePickInput): Promise<DraftPickRow> {
+  const [row] = await db.insert(draftPick).values({ ... }).returning();
+  return row;
+}
+```
+
+The repository owns the Drizzle query. It handles the unique-constraint race
+condition by catching the violation and throwing a typed
+`DraftPickConflictError` so the service can map it to a tRPC `CONFLICT`
+response.
+
+### 5. Database
+
+The `draftPick` table is defined in `server/db/schema.ts`. The repository writes
+one row per pick; `incrementCurrentPick` updates the `currentPick` counter on
+the parent `draft` row in the same feature's repository.
