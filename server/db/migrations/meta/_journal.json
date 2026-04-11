@@ -134,6 +134,13 @@
       "when": 1776250000000,
       "tag": "0018_sugimori_npc_avatars",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1775911239873,
+      "tag": "0019_greedy_marten_broadcloak",
+      "breakpoints": true
     }
   ]
 }
