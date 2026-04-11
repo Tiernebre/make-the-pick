@@ -127,6 +127,13 @@
       "when": 1776240000000,
       "tag": "0017_npc_trainer_avatars",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1776250000000,
+      "tag": "0018_sugimori_npc_avatars",
+      "breakpoints": true
     }
   ]
 }
