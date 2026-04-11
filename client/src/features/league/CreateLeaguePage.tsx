@@ -23,6 +23,7 @@ export function CreateLeaguePage() {
   const [name, setName] = useState("");
   const [sportType, setSportType] = useState<string | null>("pokemon");
   const [draftFormat, setDraftFormat] = useState<string | null>("snake");
+  const [draftMode, setDraftMode] = useState<string | null>("individual");
   const [numberOfRounds, setNumberOfRounds] = useState<number | string>("");
   const [pickTimeLimitSeconds, setPickTimeLimitSeconds] = useState<
     number | string
@@ -49,7 +50,7 @@ export function CreateLeaguePage() {
       return;
     }
     if (
-      !sportType || !draftFormat || !numberOfRounds || !maxPlayers
+      !sportType || !draftFormat || !draftMode || !numberOfRounds || !maxPlayers
     ) {
       return;
     }
@@ -62,6 +63,7 @@ export function CreateLeaguePage() {
         maxPlayers: Number(maxPlayers),
         rulesConfig: {
           draftFormat: draftFormat as "snake" | "linear",
+          draftMode: draftMode as "individual" | "species",
           numberOfRounds: Number(numberOfRounds),
           pickTimeLimitSeconds: pickTimeLimitSeconds
             ? Number(pickTimeLimitSeconds)
@@ -165,6 +167,17 @@ export function CreateLeaguePage() {
               ]}
               value={draftFormat}
               onChange={setDraftFormat}
+              required
+            />
+            <Select
+              label="Draft Mode"
+              description="Individual drafts single Pokemon. Species drafts whole evolution lines at once."
+              data={[
+                { value: "individual", label: "Individual" },
+                { value: "species", label: "Species" },
+              ]}
+              value={draftMode}
+              onChange={setDraftMode}
               required
             />
             <NumberInput

@@ -32,6 +32,7 @@ export function LeagueSettingsPage() {
 
   const [sportType, setSportType] = useState<string | null>(null);
   const [draftFormat, setDraftFormat] = useState<string | null>("snake");
+  const [draftMode, setDraftMode] = useState<string | null>("individual");
   const [numberOfRounds, setNumberOfRounds] = useState<number | string>("");
   const [pickTimeLimitSeconds, setPickTimeLimitSeconds] = useState<
     number | string
@@ -51,6 +52,7 @@ export function LeagueSettingsPage() {
       if (league.data.maxPlayers) setMaxPlayers(league.data.maxPlayers);
       const rules = league.data.rulesConfig as {
         draftFormat?: string;
+        draftMode?: string;
         numberOfRounds?: number;
         pickTimeLimitSeconds?: number | null;
         poolSizeMultiplier?: number;
@@ -61,6 +63,7 @@ export function LeagueSettingsPage() {
       } | null;
       if (rules) {
         if (rules.draftFormat) setDraftFormat(rules.draftFormat);
+        if (rules.draftMode) setDraftMode(rules.draftMode);
         if (rules.numberOfRounds) setNumberOfRounds(rules.numberOfRounds);
         if (rules.pickTimeLimitSeconds) {
           setPickTimeLimitSeconds(rules.pickTimeLimitSeconds);
@@ -86,6 +89,7 @@ export function LeagueSettingsPage() {
   type SettingsState = {
     sportType: string | null;
     draftFormat: string | null;
+    draftMode: string | null;
     numberOfRounds: number | string;
     pickTimeLimitSeconds: number | string;
     maxPlayers: number | string;
@@ -99,6 +103,7 @@ export function LeagueSettingsPage() {
   const currentSettings: SettingsState = {
     sportType,
     draftFormat,
+    draftMode,
     numberOfRounds,
     pickTimeLimitSeconds,
     maxPlayers,
@@ -110,7 +115,7 @@ export function LeagueSettingsPage() {
   };
 
   const isSettingsStateValid = (s: SettingsState) =>
-    !!s.sportType && !!s.draftFormat &&
+    !!s.sportType && !!s.draftFormat && !!s.draftMode &&
     Number(s.numberOfRounds) >= 1 && Number(s.maxPlayers) >= 2 &&
     Number(s.poolSizeMultiplier) >= 1.5 && Number(s.poolSizeMultiplier) <= 3;
 
@@ -122,6 +127,7 @@ export function LeagueSettingsPage() {
       maxPlayers: Number(s.maxPlayers),
       rulesConfig: {
         draftFormat: s.draftFormat as "snake" | "linear",
+        draftMode: s.draftMode as "individual" | "species",
         numberOfRounds: Number(s.numberOfRounds),
         pickTimeLimitSeconds: s.pickTimeLimitSeconds
           ? Number(s.pickTimeLimitSeconds)
@@ -258,6 +264,23 @@ export function LeagueSettingsPage() {
                     }}
                     required
                   />
+                  <Select
+                    label="Draft Mode"
+                    description="Individual drafts single Pokemon. Species drafts whole evolution lines at once."
+                    data={[
+                      { value: "individual", label: "Individual" },
+                      { value: "species", label: "Species" },
+                    ]}
+                    value={draftMode}
+                    onChange={(value) => {
+                      setDraftMode(value);
+                      saveSettings({
+                        ...currentSettings,
+                        draftMode: value,
+                      });
+                    }}
+                    required
+                  />
                   <NumberInput
                     label="Number of Rounds"
                     min={1}
@@ -344,6 +367,14 @@ export function LeagueSettingsPage() {
                           {(league.data
                             .rulesConfig as { draftFormat: string })
                             .draftFormat}
+                        </Badge>
+                      </Group>
+                      <Group>
+                        <Text fw={500}>Draft Mode</Text>
+                        <Badge variant="light">
+                          {(league.data
+                            .rulesConfig as { draftMode?: string })
+                            .draftMode ?? "individual"}
                         </Badge>
                       </Group>
                       <Group>

@@ -111,8 +111,44 @@ describe("LeagueSettingsPage", () => {
     renderPage();
     expect(screen.getByText(/sport type/i)).toBeInTheDocument();
     expect(screen.getByText(/draft format/i)).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: /^draft mode/i }))
+      .toBeInTheDocument();
     expect(screen.getByText(/number of rounds/i)).toBeInTheDocument();
     expect(screen.getByText(/max players/i)).toBeInTheDocument();
+  });
+
+  it("shows draft mode in the locked read-only view", () => {
+    mockUseLeague.mockReturnValue({
+      data: {
+        ...mockLeague,
+        status: "drafting",
+        sportType: "pokemon",
+        maxPlayers: 8,
+        rulesConfig: {
+          draftFormat: "snake",
+          draftMode: "species",
+          numberOfRounds: 6,
+          pickTimeLimitSeconds: null,
+        },
+      },
+      isLoading: false,
+    });
+    mockUseLeaguePlayers.mockReturnValue({
+      data: [
+        {
+          id: "p1",
+          userId: "user-1",
+          name: "Alice",
+          image: null,
+          role: "commissioner",
+          joinedAt: "2026-01-01T00:00:00Z",
+        },
+      ],
+      isLoading: false,
+    });
+    renderPage();
+    expect(screen.getByText(/^draft mode$/i)).toBeInTheDocument();
+    expect(screen.getByText(/^species$/i)).toBeInTheDocument();
   });
 
   it("shows read-only view for non-commissioners", () => {
