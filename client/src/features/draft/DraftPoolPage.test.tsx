@@ -14,16 +14,23 @@ const {
   mockUseDraftPool,
   mockUseLeaguePlayers,
   mockRevealNext,
+  mockAdvanceStatus,
 } = vi.hoisted(() => ({
   mockUseLeague: vi.fn(),
   mockUseDraftPool: vi.fn(),
   mockUseLeaguePlayers: vi.fn(() => ({ data: [] })),
   mockRevealNext: vi.fn(),
+  mockAdvanceStatus: vi.fn(),
 }));
 
 vi.mock("../league/use-leagues", () => ({
   useLeague: mockUseLeague,
   useLeaguePlayers: mockUseLeaguePlayers,
+  useAdvanceLeagueStatus: () => ({
+    mutate: mockAdvanceStatus,
+    isPending: false,
+    error: null,
+  }),
 }));
 
 vi.mock("../../auth", () => ({
@@ -373,6 +380,33 @@ describe("DraftPoolPage", () => {
 
       fireEvent.click(revealButton);
       expect(mockRevealNext).toHaveBeenCalledWith({ leagueId: "league-1" });
+    });
+
+    it("shows a Skip showcase button that advances the league status", () => {
+      mockUseLeague.mockReturnValue({
+        data: { ...mockLeague, status: "pooling" },
+        isLoading: false,
+      });
+      mockUseLeaguePlayers.mockReturnValue({
+        data: [
+          {
+            id: "p1",
+            userId: "user-1",
+            name: "Ash",
+            image: null,
+            role: "commissioner",
+            joinedAt: "2026-01-01T00:00:00Z",
+          },
+        ],
+      });
+
+      renderPage();
+
+      const skipButton = screen.getByRole("button", {
+        name: /skip showcase/i,
+      });
+      fireEvent.click(skipButton);
+      expect(mockAdvanceStatus).toHaveBeenCalledWith({ leagueId: "league-1" });
     });
 
     it("shows a waiting message for members without the reveal button", () => {

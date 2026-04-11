@@ -155,6 +155,24 @@ export function LeagueDetailPage() {
               </Stack>
 
               <Group gap="sm">
+                {(league.data.status === "pooling" ||
+                  league.data.status === "scouting") && (
+                  <Button
+                    component={Link}
+                    href={`/leagues/${league.data.id}/draft/pool`}
+                    size="md"
+                    color={league.data.status === "pooling"
+                      ? "mint-green"
+                      : undefined}
+                    variant={league.data.status === "scouting"
+                      ? "light"
+                      : "filled"}
+                  >
+                    {league.data.status === "pooling"
+                      ? "Watch pool reveal"
+                      : "Scout the pool"}
+                  </Button>
+                )}
                 {league.data.status === "drafting" && (
                   <>
                     <Button

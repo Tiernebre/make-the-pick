@@ -36,7 +36,11 @@ import type {
 } from "@make-the-pick/shared";
 import { Link, useParams } from "wouter";
 import { useSession } from "../../auth";
-import { useLeague, useLeaguePlayers } from "../league/use-leagues";
+import {
+  useAdvanceLeagueStatus,
+  useLeague,
+  useLeaguePlayers,
+} from "../league/use-leagues";
 import { useDraftPool, useRevealNextPoolItem } from "./use-draft";
 import { useDraftEvents } from "./use-draft-events";
 import { usePoolItemNotes } from "./use-pool-item-notes";
@@ -299,6 +303,7 @@ export function DraftPoolPage() {
   const players = useLeaguePlayers(id!);
   const { data: session } = useSession();
   const revealNext = useRevealNextPoolItem(id!);
+  const advanceStatus = useAdvanceLeagueStatus();
 
   const isPooling = league.data?.status === "pooling";
   const isCommissioner = players.data?.some(
@@ -684,14 +689,25 @@ export function DraftPoolPage() {
                   </Text>
                 </Stack>
                 {isCommissioner && (
-                  <Button
-                    size="md"
-                    color="mint-green"
-                    loading={revealNext.isPending}
-                    onClick={() => revealNext.mutate({ leagueId: id! })}
-                  >
-                    Reveal next Pokémon
-                  </Button>
+                  <Group gap="sm">
+                    <Button
+                      size="md"
+                      variant="subtle"
+                      color="gray"
+                      loading={advanceStatus.isPending}
+                      onClick={() => advanceStatus.mutate({ leagueId: id! })}
+                    >
+                      Skip showcase
+                    </Button>
+                    <Button
+                      size="md"
+                      color="mint-green"
+                      loading={revealNext.isPending}
+                      onClick={() => revealNext.mutate({ leagueId: id! })}
+                    >
+                      Reveal next Pokémon
+                    </Button>
+                  </Group>
                 )}
               </Group>
               {revealNext.error && (
