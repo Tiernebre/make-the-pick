@@ -16,6 +16,7 @@
     "test:e2e": "./bin/test-e2e",
     "test:server": "deno test server/ --allow-env --allow-net --allow-read --allow-sys --env=.env.example",
     "test:client": "cd client && deno run -A npm:vitest run",
+    "test:client:debug": "cd client && deno run -A npm:vitest run --reporter=default --reporter=hanging-process --pool=forks --poolOptions.forks.singleFork --logHeapUsage",
     "build": "cd client && deno task build",
     "start": "cd server && deno run --allow-net --allow-env --allow-read --allow-sys --env main.ts",
     "db:start": "docker compose up -d --wait",

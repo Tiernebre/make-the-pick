@@ -4,6 +4,12 @@ on:
   workflow_call:
   pull_request:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      debug_client_tests:
+        description: "Run client tests in debug mode (hanging-process reporter, single fork) to find leaked handles"
+        type: boolean
+        default: false
 
 jobs:
   lint:
@@ -63,7 +69,14 @@ jobs:
           deno-version: v2.7.11
       - run: deno install
       - run: deno task db:migrate
-      - run: deno task test
+      - name: Run tests
+        if: ${{ inputs.debug_client_tests != true }}
+        run: deno task test
+      - name: Run tests (client debug mode)
+        if: ${{ inputs.debug_client_tests == true }}
+        run: |
+          deno task test:server
+          deno task test:client:debug
 
   docker-smoke:
     name: Docker Smoke Test
