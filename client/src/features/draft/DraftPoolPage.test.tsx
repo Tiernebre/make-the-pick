@@ -355,6 +355,10 @@ describe("DraftPoolPage", () => {
         data: { ...mockLeague, status: "pooling" },
         isLoading: false,
       });
+      mockUseDraftPool.mockReturnValue({
+        data: { ...mockPool, totalItems: 12 },
+        isLoading: false,
+      });
       mockUseLeaguePlayers.mockReturnValue({
         data: [
           {
@@ -373,6 +377,8 @@ describe("DraftPoolPage", () => {
       expect(
         screen.getByText(/live pool reveal in progress/i),
       ).toBeInTheDocument();
+      // 2 mock items in mockPool, total 12 → "2 / 12 revealed".
+      expect(screen.getByText(/2 \/ 12 revealed/i)).toBeInTheDocument();
       const revealButton = screen.getByRole("button", {
         name: /reveal next pokémon/i,
       });

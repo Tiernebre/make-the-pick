@@ -602,9 +602,19 @@ export function createDraftPoolService(deps: {
       // commissioner has actually revealed so far. Once the league has
       // advanced to scouting or beyond, the filter drops and everything is
       // visible.
+      const isPooling = league.status === "pooling";
       const items = await deps.draftPoolRepo.findItemsByPoolId(pool.id, {
-        onlyRevealed: league.status === "pooling",
+        onlyRevealed: isPooling,
       });
+
+      // Include the total pool size (not just revealed) so the client can
+      // render a "X / Y revealed" progress indicator in the showcase banner
+      // without hitting a separate endpoint. Outside of pooling, totalItems
+      // equals items.length since the filter is off.
+      const totalItems = isPooling
+        ? items.length +
+          (await deps.draftPoolRepo.countUnrevealedItems(pool.id))
+        : items.length;
 
       const augmentedItems = augmentItems(
         items,
@@ -612,7 +622,7 @@ export function createDraftPoolService(deps: {
         pokemonById,
       );
 
-      return { ...pool, items: augmentedItems };
+      return { ...pool, items: augmentedItems, totalItems };
     },
 
     async revealNext(userId: string, input: { leagueId: string }) {

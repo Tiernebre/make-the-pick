@@ -675,17 +675,19 @@ export function DraftPoolPage() {
             >
               <Group justify="space-between" align="center" wrap="wrap">
                 <Stack gap={4} style={{ flex: 1, minWidth: 240 }}>
-                  <Text fw={700} size="md">
-                    Live pool reveal in progress
-                  </Text>
+                  <Group gap="sm" align="center">
+                    <Text fw={700} size="md">
+                      Live pool reveal in progress
+                    </Text>
+                    <Badge color="mint-green" variant="filled" size="lg">
+                      {draftPool.data?.items.length ?? 0} /{" "}
+                      {draftPool.data?.totalItems ?? 0} revealed
+                    </Badge>
+                  </Group>
                   <Text size="sm" c="dimmed">
                     {isCommissioner
-                      ? `Reveal Pokémon one at a time for everyone watching. ${
-                        draftPool.data?.items.length ?? 0
-                      } revealed so far.`
-                      : `Waiting on the commissioner to reveal the next Pokémon. ${
-                        draftPool.data?.items.length ?? 0
-                      } revealed so far — the rest are hidden until then.`}
+                      ? "Reveal Pokémon one at a time for everyone watching. The showcase finishes automatically when the last one is revealed."
+                      : "Waiting on the commissioner to reveal the next Pokémon. The rest are hidden until then."}
                   </Text>
                 </Stack>
                 {isCommissioner && (

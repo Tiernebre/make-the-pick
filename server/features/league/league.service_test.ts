@@ -142,6 +142,7 @@ function createFakeDraftPoolService(
         name: "Draft Pool",
         createdAt: new Date(),
         items: [],
+        totalItems: 0,
       }),
     revealNext: (_userId, _input) =>
       Promise.resolve({
