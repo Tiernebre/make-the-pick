@@ -112,11 +112,10 @@ describe("LeagueSidebar", () => {
     expect(screen.getByText(/drafting/i)).toBeInTheDocument();
   });
 
-  it("has a back link to /leagues", () => {
+  it("does not render an All leagues back link (handled by AppLayout brand)", () => {
     setup();
     renderSidebar();
-    const back = screen.getByRole("link", { name: /all leagues/i });
-    expect(back).toHaveAttribute("href", "/leagues");
+    expect(screen.queryByRole("link", { name: /all leagues/i })).toBeNull();
   });
 
   it("has an Overview link to the league detail page", () => {

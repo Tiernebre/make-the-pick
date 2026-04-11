@@ -20,13 +20,11 @@ vi.mock("../auth", () => ({
 }));
 
 const {
-  mockUseLeagues,
   mockUseLeague,
   mockUseLeaguePlayers,
   mockDeleteAccountMutate,
   locationRef,
 } = vi.hoisted(() => ({
-  mockUseLeagues: vi.fn(),
   mockUseLeague: vi.fn(),
   mockUseLeaguePlayers: vi.fn(),
   mockDeleteAccountMutate: vi.fn(),
@@ -34,7 +32,6 @@ const {
 }));
 
 vi.mock("../features/league/use-leagues", () => ({
-  useLeagues: mockUseLeagues,
   useLeague: mockUseLeague,
   useLeaguePlayers: mockUseLeaguePlayers,
 }));
@@ -67,7 +64,6 @@ function renderLayout(children: React.ReactNode = <div>content</div>) {
 
 function setupMocks(
   overrides: {
-    leagues?: Array<{ id: string; name: string; status: string }>;
     location?: string;
     currentLeague?: { id: string; name: string; status: string } | null;
     players?: Array<{ userId: string; role: "commissioner" | "player" }>;
@@ -79,10 +75,6 @@ function setupMocks(
       user: { id: "u1", name: "Ash Ketchum", image: null },
     },
     isPending: false,
-  });
-  mockUseLeagues.mockReturnValue({
-    data: overrides.leagues ?? [],
-    isLoading: false,
   });
   mockUseLeague.mockReturnValue({
     data: overrides.currentLeague ?? null,
@@ -119,48 +111,29 @@ describe("AppLayout shell", () => {
     expect(within(nav).queryByRole("link", { name: /^home$/i })).toBeNull();
   });
 
-  it("has a Leagues section in the sidebar", () => {
+  it("links the Make the Pick brand to /leagues", () => {
     setupMocks();
     renderLayout();
     const nav = screen.getByRole("navigation");
-    expect(within(nav).getByText(/leagues/i)).toBeInTheDocument();
+    const brand = within(nav).getByRole("link", { name: /make the pick/i });
+    expect(brand).toHaveAttribute("href", "/leagues");
   });
 
-  it("lists the user's leagues as children under Leagues", () => {
-    setupMocks({
-      leagues: [
-        {
-          id: "L1",
-          name: "Johto Classic",
-          status: "setup",
-        },
-        {
-          id: "L2",
-          name: "Kanto Rumble",
-          status: "drafting",
-        },
-      ],
-    });
-    renderLayout();
-    const nav = screen.getByRole("navigation");
-    const johto = within(nav).getByRole("link", { name: /johto classic/i });
-    expect(johto).toHaveAttribute("href", "/leagues/L1");
-    const kanto = within(nav).getByRole("link", { name: /kanto rumble/i });
-    expect(kanto).toHaveAttribute("href", "/leagues/L2");
-  });
-
-  it("shows a Research entry in the sidebar", () => {
+  it("does not render a Leagues nav section on non-league routes", () => {
     setupMocks();
     renderLayout();
     const nav = screen.getByRole("navigation");
-    expect(within(nav).getByText(/research/i)).toBeInTheDocument();
+    expect(within(nav).queryByRole("link", { name: /^leagues$/i })).toBeNull();
+    expect(within(nav).queryByRole("button", { name: /^leagues$/i }))
+      .toBeNull();
   });
 
-  it("shows a Profile entry in the sidebar", () => {
+  it("does not render Research or Profile entries", () => {
     setupMocks();
     renderLayout();
     const nav = screen.getByRole("navigation");
-    expect(within(nav).getByText(/profile/i)).toBeInTheDocument();
+    expect(within(nav).queryByText(/research/i)).toBeNull();
+    expect(within(nav).queryByText(/profile/i)).toBeNull();
   });
 
   it("renders the user's name in the sidebar footer", () => {
@@ -237,7 +210,7 @@ describe("AppLayout league mode", () => {
       .toHaveAttribute("href", "/leagues/L1/draft");
   });
 
-  it("omits Home and Leagues nav links in league mode (redundant with All leagues)", () => {
+  it("does not render an All leagues back-link in league mode (brand handles it)", () => {
     setupMocks({
       location: "/leagues/L1",
       currentLeague: { id: "L1", name: "Johto", status: "drafting" },
@@ -245,18 +218,17 @@ describe("AppLayout league mode", () => {
     });
     renderLayout();
     const nav = screen.getByRole("navigation");
-    expect(within(nav).queryByRole("link", { name: /^home$/i })).toBeNull();
-    expect(within(nav).queryByRole("link", { name: /^leagues$/i })).toBeNull();
-    expect(within(nav).getByRole("link", { name: /all leagues/i }))
-      .toHaveAttribute("href", "/leagues");
+    expect(within(nav).queryByRole("link", { name: /all leagues/i }))
+      .toBeNull();
+    const brand = within(nav).getByRole("link", { name: /make the pick/i });
+    expect(brand).toHaveAttribute("href", "/leagues");
   });
 
   it("does not enter league mode on /leagues list route", () => {
     setupMocks({ location: "/leagues" });
     renderLayout();
     const nav = screen.getByRole("navigation");
-    expect(within(nav).queryByRole("link", { name: /all leagues/i }))
-      .toBeNull();
+    expect(within(nav).queryByRole("link", { name: /overview/i })).toBeNull();
   });
 
   it("does not enter league mode on /leagues/new", () => {

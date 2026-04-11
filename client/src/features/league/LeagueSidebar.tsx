@@ -9,7 +9,6 @@ import {
   Tooltip,
 } from "@mantine/core";
 import {
-  IconArrowLeft,
   IconChartBar,
   IconChecklist,
   IconLayoutDashboard,
@@ -73,18 +72,9 @@ export function LeagueSidebar(
 
   return (
     <Stack gap={0}>
-      <Box px={collapsed ? "xs" : "md"} pt="xs" pb="sm">
-        <NavLink
-          component={Link}
-          href="/leagues"
-          leftSection={<IconArrowLeft size={16} />}
-          label={collapsed ? undefined : "All leagues"}
-          aria-label="All leagues"
-          variant="subtle"
-          c="dimmed"
-        />
-        {!collapsed && (
-          <Group gap="xs" px="sm" pt="xs" wrap="nowrap">
+      {!collapsed && (
+        <Box px="md" pt="xs" pb="sm">
+          <Group gap="xs" px="sm" wrap="nowrap">
             <Text fw={700} size="sm" truncate>
               {name}
             </Text>
@@ -97,8 +87,8 @@ export function LeagueSidebar(
               {status}
             </Badge>
           </Group>
-        )}
-      </Box>
+        </Box>
+      )}
       <Divider />
 
       <Stack gap={2} py="xs">
