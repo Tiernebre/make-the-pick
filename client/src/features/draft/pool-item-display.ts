@@ -19,6 +19,21 @@ type SpeciesFinalLike = {
   spriteUrl: string | null;
 };
 
+type SpeciesMemberLike = {
+  pokemonId: number;
+  name: string;
+  regionalForm: string | null;
+  stage: "base" | "middle" | "final";
+  spriteUrl: string | null;
+};
+
+export type SpeciesChainStage = {
+  pokemonId: number;
+  name: string;
+  stage: "base" | "middle" | "final";
+  spriteUrl: string | null;
+};
+
 // Flat projection of a draft pool item's metadata regardless of drafting
 // mode. The table UI is one row per pool item in both modes — individual
 // rows render the Pokemon's own stats, species rows render the terminal
@@ -38,6 +53,11 @@ export type PoolItemDisplay = {
   // a species has regional-variant finals (e.g. Alolan Ninetales).
   // Empty for individual rows.
   regionalFinals: SpeciesFinalLike[];
+  // For species rows, the evolution chain that terminates at the primary
+  // final (base → middle → final), excluding regional variants. Used to
+  // render an inline sprite chain like "<Squirtle><Wartortle><Blastoise>
+  // Blastoise Line". Empty for individual rows.
+  chain: SpeciesChainStage[];
 };
 
 // Projects a draft pool item's metadata onto the flat `PoolItemDisplay`
@@ -64,9 +84,24 @@ export function getPoolItemDisplay(
   if (metadata.mode === "species") {
     const speciesMeta = metadata as unknown as {
       finals: SpeciesFinalLike[];
+      members: SpeciesMemberLike[];
     };
     const [primary, ...regionalFinals] = speciesMeta.finals;
     if (!primary) return null;
+    // The chain shown in the row is the line that terminates at the
+    // primary (base-region) final only — regional pre-evos are dropped so
+    // a Vulpix → Ninetales row never accidentally renders Alolan Vulpix.
+    // Members are stored in base→final order for the primary line, with
+    // regional variants appended after, so filtering by regionalForm===null
+    // also preserves the correct visual order.
+    const chain: SpeciesChainStage[] = speciesMeta.members
+      .filter((m) => m.regionalForm === null)
+      .map((m) => ({
+        pokemonId: m.pokemonId,
+        name: m.name,
+        stage: m.stage,
+        spriteUrl: m.spriteUrl,
+      }));
     return {
       mode: "species",
       pokemonId: primary.pokemonId,
@@ -74,6 +109,7 @@ export function getPoolItemDisplay(
       baseStats: primary.baseStats,
       generation: primary.generation,
       regionalFinals,
+      chain,
     };
   }
 
@@ -90,6 +126,7 @@ export function getPoolItemDisplay(
     baseStats: individualMeta.baseStats,
     generation: individualMeta.generation,
     regionalFinals: [],
+    chain: [],
   };
 }
 

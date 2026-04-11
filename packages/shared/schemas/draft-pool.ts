@@ -80,11 +80,13 @@ const speciesMemberPoolItemSchema: z.ZodObject<{
   name: z.ZodString;
   regionalForm: z.ZodNullable<z.ZodString>;
   stage: z.ZodEnum<["base", "middle", "final"]>;
+  spriteUrl: z.ZodNullable<z.ZodString>;
 }> = object({
   pokemonId: number(),
   name: string(),
   regionalForm: nullable(string()),
   stage: enum_(["base", "middle", "final"]),
+  spriteUrl: nullable(string()),
 });
 
 // Species-mode metadata: the unit of drafting is an entire evolution line

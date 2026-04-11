@@ -119,4 +119,79 @@ describe("AvailablePoolTable", () => {
     renderTable();
     expect(screen.getByText(/available pool/i)).toBeInTheDocument();
   });
+
+  it("renders an evolution chain with sprites and a 'X Line' label for species rows", () => {
+    const speciesItem = {
+      id: "species-1",
+      draftPoolId: "pool-1",
+      name: "blastoise",
+      thumbnailUrl: "https://example.com/blastoise.png",
+      metadata: {
+        mode: "species",
+        finals: [
+          {
+            pokemonId: 9,
+            name: "blastoise",
+            regionalForm: null,
+            types: ["water"],
+            baseStats: {
+              hp: 79,
+              attack: 83,
+              defense: 100,
+              specialAttack: 85,
+              specialDefense: 105,
+              speed: 78,
+            },
+            generation: "generation-i",
+            spriteUrl: "https://example.com/blastoise.png",
+          },
+        ],
+        members: [
+          {
+            pokemonId: 7,
+            name: "squirtle",
+            regionalForm: null,
+            stage: "base",
+            spriteUrl: "https://example.com/squirtle.png",
+          },
+          {
+            pokemonId: 8,
+            name: "wartortle",
+            regionalForm: null,
+            stage: "middle",
+            spriteUrl: "https://example.com/wartortle.png",
+          },
+          {
+            pokemonId: 9,
+            name: "blastoise",
+            regionalForm: null,
+            stage: "final",
+            spriteUrl: "https://example.com/blastoise.png",
+          },
+        ],
+      },
+    } as unknown as Parameters<typeof makeDraftState>[0]["poolItems"] extends
+      (infer T)[] ? T : never;
+    const draftState = makeDraftState({
+      poolItems: [speciesItem],
+      availableItemIds: ["species-1"],
+    });
+    render(
+      <MantineProvider>
+        <AvailablePoolTable
+          leagueId="league-1"
+          draftState={draftState}
+          isMyTurn
+          onPick={vi.fn()}
+          isPicking={false}
+        />
+      </MantineProvider>,
+    );
+    expect(screen.getByText(/blastoise line/i)).toBeInTheDocument();
+    expect(screen.getByAltText("squirtle")).toBeInTheDocument();
+    expect(screen.getByAltText("wartortle")).toBeInTheDocument();
+    expect(screen.getAllByAltText("blastoise").length).toBeGreaterThanOrEqual(
+      1,
+    );
+  });
 });

@@ -65,12 +65,21 @@ function speciesItem(): DraftPoolItem {
           name: "vulpix",
           regionalForm: null,
           stage: "base",
+          spriteUrl: "https://example.com/vulpix.png",
         },
         {
           pokemonId: 38,
           name: "ninetales",
           regionalForm: null,
           stage: "final",
+          spriteUrl: "https://example.com/ninetales.png",
+        },
+        {
+          pokemonId: 10228,
+          name: "vulpix-alola",
+          regionalForm: "alola",
+          stage: "base",
+          spriteUrl: "https://example.com/vulpix-alola.png",
         },
       ],
     },
@@ -137,6 +146,21 @@ describe("getPoolItemDisplay", () => {
     expect(display!.regionalFinals.length).toBe(1);
     expect(display!.regionalFinals[0].regionalForm).toBe("alola");
     expect(display!.regionalFinals[0].types).toEqual(["ice", "fairy"]);
+  });
+
+  it("exposes the primary-line evolution chain in base→final order, dropping regional pre-evos", () => {
+    const display = getPoolItemDisplay(speciesItem());
+    expect(display!.chain.map((c) => c.pokemonId)).toEqual([37, 38]);
+    expect(display!.chain.map((c) => c.stage)).toEqual(["base", "final"]);
+    expect(display!.chain.map((c) => c.spriteUrl)).toEqual([
+      "https://example.com/vulpix.png",
+      "https://example.com/ninetales.png",
+    ]);
+  });
+
+  it("returns an empty chain for individual rows", () => {
+    const display = getPoolItemDisplay(individualItem());
+    expect(display!.chain).toEqual([]);
   });
 
   it("returns null metadata when the item has no metadata", () => {
