@@ -1488,6 +1488,40 @@ Deno.test("leagueService.removePlayer: throws BAD_REQUEST when trying to remove 
   assertEquals(error.code, "BAD_REQUEST");
 });
 
+Deno.test("leagueService.removePlayer: throws BAD_REQUEST when league is not in setup", async () => {
+  const fakeLeague = createFakeLeague({ status: "pooling" });
+  const repo = createFakeRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (leagueId, userId) =>
+      Promise.resolve({
+        id: crypto.randomUUID(),
+        leagueId,
+        userId,
+        role: userId === "commissioner-1"
+          ? "commissioner" as const
+          : "member" as const,
+        joinedAt: new Date(),
+      }),
+  });
+
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo: createFakeDraftRepo(),
+    draftPoolRepo: createFakeDraftPoolRepo(),
+    draftPoolService: createFakeDraftPoolService(),
+  });
+
+  const error = await assertRejects(
+    () =>
+      service.removePlayer("commissioner-1", {
+        leagueId: fakeLeague.id,
+        playerUserId: "member-1",
+      }),
+    TRPCError,
+  );
+  assertEquals(error.code, "BAD_REQUEST");
+});
+
 Deno.test("leagueService.removePlayer: throws NOT_FOUND when target player is not in league", async () => {
   const fakeLeague = createFakeLeague();
   const repo = createFakeRepo({

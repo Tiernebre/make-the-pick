@@ -13,6 +13,8 @@ const {
   mockUseAddNpcPlayer,
   mockAddNpcMutate,
   mockUseAvailableNpcs,
+  mockUseRemoveLeaguePlayer,
+  mockRemovePlayerMutate,
   mockUseDraft,
 } = vi.hoisted(
   () => ({
@@ -25,6 +27,8 @@ const {
     mockUseAddNpcPlayer: vi.fn(),
     mockAddNpcMutate: vi.fn(),
     mockUseAvailableNpcs: vi.fn(),
+    mockUseRemoveLeaguePlayer: vi.fn(),
+    mockRemovePlayerMutate: vi.fn(),
     mockUseDraft: vi.fn(),
   }),
 );
@@ -36,6 +40,7 @@ vi.mock("./use-leagues", () => ({
   useAdvanceLeagueStatus: mockUseAdvanceLeagueStatus,
   useAddNpcPlayer: mockUseAddNpcPlayer,
   useAvailableNpcs: mockUseAvailableNpcs,
+  useRemoveLeaguePlayer: mockUseRemoveLeaguePlayer,
 }));
 
 vi.mock("../draft/use-draft", () => ({
@@ -98,6 +103,13 @@ describe("LeagueDetailPage", () => {
       error: null,
     });
     mockUseDraft.mockReturnValue({ data: undefined, isLoading: false });
+    mockUseRemoveLeaguePlayer.mockReturnValue({
+      mutate: mockRemovePlayerMutate,
+      reset: vi.fn(),
+      isPending: false,
+      isError: false,
+      error: null,
+    });
   });
 
   afterEach(() => {
@@ -681,6 +693,152 @@ describe("LeagueDetailPage", () => {
 
     expect(mockAddNpcMutate).toHaveBeenCalledWith(
       { leagueId: "league-1", npcUserId: "npc-b" },
+      expect.anything(),
+    );
+  });
+
+  it("shows a remove-player button for other players when commissioner in setup", () => {
+    mockUseLeague.mockReturnValue({ data: mockLeague, isLoading: false });
+    mockUseLeaguePlayers.mockReturnValue({
+      data: [
+        {
+          id: "p1",
+          userId: "user-1",
+          name: "Alice",
+          image: null,
+          role: "commissioner",
+          joinedAt: "2026-01-01T00:00:00Z",
+        },
+        {
+          id: "p2",
+          userId: "user-2",
+          name: "Bob",
+          image: null,
+          role: "member",
+          joinedAt: "2026-01-01T00:00:00Z",
+        },
+      ],
+      isLoading: false,
+    });
+    renderPage();
+    expect(
+      screen.getByRole("button", { name: /remove Bob/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("does not show a remove button for the commissioner themselves", () => {
+    mockUseLeague.mockReturnValue({ data: mockLeague, isLoading: false });
+    mockUseLeaguePlayers.mockReturnValue({
+      data: [
+        {
+          id: "p1",
+          userId: "user-1",
+          name: "Alice",
+          image: null,
+          role: "commissioner",
+          joinedAt: "2026-01-01T00:00:00Z",
+        },
+      ],
+      isLoading: false,
+    });
+    renderPage();
+    expect(
+      screen.queryByRole("button", { name: /remove Alice/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("does not show remove buttons when user is not commissioner", () => {
+    mockUseLeague.mockReturnValue({ data: mockLeague, isLoading: false });
+    mockUseLeaguePlayers.mockReturnValue({
+      data: [
+        {
+          id: "p1",
+          userId: "user-1",
+          name: "Alice",
+          image: null,
+          role: "member",
+          joinedAt: "2026-01-01T00:00:00Z",
+        },
+        {
+          id: "p2",
+          userId: "user-2",
+          name: "Bob",
+          image: null,
+          role: "member",
+          joinedAt: "2026-01-01T00:00:00Z",
+        },
+      ],
+      isLoading: false,
+    });
+    renderPage();
+    expect(
+      screen.queryByRole("button", { name: /remove Bob/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("does not show remove buttons once the league has left setup", () => {
+    mockUseLeague.mockReturnValue({
+      data: { ...mockLeague, status: "pooling" },
+      isLoading: false,
+    });
+    mockUseLeaguePlayers.mockReturnValue({
+      data: [
+        {
+          id: "p1",
+          userId: "user-1",
+          name: "Alice",
+          image: null,
+          role: "commissioner",
+          joinedAt: "2026-01-01T00:00:00Z",
+        },
+        {
+          id: "p2",
+          userId: "user-2",
+          name: "Bob",
+          image: null,
+          role: "member",
+          joinedAt: "2026-01-01T00:00:00Z",
+        },
+      ],
+      isLoading: false,
+    });
+    renderPage();
+    expect(
+      screen.queryByRole("button", { name: /remove Bob/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("calls removePlayer mutate with the targeted player on confirm", async () => {
+    mockUseLeague.mockReturnValue({ data: mockLeague, isLoading: false });
+    mockUseLeaguePlayers.mockReturnValue({
+      data: [
+        {
+          id: "p1",
+          userId: "user-1",
+          name: "Alice",
+          image: null,
+          role: "commissioner",
+          joinedAt: "2026-01-01T00:00:00Z",
+        },
+        {
+          id: "p2",
+          userId: "user-2",
+          name: "Bob",
+          image: null,
+          role: "member",
+          joinedAt: "2026-01-01T00:00:00Z",
+        },
+      ],
+      isLoading: false,
+    });
+    renderPage();
+    screen.getByRole("button", { name: /remove Bob/i }).click();
+    const confirmBtn = await screen.findByRole("button", {
+      name: /^remove$/i,
+    });
+    confirmBtn.click();
+    expect(mockRemovePlayerMutate).toHaveBeenCalledWith(
+      { leagueId: "league-1", playerUserId: "user-2" },
       expect.anything(),
     );
   });
