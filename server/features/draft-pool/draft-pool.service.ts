@@ -671,6 +671,19 @@ export function createDraftPoolService(deps: {
         },
       });
 
+      // Auto-advance to scouting when the last item has just been revealed.
+      // Avoids making the commissioner click "Advance" right after clicking
+      // "Reveal" — the showcase is done, so there is nothing left to wait
+      // for. Done in the repo layer directly rather than by calling
+      // leagueService.advanceStatus to avoid re-running revealAllItems on an
+      // already-fully-revealed pool.
+      if (result.remaining === 0) {
+        await deps.leagueRepo.updateStatus(input.leagueId, "scouting");
+        deps.eventPublisher?.publish(input.leagueId, {
+          type: "draftPool:reveal_completed",
+        });
+      }
+
       return {
         itemId: result.item.id,
         revealOrder: result.item.revealOrder,

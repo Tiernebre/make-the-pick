@@ -2188,6 +2188,67 @@ Deno.test("draftPoolService.revealNext: publishes draftPool:item_revealed event"
   );
 });
 
+Deno.test("draftPoolService.revealNext: auto-advances to scouting when the last item is revealed", async () => {
+  const fakeLeague = createFakeLeague({ status: "pooling" });
+  const fakePool = {
+    id: crypto.randomUUID(),
+    leagueId: fakeLeague.id,
+    name: "Pool",
+    createdAt: new Date(),
+  };
+  const lastItem = {
+    id: crypto.randomUUID(),
+    draftPoolId: fakePool.id,
+    name: "mewtwo",
+    thumbnailUrl: null,
+    metadata: null,
+    revealOrder: 9,
+    revealedAt: new Date(),
+  };
+
+  let updatedStatus: string | undefined;
+  const leagueRepo = createFakeLeagueRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve(createCommissionerPlayer(fakeLeague.id)),
+    updateStatus: (_id, status) => {
+      updatedStatus = status;
+      return Promise.resolve(
+        createFakeLeague({ status: status as "scouting" }),
+      );
+    },
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    findByLeagueId: (_leagueId) => Promise.resolve(fakePool),
+    revealNextItem: (_poolId, _now) =>
+      Promise.resolve({ item: lastItem, remaining: 0 }),
+  });
+
+  const publishedTypes: string[] = [];
+  const eventPublisher = {
+    subscribe: () => () => {},
+    publish: (_leagueId: string, event: { type: string }) => {
+      publishedTypes.push(event.type);
+    },
+    subscriberCount: () => 0,
+  };
+
+  const service = createDraftPoolService({
+    draftPoolRepo,
+    leagueRepo,
+    pokemonData: createFakePokemonData(1),
+    eventPublisher,
+  });
+
+  await service.revealNext("user-1", { leagueId: fakeLeague.id });
+
+  assertEquals(updatedStatus, "scouting");
+  assertEquals(publishedTypes, [
+    "draftPool:item_revealed",
+    "draftPool:reveal_completed",
+  ]);
+});
+
 Deno.test("draftPoolService.revealNext: reveals the next item in pooling phase", async () => {
   const fakeLeague = createFakeLeague({ status: "pooling" });
   const fakePool = {
