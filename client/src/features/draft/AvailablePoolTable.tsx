@@ -20,6 +20,7 @@ import {
   useMantineReactTable,
 } from "mantine-react-table";
 import { PoolItemNoteIcon } from "./PoolItemNoteIcon";
+import { getPoolItemDisplay, getPoolItemStatTotal } from "./pool-item-display";
 import { usePoolItemNotes } from "./use-pool-item-notes";
 import {
   useAddToWatchlist,
@@ -51,16 +52,7 @@ const POKEMON_TYPE_COLORS: Record<string, string> = {
 const ALL_POKEMON_TYPES = Object.keys(POKEMON_TYPE_COLORS);
 
 function getStatTotal(item: DraftPoolItem): number | null {
-  const stats = item.metadata?.baseStats;
-  if (!stats) return null;
-  return (
-    stats.hp +
-    stats.attack +
-    stats.defense +
-    stats.specialAttack +
-    stats.specialDefense +
-    stats.speed
-  );
+  return getPoolItemStatTotal(item);
 }
 
 export interface AvailablePoolTableProps {
@@ -225,7 +217,7 @@ export function AvailablePoolTable({
       },
       {
         id: "types",
-        accessorFn: (row) => row.metadata?.types?.join(", ") ?? "",
+        accessorFn: (row) => getPoolItemDisplay(row)?.types.join(", ") ?? "",
         header: "Type",
         filterVariant: "multi-select",
         mantineFilterMultiSelectProps: {
@@ -236,65 +228,68 @@ export function AvailablePoolTable({
         },
         filterFn: (row, _columnId, filterValues: string[]) => {
           if (!filterValues || filterValues.length === 0) return true;
-          const types = row.original.metadata?.types ?? [];
+          const types = getPoolItemDisplay(row.original)?.types ?? [];
           return filterValues.some((filter) => types.includes(filter));
         },
-        Cell: ({ row }) =>
-          row.original.metadata
-            ? (
-              <Group gap={4}>
-                {row.original.metadata.types.map((type) => (
-                  <Badge
-                    key={type}
-                    size="md"
-                    variant="light"
-                    color={POKEMON_TYPE_COLORS[type] ?? "gray"}
-                    tt="capitalize"
-                  >
-                    {type}
-                  </Badge>
-                ))}
-              </Group>
-            )
-            : null,
+        Cell: ({ row }) => {
+          const display = getPoolItemDisplay(row.original);
+          if (!display) return null;
+          return (
+            <Group gap={4}>
+              {display.types.map((type) => (
+                <Badge
+                  key={type}
+                  size="md"
+                  variant="light"
+                  color={POKEMON_TYPE_COLORS[type] ?? "gray"}
+                  tt="capitalize"
+                >
+                  {type}
+                </Badge>
+              ))}
+            </Group>
+          );
+        },
       },
       {
-        accessorFn: (row) => row.metadata?.baseStats?.hp ?? null,
+        accessorFn: (row) => getPoolItemDisplay(row)?.baseStats.hp ?? null,
         id: "hp",
         header: "HP",
         grow: false,
         filterVariant: "range",
       },
       {
-        accessorFn: (row) => row.metadata?.baseStats?.attack ?? null,
+        accessorFn: (row) => getPoolItemDisplay(row)?.baseStats.attack ?? null,
         id: "attack",
         header: "Attack",
         grow: false,
         filterVariant: "range",
       },
       {
-        accessorFn: (row) => row.metadata?.baseStats?.defense ?? null,
+        accessorFn: (row) => getPoolItemDisplay(row)?.baseStats.defense ?? null,
         id: "defense",
         header: "Defense",
         grow: false,
         filterVariant: "range",
       },
       {
-        accessorFn: (row) => row.metadata?.baseStats?.specialAttack ?? null,
+        accessorFn: (row) =>
+          getPoolItemDisplay(row)?.baseStats.specialAttack ?? null,
         id: "specialAttack",
         header: "Sp. Atk",
         grow: false,
         filterVariant: "range",
       },
       {
-        accessorFn: (row) => row.metadata?.baseStats?.specialDefense ?? null,
+        accessorFn: (row) =>
+          getPoolItemDisplay(row)?.baseStats.specialDefense ?? null,
         id: "specialDefense",
         header: "Sp. Def",
         grow: false,
         filterVariant: "range",
       },
       {
-        accessorFn: (row) => row.metadata?.baseStats?.speed ?? null,
+        accessorFn: (row) => getPoolItemDisplay(row)?.baseStats.speed ?? null,
         id: "speed",
         header: "Speed",
         grow: false,

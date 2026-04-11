@@ -450,4 +450,97 @@ describe("DraftPoolPage", () => {
       ).not.toBeInTheDocument();
     });
   });
+
+  describe("species mode", () => {
+    it("renders species-mode pool items as one row per species with terminal-final stats", () => {
+      const speciesPool = {
+        id: "pool-1",
+        leagueId: "league-1",
+        name: "Draft Pool",
+        createdAt: "2026-01-01T00:00:00Z",
+        items: [
+          {
+            id: "species-item-1",
+            draftPoolId: "pool-1",
+            name: "Ninetales",
+            thumbnailUrl: "https://example.com/ninetales.png",
+            availability: null,
+            encounter: null,
+            effort: null,
+            evolution: null,
+            metadata: {
+              mode: "species",
+              finals: [
+                {
+                  pokemonId: 38,
+                  name: "ninetales",
+                  regionalForm: null,
+                  types: ["fire"],
+                  baseStats: {
+                    hp: 73,
+                    attack: 76,
+                    defense: 75,
+                    specialAttack: 81,
+                    specialDefense: 100,
+                    speed: 100,
+                  },
+                  generation: "generation-i",
+                  spriteUrl: "https://example.com/ninetales.png",
+                },
+                {
+                  pokemonId: 10229,
+                  name: "ninetales",
+                  regionalForm: "alola",
+                  types: ["ice", "fairy"],
+                  baseStats: {
+                    hp: 73,
+                    attack: 67,
+                    defense: 75,
+                    specialAttack: 81,
+                    specialDefense: 100,
+                    speed: 109,
+                  },
+                  generation: "generation-vii",
+                  spriteUrl: "https://example.com/ninetales-alola.png",
+                },
+              ],
+              members: [
+                {
+                  pokemonId: 37,
+                  name: "vulpix",
+                  regionalForm: null,
+                  stage: "base",
+                },
+                {
+                  pokemonId: 38,
+                  name: "ninetales",
+                  regionalForm: null,
+                  stage: "final",
+                },
+              ],
+            },
+          },
+        ],
+      };
+
+      mockUseDraftPool.mockReturnValue({
+        data: speciesPool,
+        isLoading: false,
+      });
+
+      renderPage();
+
+      // Exactly one row for the Ninetales species — no second row for
+      // Alolan Ninetales, which is folded into the same species.
+      const rows = screen.getAllByRole("row", { name: /ninetales/i });
+      expect(rows.length).toBe(1);
+
+      // Primary (base-region) final's stats drive the row.
+      expect(screen.getByText("73")).toBeInTheDocument(); // HP
+      expect(screen.getByText("76")).toBeInTheDocument(); // Attack
+
+      // Primary final's type shows as a badge.
+      expect(screen.getByText("fire")).toBeInTheDocument();
+    });
+  });
 });
