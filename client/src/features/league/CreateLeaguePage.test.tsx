@@ -72,6 +72,8 @@ describe("CreateLeaguePage", () => {
       .toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: /^draft format/i }))
       .toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: /^draft mode/i }))
+      .toBeInTheDocument();
     expect(screen.getByLabelText(/^number of rounds/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/^max players/i)).toBeInTheDocument();
   });
@@ -95,10 +97,18 @@ describe("CreateLeaguePage", () => {
         rulesConfig: expect.objectContaining({
           draftFormat: "snake",
           numberOfRounds: 6,
+          draftMode: "individual",
         }),
       }),
       expect.objectContaining({ onSuccess: expect.any(Function) }),
     );
+  });
+
+  it("renders a draft mode select with individual and species options", () => {
+    renderPage();
+    const draftMode = screen.getByRole("textbox", { name: /^draft mode/i });
+    expect(draftMode).toBeInTheDocument();
+    expect(draftMode).toHaveValue("Individual");
   });
 
   it("navigates to the league detail page after successful create", () => {
