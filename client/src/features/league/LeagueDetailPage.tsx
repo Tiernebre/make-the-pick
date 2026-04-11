@@ -685,20 +685,12 @@ export function LeagueDetailPage() {
                   >
                     <Group justify="space-between" wrap="nowrap">
                       <Group gap="sm">
-                        <Avatar
-                          src={npc.image}
-                          alt={npc.name}
+                        <NpcAvatar
+                          name={npc.name}
+                          image={npc.image}
                           radius="xl"
                           size="sm"
-                          color="mint-green"
-                        >
-                          {npc.name
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")
-                            .toUpperCase()
-                            .slice(0, 2)}
-                        </Avatar>
+                        />
                         <Text size="sm">{npc.name}</Text>
                       </Group>
                       {strategy && (
