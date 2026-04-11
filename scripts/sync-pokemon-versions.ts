@@ -169,7 +169,7 @@ async function main() {
 
   // 4. Write output files
   const dataDir = new URL(
-    "../packages/shared/data/",
+    "../server/data/",
     import.meta.url,
   );
 
@@ -179,7 +179,7 @@ async function main() {
     JSON.stringify(versions, null, 2) + "\n",
   );
   console.log(
-    `\nWrote ${versions.length} versions to packages/shared/data/pokemon-versions.json`,
+    `\nWrote ${versions.length} versions to server/data/pokemon-versions.json`,
   );
 
   const pokedexesPath = new URL("regional-pokedexes.json", dataDir);
@@ -190,7 +190,7 @@ async function main() {
   console.log(
     `Wrote ${
       Object.keys(regionalPokedexes).length
-    } regional pokedexes to packages/shared/data/regional-pokedexes.json`,
+    } regional pokedexes to server/data/regional-pokedexes.json`,
   );
 }
 

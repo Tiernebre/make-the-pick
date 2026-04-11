@@ -1,7 +1,7 @@
-import pokemonJson from "../packages/shared/data/pokemon.json" with {
+import pokemonJson from "../server/data/pokemon.json" with {
   type: "json",
 };
-import pokemonVersionsJson from "../packages/shared/data/pokemon-versions.json" with {
+import pokemonVersionsJson from "../server/data/pokemon-versions.json" with {
   type: "json",
 };
 
@@ -188,7 +188,7 @@ async function main() {
   }
 
   const outputPath = new URL(
-    "../packages/shared/data/pokemon-encounters.json",
+    "../server/data/pokemon-encounters.json",
     import.meta.url,
   );
   await Deno.writeTextFile(
@@ -201,7 +201,7 @@ async function main() {
     0,
   );
   console.log(
-    `\nDone. ${totalEntries} (version, pokemon) encounter entries written to packages/shared/data/pokemon-encounters.json`,
+    `\nDone. ${totalEntries} (version, pokemon) encounter entries written to server/data/pokemon-encounters.json`,
   );
 }
 
