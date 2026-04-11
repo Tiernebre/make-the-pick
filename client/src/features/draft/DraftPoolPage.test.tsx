@@ -1,4 +1,10 @@
-import { cleanup, render, screen, within } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MantineProvider } from "@mantine/core";
 import { DraftPoolPage } from "./DraftPoolPage";
@@ -294,5 +300,24 @@ describe("DraftPoolPage", () => {
     renderPage();
     const images = screen.getAllByRole("img");
     expect(images.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("shows a watchlist toggle button with the current count", () => {
+    renderPage();
+    const button = screen.getByRole("button", { name: /watchlist \(0\)/i });
+    expect(button).toBeInTheDocument();
+  });
+
+  it("keeps the watchlist panel hidden until the toggle is clicked", async () => {
+    renderPage();
+    expect(
+      screen.queryByText(/click the star icon on any player/i),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /watchlist \(0\)/i }));
+
+    expect(
+      await screen.findByText(/click the star icon on any player/i),
+    ).toBeInTheDocument();
   });
 });

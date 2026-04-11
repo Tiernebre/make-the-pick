@@ -3,8 +3,8 @@ import {
   Anchor,
   Avatar,
   Badge,
+  Button,
   Container,
-  Grid,
   Group,
   HoverCard,
   List,
@@ -19,7 +19,12 @@ import {
 } from "@mantine/core";
 import { WatchlistPanel } from "./WatchlistPanel";
 import { PoolItemNoteIcon } from "./PoolItemNoteIcon";
-import { IconInfoCircle, IconStar, IconStarFilled } from "@tabler/icons-react";
+import {
+  IconChevronDown,
+  IconInfoCircle,
+  IconStar,
+  IconStarFilled,
+} from "@tabler/icons-react";
 import type {
   DraftPoolItem,
   PokemonEncounterSummary,
@@ -593,21 +598,47 @@ export function DraftPoolPage() {
 
       {league.data && (
         <>
-          <Title order={1} mb="lg">
-            {league.data.name} — Draft Pool
-          </Title>
+          <Group
+            justify="space-between"
+            align="center"
+            mb="lg"
+            style={{
+              position: "sticky",
+              top: 0,
+              zIndex: 3,
+              backgroundColor: "var(--mantine-color-body)",
+              paddingTop: "var(--mantine-spacing-md)",
+              paddingBottom: "var(--mantine-spacing-sm)",
+            }}
+          >
+            <Title order={1}>
+              {league.data.name} — Draft Pool
+            </Title>
+            <Popover
+              width={360}
+              position="bottom-end"
+              withArrow
+              shadow="md"
+              trapFocus
+            >
+              <Popover.Target>
+                <Button
+                  variant="default"
+                  rightSection={<IconChevronDown size={16} />}
+                >
+                  Watchlist ({watchlist.data?.length ?? 0})
+                </Button>
+              </Popover.Target>
+              <Popover.Dropdown p={0}>
+                <WatchlistPanel
+                  leagueId={id!}
+                  poolItems={draftPool.data?.items ?? []}
+                />
+              </Popover.Dropdown>
+            </Popover>
+          </Group>
 
-          <Grid>
-            <Grid.Col span={{ base: 12, lg: 9 }}>
-              <MantineReactTable table={table} />
-            </Grid.Col>
-            <Grid.Col span={{ base: 12, lg: 3 }}>
-              <WatchlistPanel
-                leagueId={id!}
-                poolItems={draftPool.data?.items ?? []}
-              />
-            </Grid.Col>
-          </Grid>
+          <MantineReactTable table={table} />
         </>
       )}
     </Container>
