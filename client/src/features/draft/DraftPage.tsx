@@ -5,6 +5,7 @@ import {
   Card,
   Container,
   Grid,
+  Group,
   LoadingOverlay,
   Stack,
   Tabs,
@@ -17,7 +18,8 @@ import { useSession } from "../../auth";
 import { useLeague, useLeaguePlayers } from "../league/use-leagues";
 import { AllRostersPanel } from "./AllRostersPanel";
 import { AvailablePoolTable } from "./AvailablePoolTable";
-import { CeremonyOverlay } from "./CeremonyOverlay";
+import { CeremonySettings } from "./CeremonySettings";
+import { CeremonyTicker } from "./CeremonyTicker";
 import { CommissionerControls } from "./CommissionerControls";
 import { DraftBoard } from "./DraftBoard";
 import { DraftHeader } from "./DraftHeader";
@@ -130,11 +132,9 @@ export function DraftPage() {
           leagueId={leagueId}
         />
       )}
-      <CeremonyOverlay
+      <CeremonyTicker
         current={ceremony.current}
-        isMuted={ceremony.isMuted}
-        onSkip={ceremony.skip}
-        onToggleMute={ceremony.toggleMute}
+        onDismiss={ceremony.skip}
       />
 
       <Anchor
@@ -184,19 +184,25 @@ export function DraftPage() {
 
       {draftState && !isPending && (
         <Stack gap="md">
-          <DraftHeader
-            draftState={draftState}
-            totalRounds={totalRounds}
-            currentTurnPlayerName={currentTurnPlayer?.name ?? null}
-          />
+          <Group justify="space-between" align="flex-start" wrap="nowrap">
+            <DraftHeader
+              draftState={draftState}
+              totalRounds={totalRounds}
+              currentTurnPlayerName={currentTurnPlayer?.name ?? null}
+            />
+            <CeremonySettings
+              isMuted={ceremony.isMuted}
+              isFastMode={ceremony.isFastMode}
+              onToggleMute={ceremony.toggleMute}
+              onToggleFastMode={ceremony.setFastMode}
+            />
+          </Group>
           {isCommissioner && (
             <CommissionerControls
               draftState={draftState}
               leagueId={leagueId}
               players={commissionerPlayerList}
               poolItemsById={poolItemsById}
-              isFastMode={ceremony.isFastMode}
-              onToggleFastMode={ceremony.setFastMode}
             />
           )}
           <Grid>

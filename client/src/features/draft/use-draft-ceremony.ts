@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export interface Ceremony {
   id: string;
@@ -11,6 +11,13 @@ export interface Ceremony {
 export const CEREMONY_MUTED_KEY = "draft-ceremony:muted";
 export const CEREMONY_FAST_MODE_KEY = "draft-ceremony:fast-mode";
 export const CEREMONY_JINGLE_SRC = "/audio/draft-jingle.mp3";
+// Source mp3 was ripped at full broadcast loudness; clamp playback so the
+// horn doesn't physically hurt anyone wearing headphones.
+export const CEREMONY_VOLUME = 0.2;
+// How long the breaking-news banner stays on screen before auto-dismissing.
+// Long enough to read who picked whom, short enough that a fast NPC burst
+// doesn't pile up a backlog of stale picks.
+export const CEREMONY_DURATION_MS = 7000;
 
 // Starts muted so nobody gets ambushed by the horn the first time they land
 // on the draft page. Once a user opts in, we persist that choice.
@@ -52,14 +59,30 @@ export function useDraftCeremony(): UseDraftCeremonyResult {
   );
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Refs mirror the state so that setter + show() calls batched inside the
   // same render see the updated value without waiting for an effect flush.
   const isMutedRef = useRef(isMuted);
   const isFastModeRef = useRef(isFastMode);
 
+  const clearDismissTimer = useCallback(() => {
+    if (dismissTimerRef.current !== null) {
+      clearTimeout(dismissTimerRef.current);
+      dismissTimerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      clearDismissTimer();
+    };
+  }, [clearDismissTimer]);
+
   const getAudio = useCallback((): HTMLAudioElement => {
     if (!audioRef.current) {
-      audioRef.current = new Audio(CEREMONY_JINGLE_SRC);
+      const audio = new Audio(CEREMONY_JINGLE_SRC);
+      audio.volume = CEREMONY_VOLUME;
+      audioRef.current = audio;
     }
     return audioRef.current;
   }, []);
@@ -67,6 +90,11 @@ export function useDraftCeremony(): UseDraftCeremonyResult {
   const show = useCallback((next: Ceremony) => {
     if (isFastModeRef.current) return;
     setCurrent(next);
+    clearDismissTimer();
+    dismissTimerRef.current = setTimeout(() => {
+      setCurrent(null);
+      dismissTimerRef.current = null;
+    }, CEREMONY_DURATION_MS);
     if (!isMutedRef.current) {
       const audio = getAudio();
       audio.currentTime = 0;
@@ -74,16 +102,17 @@ export function useDraftCeremony(): UseDraftCeremonyResult {
         // Autoplay policies may block; fail silently rather than throwing.
       });
     }
-  }, [getAudio]);
+  }, [getAudio, clearDismissTimer]);
 
   const skip = useCallback(() => {
+    clearDismissTimer();
     setCurrent(null);
     const audio = audioRef.current;
     if (audio) {
       audio.pause();
       audio.currentTime = 0;
     }
-  }, []);
+  }, [clearDismissTimer]);
 
   const toggleMute = useCallback(() => {
     setIsMuted((prev) => {
