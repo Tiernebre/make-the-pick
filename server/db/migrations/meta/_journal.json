@@ -176,6 +176,13 @@
       "when": 1776370000000,
       "tag": "0024_slow_sentry",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1776380000000,
+      "tag": "0025_idempotent_league_pooling_scouting",
+      "breakpoints": true
     }
   ]
 }
