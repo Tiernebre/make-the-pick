@@ -175,8 +175,12 @@ export const draftPick = pgTable("draft_pick", {
   }),
   leaguePlayerId: uuid("league_player_id").notNull().references(
     () => leaguePlayer.id,
+    { onDelete: "cascade" },
   ),
-  poolItemId: uuid("pool_item_id").notNull().references(() => draftPoolItem.id),
+  poolItemId: uuid("pool_item_id").notNull().references(
+    () => draftPoolItem.id,
+    { onDelete: "cascade" },
+  ),
   pickNumber: integer("pick_number").notNull(),
   pickedAt: timestamp("picked_at", { withTimezone: true }).defaultNow()
     .notNull(),
