@@ -30,7 +30,7 @@ export function JoinLeaguePage() {
           <Alert color="red" title="Could not join league">
             {joinLeague.error.message}
           </Alert>
-          <Anchor href="/">Go home</Anchor>
+          <Anchor href="/leagues">Back to leagues</Anchor>
         </Stack>
       </Center>
     );

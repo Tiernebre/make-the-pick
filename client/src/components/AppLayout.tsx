@@ -23,7 +23,6 @@ import {
   IconBinoculars,
   IconChevronLeft,
   IconChevronRight,
-  IconHome,
   IconTrophy,
   IconUser,
 } from "@tabler/icons-react";
@@ -134,14 +133,6 @@ export function AppLayout({ children }: AppLayoutProps) {
               )
               : (
                 <Stack gap={2} py="xs">
-                  <SidebarLink
-                    to="/"
-                    label="Home"
-                    icon={<IconHome size={20} />}
-                    active={location === "/"}
-                    collapsed={collapsed}
-                  />
-
                   {collapsed
                     ? (
                       <Tooltip label="Leagues" position="right">

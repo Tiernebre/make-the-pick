@@ -4,7 +4,7 @@ import {
   MantineProvider,
 } from "@mantine/core";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { Route, Switch } from "wouter";
+import { Redirect, Route, Switch } from "wouter";
 import "@mantine/core/styles.css";
 import "@mantine/dates/styles.css";
 import "mantine-react-table/styles.css";
@@ -34,7 +34,6 @@ import { AppLayout } from "./components/AppLayout";
 import { LoginPage } from "./pages/LoginPage";
 import {
   CreateLeaguePage,
-  HomeDashboard,
   JoinLeaguePage,
   LeagueDetailPage,
   LeagueListPage,
@@ -105,9 +104,7 @@ export function App() {
             </Route>
             <Route>
               <AuthGuard>
-                <AppLayout>
-                  <HomeDashboard />
-                </AppLayout>
+                <Redirect to="/leagues" />
               </AuthGuard>
             </Route>
           </Switch>
