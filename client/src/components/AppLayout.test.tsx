@@ -202,6 +202,19 @@ describe("AppLayout shell", () => {
     renderLayout();
     expect(screen.getByLabelText("Toggle navigation")).toBeInTheDocument();
   });
+
+  it("renders a footer with a copyright notice and GitHub repo link", () => {
+    setupMocks();
+    renderLayout();
+    const footer = screen.getByRole("contentinfo");
+    expect(within(footer).getByText(/©/)).toBeInTheDocument();
+    expect(within(footer).getByText(/make the pick/i)).toBeInTheDocument();
+    const repoLink = within(footer).getByRole("link", { name: /github/i });
+    expect(repoLink).toHaveAttribute(
+      "href",
+      "https://github.com/Tiernebre/make-the-pick",
+    );
+  });
 });
 
 describe("AppLayout league mode", () => {
