@@ -655,6 +655,39 @@ describe("LeagueDetailPage", () => {
     expect(mockAddNpcMutate).toHaveBeenCalledWith({ leagueId: "league-1" });
   });
 
+  it("disables the Add random NPC button when the league is at max players", () => {
+    mockUseLeague.mockReturnValue({
+      data: { ...mockLeague, maxPlayers: 2 },
+      isLoading: false,
+    });
+    mockUseLeaguePlayers.mockReturnValue({
+      data: [
+        {
+          id: "p1",
+          userId: "user-1",
+          name: "Alice",
+          image: null,
+          role: "commissioner",
+          joinedAt: "2026-01-01T00:00:00Z",
+        },
+        {
+          id: "p2",
+          userId: "user-2",
+          name: "Bob",
+          image: null,
+          role: "member",
+          joinedAt: "2026-01-01T00:00:00Z",
+        },
+      ],
+      isLoading: false,
+    });
+    renderPage();
+    const randomBtn = screen.getByRole("button", { name: /add random npc/i });
+    expect(randomBtn).toBeDisabled();
+    randomBtn.click();
+    expect(mockAddNpcMutate).not.toHaveBeenCalled();
+  });
+
   it("opens the choose NPC modal and sends the chosen npcUserId", async () => {
     mockUseLeague.mockReturnValue({ data: mockLeague, isLoading: false });
     mockUseLeaguePlayers.mockReturnValue({

@@ -107,6 +107,9 @@ export function LeagueDetailPage() {
   const setupPrerequisitesMet = league.data?.status !== "setup" ||
     persistedSettingsValid;
 
+  const atMaxPlayers = !!league.data?.maxPlayers &&
+    (players.data?.length ?? 0) >= league.data.maxPlayers;
+
   const handleDelete = () => {
     deleteLeague.mutate(
       { id: id! },
@@ -398,6 +401,7 @@ export function LeagueDetailPage() {
                           variant="light"
                           size="xs"
                           loading={addNpcPlayer.isPending}
+                          disabled={atMaxPlayers}
                           onClick={() =>
                             addNpcPlayer.mutate({ leagueId: id! })}
                           style={{
