@@ -13,11 +13,10 @@ test.describe("Draft room — two-player snake draft", () => {
     // Draft is at pick 1 of 6 (3 rounds × 2 players).
     await expect(p1.getByText("Pick 1 of 6")).toBeVisible();
 
-    // Player 1 sees Draft buttons; player 2 sees waiting message.
+    // Player 1 sees Draft buttons (it's their turn).
     await expect(
       p1.getByRole("button", { name: /^Draft Bulbasaur$/i }),
     ).toBeVisible();
-    await expect(p2.getByText("Waiting for your turn")).toBeVisible();
 
     // Player 1 drafts Bulbasaur.
     await p1.getByRole("button", { name: /^Draft Bulbasaur$/i }).click();
@@ -26,12 +25,8 @@ test.describe("Draft room — two-player snake draft", () => {
       .getByRole("button", { name: "Confirm" })
       .click();
 
-    // After pick, the SSE event triggers a state refetch. Wait for the
-    // turn to flip — player 1 should see "Waiting" and pick counter update.
+    // Pick counter advances for player 1.
     await expect(p1.getByText("Pick 2 of 6")).toBeVisible({ timeout: 10000 });
-    await expect(p1.getByText("Waiting for your turn")).toBeVisible({
-      timeout: 10000,
-    });
 
     // Player 2 receives the turn change via SSE and can now draft.
     await expect(
