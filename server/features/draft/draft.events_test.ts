@@ -16,6 +16,7 @@ function makeStateEvent(leagueId: string): DraftEvent {
         startedAt: null,
         completedAt: null,
         currentTurnDeadline: null,
+        fastMode: false,
       },
       picks: [],
       players: [],

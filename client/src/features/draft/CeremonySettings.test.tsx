@@ -10,7 +10,6 @@ function renderSettings(
     isMuted: true,
     isFastMode: false,
     onToggleMute: vi.fn(),
-    onToggleFastMode: vi.fn(),
     ...overrides,
   };
   render(
@@ -55,16 +54,32 @@ describe("CeremonySettings", () => {
     expect(onToggleMute).toHaveBeenCalledTimes(1);
   });
 
-  it("shows a Fast mode switch reflecting the current value", () => {
-    renderSettings({ isFastMode: true });
+  it("shows a Fast mode switch when onToggleFastMode is provided (commissioner)", () => {
+    renderSettings({ isFastMode: true, onToggleFastMode: vi.fn() });
     openMenu();
     expect(screen.getByRole("switch", { name: /fast mode/i })).toBeChecked();
   });
 
   it("calls onToggleFastMode with the inverted value when clicked", () => {
-    const { onToggleFastMode } = renderSettings({ isFastMode: false });
+    const onToggleFastMode = vi.fn();
+    renderSettings({ isFastMode: false, onToggleFastMode });
     openMenu();
     fireEvent.click(screen.getByRole("switch", { name: /fast mode/i }));
     expect(onToggleFastMode).toHaveBeenCalledWith(true);
+  });
+
+  it("hides fast mode switch for non-commissioners but shows label when active", () => {
+    renderSettings({ isFastMode: true });
+    openMenu();
+    expect(screen.queryByRole("switch", { name: /fast mode/i })).toBeNull();
+    expect(screen.getByText(/fast mode enabled by commissioner/i))
+      .toBeInTheDocument();
+  });
+
+  it("hides fast mode info when not active and no toggle provided", () => {
+    renderSettings({ isFastMode: false });
+    openMenu();
+    expect(screen.queryByRole("switch", { name: /fast mode/i })).toBeNull();
+    expect(screen.queryByText(/fast mode/i)).toBeNull();
   });
 });

@@ -204,6 +204,14 @@ export function createDraftRepository(db: Database) {
       });
     },
 
+    async updateFastMode(id: string, fastMode: boolean): Promise<DraftRow> {
+      log.debug({ draftId: id, fastMode }, "updating draft fast mode");
+      const [updated] = await db.update(draft).set({ fastMode }).where(
+        eq(draft.id, id),
+      ).returning();
+      return updated;
+    },
+
     async updateTurnDeadline(
       id: string,
       deadline: Date | null,

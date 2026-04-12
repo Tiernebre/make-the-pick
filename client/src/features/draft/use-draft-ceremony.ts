@@ -9,7 +9,6 @@ export interface Ceremony {
 }
 
 export const CEREMONY_MUTED_KEY = "draft-ceremony:muted";
-export const CEREMONY_FAST_MODE_KEY = "draft-ceremony:fast-mode";
 export const CEREMONY_JINGLE_SRC = "/audio/draft-jingle.mp3";
 // Source mp3 was ripped at full broadcast loudness; clamp playback so the
 // horn doesn't physically hurt anyone wearing headphones.
@@ -46,24 +45,23 @@ export interface UseDraftCeremonyResult {
   show(ceremony: Ceremony): void;
   skip(): void;
   toggleMute(): void;
-  setFastMode(enabled: boolean): void;
 }
 
-export function useDraftCeremony(): UseDraftCeremonyResult {
+export function useDraftCeremony(
+  fastMode = false,
+): UseDraftCeremonyResult {
+  const isFastMode = fastMode;
+
   const [current, setCurrent] = useState<Ceremony | null>(null);
   const [isMuted, setIsMuted] = useState<boolean>(() =>
     readBool(CEREMONY_MUTED_KEY, true)
   );
-  const [isFastMode, setIsFastModeState] = useState<boolean>(() =>
-    readBool(CEREMONY_FAST_MODE_KEY, false)
-  );
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Refs mirror the state so that setter + show() calls batched inside the
-  // same render see the updated value without waiting for an effect flush.
   const isMutedRef = useRef(isMuted);
   const isFastModeRef = useRef(isFastMode);
+  isFastModeRef.current = isFastMode;
 
   const clearDismissTimer = useCallback(() => {
     if (dismissTimerRef.current !== null) {
@@ -123,12 +121,6 @@ export function useDraftCeremony(): UseDraftCeremonyResult {
     });
   }, []);
 
-  const setFastMode = useCallback((enabled: boolean) => {
-    isFastModeRef.current = enabled;
-    writeBool(CEREMONY_FAST_MODE_KEY, enabled);
-    setIsFastModeState(enabled);
-  }, []);
-
   return {
     current,
     isMuted,
@@ -136,6 +128,5 @@ export function useDraftCeremony(): UseDraftCeremonyResult {
     show,
     skip,
     toggleMute,
-    setFastMode,
   };
 }

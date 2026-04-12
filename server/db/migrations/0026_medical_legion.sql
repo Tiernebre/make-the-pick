@@ -1,0 +1,1 @@
+ALTER TABLE "draft" ADD COLUMN "fast_mode" boolean DEFAULT false NOT NULL;

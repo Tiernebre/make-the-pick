@@ -21,6 +21,7 @@ function createFakeState(leagueId: string): DraftState {
       startedAt: null,
       completedAt: null,
       currentTurnDeadline: null,
+      fastMode: false,
     },
     picks: [],
     players: [],

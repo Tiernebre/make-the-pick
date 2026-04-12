@@ -39,6 +39,10 @@ vi.mock("./use-draft-events", () => ({
   useDraftEvents: mockUseDraftEvents,
 }));
 
+vi.mock("./use-draft-commissioner", () => ({
+  useSetFastMode: () => ({ mutate: vi.fn(), isPending: false, error: null }),
+}));
+
 vi.mock("./CommissionerControls", () => ({
   CommissionerControls: () => (
     <div data-testid="commissioner-controls">commissioner-controls</div>

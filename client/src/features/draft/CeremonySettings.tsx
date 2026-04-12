@@ -5,7 +5,7 @@ export interface CeremonySettingsProps {
   isMuted: boolean;
   isFastMode: boolean;
   onToggleMute: () => void;
-  onToggleFastMode: (enabled: boolean) => void;
+  onToggleFastMode?: (enabled: boolean) => void;
 }
 
 // A self-contained settings panel anyone in the draft room can pop open to
@@ -38,12 +38,19 @@ export function CeremonySettings(
               checked={!isMuted}
               onChange={onToggleMute}
             />
-            <Switch
-              label="Fast mode"
-              description="Skip the breaking-news banner entirely"
-              checked={isFastMode}
-              onChange={(e) => onToggleFastMode(e.currentTarget.checked)}
-            />
+            {onToggleFastMode && (
+              <Switch
+                label="Fast mode"
+                description="Skip ceremonies and NPC thinking delay"
+                checked={isFastMode}
+                onChange={(e) => onToggleFastMode(e.currentTarget.checked)}
+              />
+            )}
+            {!onToggleFastMode && isFastMode && (
+              <Text size="xs" c="dimmed">
+                Fast mode enabled by commissioner
+              </Text>
+            )}
           </Stack>
         </Card>
       )}

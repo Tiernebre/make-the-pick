@@ -4,7 +4,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   type Ceremony,
   CEREMONY_DURATION_MS,
-  CEREMONY_FAST_MODE_KEY,
   CEREMONY_MUTED_KEY,
   CEREMONY_VOLUME,
   useDraftCeremony,
@@ -92,12 +91,11 @@ describe("useDraftCeremony", () => {
     expect(CEREMONY_VOLUME).toBeLessThanOrEqual(0.25);
   });
 
-  it("show() is a no-op when fast mode is enabled", () => {
-    const { result } = renderHook(() => useDraftCeremony());
+  it("show() is a no-op when fast mode is enabled via server prop", () => {
+    const { result } = renderHook(() => useDraftCeremony(true));
 
     act(() => {
       result.current.toggleMute(); // unmute so we can verify audio is also skipped
-      result.current.setFastMode(true);
     });
 
     act(() => {
@@ -106,6 +104,17 @@ describe("useDraftCeremony", () => {
 
     expect(result.current.current).toBeNull();
     expect(play).not.toHaveBeenCalled();
+  });
+
+  it("isFastMode reflects the server-provided parameter", () => {
+    const { result, rerender } = renderHook(
+      ({ fastMode }) => useDraftCeremony(fastMode),
+      { initialProps: { fastMode: false } },
+    );
+    expect(result.current.isFastMode).toBe(false);
+
+    rerender({ fastMode: true });
+    expect(result.current.isFastMode).toBe(true);
   });
 
   it("skip() clears the current ceremony and stops audio", () => {
@@ -135,19 +144,6 @@ describe("useDraftCeremony", () => {
 
     const { result: result2 } = renderHook(() => useDraftCeremony());
     expect(result2.current.isMuted).toBe(false);
-  });
-
-  it("persists fast mode across remounts via localStorage", () => {
-    const { result, unmount } = renderHook(() => useDraftCeremony());
-
-    act(() => {
-      result.current.setFastMode(true);
-    });
-    expect(localStorage.getItem(CEREMONY_FAST_MODE_KEY)).toBe("true");
-    unmount();
-
-    const { result: result2 } = renderHook(() => useDraftCeremony());
-    expect(result2.current.isFastMode).toBe(true);
   });
 
   it("show() replaces an in-progress ceremony with the new pick", () => {

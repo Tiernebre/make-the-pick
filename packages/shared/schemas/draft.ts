@@ -48,6 +48,7 @@ export const draftStateSchema: z.ZodObject<{
     startedAt: z.ZodNullable<z.ZodString>;
     completedAt: z.ZodNullable<z.ZodString>;
     currentTurnDeadline: z.ZodNullable<z.ZodString>;
+    fastMode: z.ZodBoolean;
   }>;
   picks: z.ZodArray<typeof draftPickSchema>;
   players: z.ZodArray<typeof leaguePlayerSchema>;
@@ -64,6 +65,7 @@ export const draftStateSchema: z.ZodObject<{
     startedAt: nullable(string()),
     completedAt: nullable(string()),
     currentTurnDeadline: nullable(string()),
+    fastMode: boolean(),
   }),
   picks: array(draftPickSchema),
   players: array(leaguePlayerSchema),
@@ -123,6 +125,16 @@ export const undoLastPickInputSchema: z.ZodObject<{
 });
 
 export type UndoLastPickInput = z.infer<typeof undoLastPickInputSchema>;
+
+export const setFastModeInputSchema: z.ZodObject<{
+  leagueId: z.ZodString;
+  fastMode: z.ZodBoolean;
+}> = object({
+  leagueId: string().uuid(),
+  fastMode: boolean(),
+});
+
+export type SetFastModeInput = z.infer<typeof setFastModeInputSchema>;
 
 // SSE event schemas
 export const draftStartedEventSchema: z.ZodObject<{
@@ -242,6 +254,22 @@ export const draftPickUndoneEventSchema: z.ZodObject<{
 
 export type DraftPickUndoneEvent = z.infer<typeof draftPickUndoneEventSchema>;
 
+export const draftFastModeChangedEventSchema: z.ZodObject<{
+  type: z.ZodLiteral<"draft:fast_mode_changed">;
+  data: z.ZodObject<{
+    fastMode: z.ZodBoolean;
+  }>;
+}> = object({
+  type: literal("draft:fast_mode_changed"),
+  data: object({
+    fastMode: boolean(),
+  }),
+});
+
+export type DraftFastModeChangedEvent = z.infer<
+  typeof draftFastModeChangedEventSchema
+>;
+
 export const draftPoolItemRevealedEventSchema: z.ZodObject<{
   type: z.ZodLiteral<"draftPool:item_revealed">;
   data: z.ZodObject<{
@@ -281,6 +309,7 @@ export const draftEventSchema: z.ZodUnion<[
   typeof draftPausedEventSchema,
   typeof draftResumedEventSchema,
   typeof draftPickUndoneEventSchema,
+  typeof draftFastModeChangedEventSchema,
   typeof draftPoolItemRevealedEventSchema,
   typeof draftPoolRevealCompletedEventSchema,
 ]> = union([
@@ -292,6 +321,7 @@ export const draftEventSchema: z.ZodUnion<[
   draftPausedEventSchema,
   draftResumedEventSchema,
   draftPickUndoneEventSchema,
+  draftFastModeChangedEventSchema,
   draftPoolItemRevealedEventSchema,
   draftPoolRevealCompletedEventSchema,
 ]);

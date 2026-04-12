@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   draftCompletedEventSchema,
   type DraftEvent,
+  draftFastModeChangedEventSchema,
   draftPickMadeEventSchema,
   draftPoolItemRevealedEventSchema,
   draftPoolRevealCompletedEventSchema,
@@ -26,6 +27,7 @@ const eventSchemas = {
   "draft:pick_made": draftPickMadeEventSchema,
   "draft:turn_change": draftTurnChangeEventSchema,
   "draft:completed": draftCompletedEventSchema,
+  "draft:fast_mode_changed": draftFastModeChangedEventSchema,
   "draftPool:item_revealed": draftPoolItemRevealedEventSchema,
   "draftPool:reveal_completed": draftPoolRevealCompletedEventSchema,
 } as const;

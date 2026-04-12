@@ -17,10 +17,25 @@ interface CommissionerMutation {
   };
 }
 
+interface SetFastModeMutation {
+  useMutation: (opts?: {
+    onSuccess?: () => void;
+  }) => {
+    mutate: (input: { leagueId: string; fastMode: boolean }) => void;
+    mutateAsync: (
+      input: { leagueId: string; fastMode: boolean },
+    ) => Promise<unknown>;
+    isPending: boolean;
+    error: { message: string } | null;
+    reset: () => void;
+  };
+}
+
 interface CommissionerApi {
   pause: CommissionerMutation;
   resume: CommissionerMutation;
   undoLastPick: CommissionerMutation;
+  setFastMode: SetFastModeMutation;
 }
 
 // deno-lint-ignore no-explicit-any
@@ -47,6 +62,15 @@ export function useResumeDraft(leagueId: string) {
 export function useUndoLastPick(leagueId: string) {
   const utils = trpc.useUtils();
   return commissionerApi.undoLastPick.useMutation({
+    onSuccess: () => {
+      utils.draft.getState.invalidate({ leagueId });
+    },
+  });
+}
+
+export function useSetFastMode(leagueId: string) {
+  const utils = trpc.useUtils();
+  return commissionerApi.setFastMode.useMutation({
     onSuccess: () => {
       utils.draft.getState.invalidate({ leagueId });
     },

@@ -156,6 +156,7 @@ function toStateShape(args: {
           ? args.draft.currentTurnDeadline.toISOString()
           : String(args.draft.currentTurnDeadline))
         : null,
+      fastMode: (args.draft as { fastMode?: boolean }).fastMode ?? false,
     },
     picks: args.picks.map((p) => ({
       id: p.id,
@@ -274,6 +275,8 @@ export function createDraftService(deps: {
     pickOrder: string[];
     currentPick: number;
     players: LeaguePlayerRow[];
+    league: NonNullable<LeagueRow>;
+    fastMode: boolean;
   }) {
     if (!npcScheduler) return;
     const turn = resolveSnakeTurn(args.pickOrder, args.currentPick);
@@ -286,7 +289,11 @@ export function createDraftService(deps: {
     npcScheduler.schedule(
       args.draftId,
       args.leagueId,
-      randomNpcPickDelayMs(randomFn),
+      randomNpcPickDelayMs({
+        pickTimeLimitSeconds: getPickTimeLimitSeconds(args.league),
+        fastMode: args.fastMode,
+        randomFn,
+      }),
     );
   }
 
@@ -404,6 +411,8 @@ export function createDraftService(deps: {
         pickOrder: state.draft.pickOrder,
         currentPick: state.draft.currentPick,
         players,
+        league,
+        fastMode: updated.fastMode ?? false,
       });
 
       return state;
@@ -594,6 +603,8 @@ export function createDraftService(deps: {
           pickOrder,
           currentPick: nextPick,
           players,
+          league,
+          fastMode: draftRow.fastMode ?? false,
         });
       }
 
@@ -711,6 +722,8 @@ export function createDraftService(deps: {
           pickOrder,
           currentPick: nextPick,
           players,
+          league,
+          fastMode: draftRow.fastMode ?? false,
         });
       }
     },
@@ -826,8 +839,73 @@ export function createDraftService(deps: {
           pickOrder,
           currentPick: nextPick,
           players,
+          league,
+          fastMode: draftRow.fastMode ?? false,
         });
       }
+    },
+
+    /**
+     * Commissioner-only toggle for fast mode. Fast mode skips the draft pick
+     * ceremony overlay on the client and also bypasses the NPC "thinking"
+     * delay on the server so heavy-NPC drafts fast-forward. Persisted on the
+     * draft row so every viewer sees a consistent experience and new joiners
+     * (or reconnects) pick up the current setting.
+     */
+    async setFastMode(
+      { userId, leagueId, fastMode }: {
+        userId: string;
+        leagueId: string;
+        fastMode: boolean;
+      },
+    ) {
+      log.debug({ userId, leagueId, fastMode }, "setting draft fast mode");
+      const league = await deps.leagueRepo.findById(leagueId);
+      if (!league) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "League not found" });
+      }
+      const caller = await deps.leagueRepo.findPlayer(leagueId, userId);
+      if (caller?.role !== "commissioner") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only the league commissioner can change fast mode",
+        });
+      }
+      const draftRow = await deps.draftRepo.findByLeagueId(leagueId);
+      if (!draftRow) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "No draft has been created for this league yet",
+        });
+      }
+
+      const updated = await deps.draftRepo.updateFastMode(
+        draftRow.id,
+        fastMode,
+      );
+
+      publisher.publish(leagueId, {
+        type: "draft:fast_mode_changed",
+        data: { fastMode },
+      });
+
+      // If an NPC is currently on the clock, re-schedule their pick with the
+      // new delay — fast mode should take effect immediately rather than
+      // waiting for the next turn.
+      if (updated.status === "in_progress") {
+        const players = await deps.leagueRepo.findPlayersByLeagueId(leagueId);
+        maybeScheduleNpcPick({
+          draftId: updated.id,
+          leagueId,
+          pickOrder: updated.pickOrder as string[],
+          currentPick: updated.currentPick,
+          players,
+          league,
+          fastMode,
+        });
+      }
+
+      return { fastMode };
     },
 
     async pauseDraft(
@@ -944,6 +1022,8 @@ export function createDraftService(deps: {
         pickOrder: updated.pickOrder as string[],
         currentPick: updated.currentPick,
         players,
+        league,
+        fastMode: updated.fastMode ?? false,
       });
 
       return state;
@@ -1074,6 +1154,8 @@ export function createDraftService(deps: {
           pickOrder,
           currentPick: updatedDraft.currentPick,
           players,
+          league,
+          fastMode: updatedDraft.fastMode ?? false,
         });
       } else {
         npcScheduler?.cancel(draftRow.id);

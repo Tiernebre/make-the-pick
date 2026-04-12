@@ -80,15 +80,36 @@ export function createNpcScheduler(): NpcScheduler {
 }
 
 /**
- * Minimum random delay floor (ms) — kept low so dev testing feels snappy
- * while still simulating a brief "thinking" beat before the NPC picks.
+ * NPC "thinking" delay bounds (ms). The minimum gives the draft room a beat
+ * to feel like a real person is deliberating; the maximum is the default
+ * ceiling for untimed drafts. Timed drafts clamp the upper bound down to the
+ * league's per-pick shot clock so NPCs never blow past the deadline.
  */
-export const NPC_PICK_DELAY_MIN_MS = 300;
-export const NPC_PICK_DELAY_MAX_MS = 1500;
+export const NPC_PICK_DELAY_MIN_MS = 10_000;
+export const NPC_PICK_DELAY_MAX_MS = 120_000;
 
-export function randomNpcPickDelayMs(
-  randomFn: () => number = Math.random,
-): number {
-  const range = NPC_PICK_DELAY_MAX_MS - NPC_PICK_DELAY_MIN_MS;
-  return NPC_PICK_DELAY_MIN_MS + Math.floor(randomFn() * (range + 1));
+export interface NpcPickDelayArgs {
+  /** League's per-pick time limit in seconds, or null for untimed drafts. */
+  pickTimeLimitSeconds: number | null;
+  /**
+   * When true, skip the natural delay entirely and return 0 — NPCs pick
+   * immediately. Wired to the draft's server-persisted fast mode toggle so
+   * commissioners can fast-forward NPC-heavy drafts.
+   */
+  fastMode: boolean;
+  randomFn?: () => number;
+}
+
+export function randomNpcPickDelayMs(args: NpcPickDelayArgs): number {
+  if (args.fastMode) return 0;
+  const randomFn = args.randomFn ?? Math.random;
+  const timerMs = args.pickTimeLimitSeconds != null
+    ? args.pickTimeLimitSeconds * 1000
+    : Number.POSITIVE_INFINITY;
+  const max = Math.min(NPC_PICK_DELAY_MAX_MS, timerMs);
+  // When the pick timer is tighter than the natural 10s floor, collapse the
+  // floor so we never schedule beyond the shot clock.
+  const min = Math.min(NPC_PICK_DELAY_MIN_MS, max);
+  const range = max - min;
+  return min + Math.floor(randomFn() * (range + 1));
 }
