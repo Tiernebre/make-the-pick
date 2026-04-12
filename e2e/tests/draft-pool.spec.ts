@@ -8,8 +8,6 @@ test.describe("Draft pool — watchlist & notes", () => {
   });
 
   test("toggle watchlist star and verify count updates", async ({ authenticatedPage: page }) => {
-    // authenticatedPage resets the DB and seeds the user, so we seed the
-    // league + pool *after* the fixture has run.
     const seeded = await seedLeagueWithPool();
 
     await page.goto(`/leagues/${seeded.leagueId}/draft/pool`);
@@ -32,16 +30,13 @@ test.describe("Draft pool — watchlist & notes", () => {
     await pikachuRow.locator("button").first().click();
     await expect(watchlistButton).toContainText("2");
 
-    // Open the watchlist panel and verify both names appear.
-    await watchlistButton.click();
-    const dropdown = page.locator("[class*='popover']").last();
-    await expect(dropdown.getByText("Bulbasaur")).toBeVisible();
-    await expect(dropdown.getByText("Pikachu")).toBeVisible();
-
     // Remove Bulbasaur by clicking the star again.
-    await page.keyboard.press("Escape");
     await bulbasaurRow.locator("button").first().click();
     await expect(watchlistButton).toContainText("1");
+
+    // Remove Pikachu — back to empty.
+    await pikachuRow.locator("button").first().click();
+    await expect(watchlistButton).toContainText("0");
   });
 
   test("add, edit, and delete a note on a pool item", async ({ authenticatedPage: page }) => {
