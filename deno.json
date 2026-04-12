@@ -21,6 +21,7 @@
     "start": "cd server && deno run --allow-net --allow-env --allow-read --allow-sys --env main.ts",
     "db:start": "docker compose up -d --wait",
     "db:stop": "docker compose down",
+    "db:check-journal": "deno run --allow-read server/db/migrations/check-journal-order.ts",
     "db:generate": "cd server && deno run -A npm:drizzle-kit generate",
     "db:migrate": "cd server && deno run --allow-net --allow-env --allow-read --allow-sys --env=../.env.example db/migrate.ts",
     "sync:pokemon": "deno run --allow-net --allow-write --allow-read scripts/sync-pokemon.ts",
