@@ -1,12 +1,7 @@
 import { expect, test } from "../fixtures/auth.ts";
-import { closeDatabase } from "../helpers/db.ts";
 import { seedDraftInProgress } from "../helpers/seed-draft.ts";
 
 test.describe("Draft room — two-player snake draft", () => {
-  test.afterAll(async () => {
-    await closeDatabase();
-  });
-
   test("player 1 picks, turn advances to player 2, player 2 picks", async ({ authenticatedPage: p1, authenticatedPage2: p2 }) => {
     const seeded = await seedDraftInProgress();
     const draftUrl = `/leagues/${seeded.leagueId}/draft`;
@@ -31,9 +26,12 @@ test.describe("Draft room — two-player snake draft", () => {
       .getByRole("button", { name: "Confirm" })
       .click();
 
-    // After pick, turn advances — player 1 now sees waiting message.
-    await expect(p1.getByText("Waiting for your turn")).toBeVisible();
-    await expect(p1.getByText("Pick 2 of 6")).toBeVisible();
+    // After pick, the SSE event triggers a state refetch. Wait for the
+    // turn to flip — player 1 should see "Waiting" and pick counter update.
+    await expect(p1.getByText("Pick 2 of 6")).toBeVisible({ timeout: 10000 });
+    await expect(p1.getByText("Waiting for your turn")).toBeVisible({
+      timeout: 10000,
+    });
 
     // Player 2 receives the turn change via SSE and can now draft.
     await expect(

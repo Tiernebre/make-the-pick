@@ -1,11 +1,6 @@
 import { expect, test } from "../fixtures/auth.ts";
-import { closeDatabase } from "../helpers/db.ts";
 
 test.describe("League management", () => {
-  test.afterAll(async () => {
-    await closeDatabase();
-  });
-
   test("commissioner creates a league, sees it in the list, and deletes it", async ({ authenticatedPage: page }) => {
     const leagueName = `Test League ${Date.now()}`;
 
