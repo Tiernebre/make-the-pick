@@ -41,6 +41,16 @@ vi.mock("./use-draft-events", () => ({
 
 vi.mock("./use-draft-commissioner", () => ({
   useSetFastMode: () => ({ mutate: vi.fn(), isPending: false, error: null }),
+  useCommissionerPick: () => ({
+    mutate: vi.fn(),
+    isPending: false,
+    error: null,
+  }),
+  useForceAutoPick: () => ({
+    mutate: vi.fn(),
+    isPending: false,
+    error: null,
+  }),
 }));
 
 vi.mock("./CommissionerControls", () => ({

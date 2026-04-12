@@ -908,6 +908,325 @@ export function createDraftService(deps: {
       return { fastMode };
     },
 
+    async commissionerPick(
+      { userId, leagueId, poolItemId }: {
+        userId: string;
+        leagueId: string;
+        poolItemId: string;
+      },
+    ) {
+      log.debug(
+        { userId, leagueId, poolItemId },
+        "commissioner picking on behalf of current player",
+      );
+      const { league, players, poolItems } = await loadDraftContext(leagueId);
+
+      const caller = await deps.leagueRepo.findPlayer(leagueId, userId);
+      if (caller?.role !== "commissioner") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only the league commissioner can override a pick",
+        });
+      }
+
+      const draftRow = await deps.draftRepo.findByLeagueId(leagueId);
+      if (!draftRow) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "No draft has been created for this league yet",
+        });
+      }
+      if (draftRow.status !== "in_progress") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Draft is not in progress",
+        });
+      }
+
+      const pickOrder = draftRow.pickOrder as string[];
+      const turn = resolveSnakeTurn(pickOrder, draftRow.currentPick);
+      const currentPlayer = players.find(
+        (p) => p.id === turn.leaguePlayerId,
+      );
+      if (!currentPlayer) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Could not resolve the current turn player",
+        });
+      }
+
+      const poolItem = poolItems.find((item) => item.id === poolItemId);
+      if (!poolItem) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Pool item does not belong to this draft's pool",
+        });
+      }
+
+      const existingPick = await deps.draftRepo.findPickByPoolItem(
+        draftRow.id,
+        poolItemId,
+      );
+      if (existingPick) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "That pool item has already been picked",
+        });
+      }
+
+      let createdPickRow: Awaited<ReturnType<DraftRepository["createPick"]>>;
+      try {
+        createdPickRow = await deps.draftRepo.createPick({
+          draftId: draftRow.id,
+          leaguePlayerId: currentPlayer.id,
+          poolItemId,
+          pickNumber: draftRow.currentPick,
+        });
+      } catch (err) {
+        if (err instanceof DraftPickConflictError) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "That pool item has already been picked",
+          });
+        }
+        throw err;
+      }
+
+      const nextPick = await deps.draftRepo.incrementCurrentPick(draftRow.id);
+      const numberOfRounds = getNumberOfRounds(league);
+      const totalPicks = numberOfRounds * pickOrder.length;
+      let finalDraft = { ...draftRow, currentPick: nextPick };
+      const isFinalPick = nextPick >= totalPicks;
+      const now = clock.now();
+      let nextDeadline: Date | null = null;
+      if (isFinalPick) {
+        finalDraft = await deps.draftRepo.updateStatus(
+          draftRow.id,
+          "complete",
+          { completedAt: now },
+        );
+        await deps.draftRepo.updateTurnDeadline(draftRow.id, null);
+        finalDraft = { ...finalDraft, currentTurnDeadline: null };
+      } else {
+        const pickTimeLimitSeconds = getPickTimeLimitSeconds(league);
+        nextDeadline = computeTurnDeadline(now, pickTimeLimitSeconds);
+        await deps.draftRepo.updateTurnDeadline(draftRow.id, nextDeadline);
+        finalDraft = { ...finalDraft, currentTurnDeadline: nextDeadline };
+      }
+
+      const picks = await deps.draftRepo.listPicks(draftRow.id);
+      const state = toStateShape({
+        draft: finalDraft,
+        picks,
+        players,
+        poolItems,
+      });
+
+      const pickRound = resolveSnakeTurn(pickOrder, createdPickRow.pickNumber)
+        .round;
+      publisher.publish(leagueId, {
+        type: "draft:pick_made",
+        data: {
+          id: createdPickRow.id,
+          draftId: createdPickRow.draftId,
+          leaguePlayerId: createdPickRow.leaguePlayerId,
+          poolItemId: createdPickRow.poolItemId,
+          pickNumber: createdPickRow.pickNumber,
+          pickedAt: createdPickRow.pickedAt instanceof Date
+            ? createdPickRow.pickedAt.toISOString()
+            : String(createdPickRow.pickedAt),
+          autoPicked: createdPickRow.autoPicked ?? false,
+          playerName: currentPlayer.name,
+          itemName: poolItem.name,
+          round: pickRound,
+        },
+      });
+
+      if (isFinalPick) {
+        publisher.publish(leagueId, {
+          type: "draft:completed",
+          data: {
+            completedAt: finalDraft.completedAt instanceof Date
+              ? finalDraft.completedAt.toISOString()
+              : (finalDraft.completedAt ?? new Date().toISOString()),
+          },
+        });
+        scheduler?.cancel(draftRow.id);
+        npcScheduler?.cancel(draftRow.id);
+      } else {
+        publishTurnChange(leagueId, pickOrder, nextPick, nextDeadline);
+        scheduler?.schedule(draftRow.id, leagueId, nextDeadline);
+        maybeScheduleNpcPick({
+          draftId: draftRow.id,
+          leagueId,
+          pickOrder,
+          currentPick: nextPick,
+          players,
+          league,
+          fastMode: draftRow.fastMode ?? false,
+        });
+      }
+
+      return state;
+    },
+
+    async forceAutoPick(
+      { userId, leagueId }: { userId: string; leagueId: string },
+    ) {
+      log.debug({ userId, leagueId }, "commissioner forcing auto-pick");
+      const { league, players, poolItems } = await loadDraftContext(leagueId);
+
+      const caller = await deps.leagueRepo.findPlayer(leagueId, userId);
+      if (caller?.role !== "commissioner") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only the league commissioner can force an auto-pick",
+        });
+      }
+
+      const draftRow = await deps.draftRepo.findByLeagueId(leagueId);
+      if (!draftRow) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "No draft has been created for this league yet",
+        });
+      }
+      if (draftRow.status !== "in_progress") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Draft is not in progress",
+        });
+      }
+
+      const pickOrder = draftRow.pickOrder as string[];
+      const turn = resolveSnakeTurn(pickOrder, draftRow.currentPick);
+      const currentPlayer = players.find(
+        (p) => p.id === turn.leaguePlayerId,
+      );
+      if (!currentPlayer) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Could not resolve the current turn player",
+        });
+      }
+
+      npcScheduler?.cancel(draftRow.id);
+
+      const picks = await deps.draftRepo.listPicks(draftRow.id);
+      const pickedItemIds = new Set(picks.map((p) => p.poolItemId));
+      const available = poolItems.filter(
+        (item) => !pickedItemIds.has(item.id),
+      );
+      const chosen = await selectQueueOrBstPick(
+        currentPlayer.id,
+        available,
+      );
+      if (!chosen) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "No available items to auto-pick",
+        });
+      }
+
+      let createdPickRow: Awaited<ReturnType<DraftRepository["createPick"]>>;
+      try {
+        createdPickRow = await deps.draftRepo.createPick({
+          draftId: draftRow.id,
+          leaguePlayerId: currentPlayer.id,
+          poolItemId: chosen.id,
+          pickNumber: draftRow.currentPick,
+          autoPicked: true,
+        });
+      } catch (err) {
+        if (err instanceof DraftPickConflictError) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "A pick was already made for this turn",
+          });
+        }
+        throw err;
+      }
+
+      const nextPick = await deps.draftRepo.incrementCurrentPick(draftRow.id);
+      const numberOfRounds = getNumberOfRounds(league);
+      const totalPicks = numberOfRounds * pickOrder.length;
+      let finalDraft = { ...draftRow, currentPick: nextPick };
+      const isFinalPick = nextPick >= totalPicks;
+      const now = clock.now();
+      let nextDeadline: Date | null = null;
+      if (isFinalPick) {
+        finalDraft = await deps.draftRepo.updateStatus(
+          draftRow.id,
+          "complete",
+          { completedAt: now },
+        );
+        await deps.draftRepo.updateTurnDeadline(draftRow.id, null);
+        finalDraft = { ...finalDraft, currentTurnDeadline: null };
+      } else {
+        const pickTimeLimitSeconds = getPickTimeLimitSeconds(league);
+        nextDeadline = computeTurnDeadline(now, pickTimeLimitSeconds);
+        await deps.draftRepo.updateTurnDeadline(draftRow.id, nextDeadline);
+        finalDraft = { ...finalDraft, currentTurnDeadline: nextDeadline };
+      }
+
+      const allPicks = await deps.draftRepo.listPicks(draftRow.id);
+      const state = toStateShape({
+        draft: finalDraft,
+        picks: allPicks,
+        players,
+        poolItems,
+      });
+
+      const pickRound = resolveSnakeTurn(
+        pickOrder,
+        createdPickRow.pickNumber,
+      ).round;
+      publisher.publish(leagueId, {
+        type: "draft:pick_made",
+        data: {
+          id: createdPickRow.id,
+          draftId: createdPickRow.draftId,
+          leaguePlayerId: createdPickRow.leaguePlayerId,
+          poolItemId: createdPickRow.poolItemId,
+          pickNumber: createdPickRow.pickNumber,
+          pickedAt: createdPickRow.pickedAt instanceof Date
+            ? createdPickRow.pickedAt.toISOString()
+            : String(createdPickRow.pickedAt),
+          autoPicked: true,
+          playerName: currentPlayer.name,
+          itemName: chosen.name,
+          round: pickRound,
+        },
+      });
+
+      if (isFinalPick) {
+        publisher.publish(leagueId, {
+          type: "draft:completed",
+          data: {
+            completedAt: finalDraft.completedAt instanceof Date
+              ? finalDraft.completedAt.toISOString()
+              : (finalDraft.completedAt ?? new Date().toISOString()),
+          },
+        });
+        scheduler?.cancel(draftRow.id);
+        npcScheduler?.cancel(draftRow.id);
+      } else {
+        publishTurnChange(leagueId, pickOrder, nextPick, nextDeadline);
+        scheduler?.schedule(draftRow.id, leagueId, nextDeadline);
+        maybeScheduleNpcPick({
+          draftId: draftRow.id,
+          leagueId,
+          pickOrder,
+          currentPick: nextPick,
+          players,
+          league,
+          fastMode: draftRow.fastMode ?? false,
+        });
+      }
+
+      return state;
+    },
+
     async pauseDraft(
       { userId, leagueId }: { userId: string; leagueId: string },
     ) {

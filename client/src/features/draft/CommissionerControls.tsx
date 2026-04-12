@@ -12,10 +12,21 @@ export interface CommissionerControlsProps {
   leagueId: string;
   players: Array<{ leaguePlayerId: string; name: string }>;
   poolItemsById: Record<string, DraftPoolItem>;
+  onForceAutoPick?: () => void;
+  isForceAutoPickPending?: boolean;
+  forceAutoPickError?: { message: string } | null;
 }
 
 export function CommissionerControls(
-  { draftState, leagueId, players, poolItemsById }: CommissionerControlsProps,
+  {
+    draftState,
+    leagueId,
+    players,
+    poolItemsById,
+    onForceAutoPick,
+    isForceAutoPickPending,
+    forceAutoPickError,
+  }: CommissionerControlsProps,
 ) {
   const pause = usePauseDraft(leagueId);
   const resume = useResumeDraft(leagueId);
@@ -81,6 +92,17 @@ export function CommissionerControls(
             Undo Last Pick
           </Button>
         )}
+        {onForceAutoPick && status === "in_progress" && (
+          <Button
+            size="xs"
+            variant="light"
+            color="grape"
+            onClick={onForceAutoPick}
+            loading={isForceAutoPickPending}
+          >
+            Force Auto Pick
+          </Button>
+        )}
       </Group>
 
       {pause.error && (
@@ -96,6 +118,11 @@ export function CommissionerControls(
       {undo.error && (
         <Alert color="red" title="Failed to undo pick">
           {undo.error.message}
+        </Alert>
+      )}
+      {forceAutoPickError && (
+        <Alert color="red" title="Failed to force auto-pick">
+          {forceAutoPickError.message}
         </Alert>
       )}
 

@@ -1,4 +1,6 @@
 export {
+  type CommissionerPickInput,
+  commissionerPickInputSchema,
   draftCompletedEventSchema,
   type DraftEvent,
   draftEventSchema,
@@ -22,6 +24,8 @@ export {
   draftStateEventSchema,
   draftStateSchema,
   draftTurnChangeEventSchema,
+  type ForceAutoPickInput,
+  forceAutoPickInputSchema,
   type GetDraftStateInput,
   getDraftStateInputSchema,
   type MakePickInput,
