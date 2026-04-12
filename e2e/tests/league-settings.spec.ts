@@ -30,11 +30,11 @@ test.describe("League settings", () => {
     await expect(page.getByLabel("Max Players")).toHaveValue("4");
 
     // Toggle a setting that shows up uniquely in the rules card.
-    // Mantine Switch inlines the description into the label text, so the
-    // string form of getByLabel won't match — use role + regex instead.
+    // Mantine Switch has a CSS thumb animation that prevents Playwright's
+    // actionability "stable" check from passing, so we force the click.
     await page
       .getByRole("switch", { name: /Exclude Legendaries/ })
-      .check();
+      .click({ force: true });
 
     // Wait for auto-save to settle before navigating away.
     await expect(page.getByText("Saving...")).toHaveCount(0, { timeout: 5000 });
