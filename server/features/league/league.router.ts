@@ -1,6 +1,7 @@
 import {
   advanceLeagueStatusSchema,
   createLeagueSchema,
+  leaveLeagueSchema,
   updateLeagueSettingsSchema,
 } from "@make-the-pick/shared";
 import { object, string } from "zod";
@@ -71,6 +72,12 @@ export function createLeagueRouter(leagueService: LeagueService) {
       .input(object({ leagueId: string().uuid() }))
       .query(({ ctx, input }) => {
         return leagueService.listAvailableNpcs(ctx.user.id, input);
+      }),
+
+    leave: protectedProcedure
+      .input(leaveLeagueSchema)
+      .mutation(({ ctx, input }) => {
+        return leagueService.leaveLeague(ctx.user.id, input);
       }),
 
     delete: protectedProcedure

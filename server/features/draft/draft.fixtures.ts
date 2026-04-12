@@ -176,6 +176,7 @@ export function createFakeLeagueRepo(
     updateStatus: (_id, _status) => Promise.resolve(createFakeLeague()),
     countPlayers: (_leagueId) => Promise.resolve(0),
     deletePlayer: (_leagueId, _userId) => Promise.resolve(),
+    replacePlayerUser: (_leagueId, _oldUserId, _newUserId) => Promise.resolve(),
     findAvailableNpcUsers: (_leagueId) => Promise.resolve([]),
     ...overrides,
   };

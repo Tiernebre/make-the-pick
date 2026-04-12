@@ -163,3 +163,11 @@ export const leaguePlayerSchema: z.ZodObject<{
 });
 
 export type LeaguePlayer = z.infer<typeof leaguePlayerSchema>;
+
+export const leaveLeagueSchema: z.ZodObject<{
+  leagueId: z.ZodString;
+}> = object({
+  leagueId: string().uuid(),
+});
+
+export type LeaveLeagueInput = z.infer<typeof leaveLeagueSchema>;

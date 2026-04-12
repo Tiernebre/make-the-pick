@@ -534,6 +534,63 @@ Deno.test({
 });
 
 Deno.test({
+  name:
+    "leagueRepository.replacePlayerUser: swaps user on existing leaguePlayer row",
+  sanitizeResources: false,
+  sanitizeOps: false,
+  fn: async () => {
+    const { db, client } = createTestDb();
+    const repo = createLeagueRepository(db);
+    const commissionerId = crypto.randomUUID();
+    const memberId = crypto.randomUUID();
+    const npcId = `npc-${crypto.randomUUID()}`;
+
+    try {
+      await createTestUser(db, commissionerId);
+      await createTestUser(db, memberId);
+      await db.insert(user).values({
+        id: npcId,
+        name: "NPC Trainer",
+        email: `${npcId}@test.com`,
+        emailVerified: false,
+        isNpc: true,
+        npcStrategy: "best-available",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      const created = await repo.createWithCommissioner(commissionerId, {
+        name: "Replace League",
+        inviteCode: "REPL0001",
+        ...defaultSettings,
+      });
+      await repo.addPlayer(created.id, memberId);
+
+      const before = await repo.findPlayer(created.id, memberId);
+      assertEquals(before?.userId, memberId);
+      const originalPlayerId = before!.id;
+
+      await repo.replacePlayerUser(created.id, memberId, npcId);
+
+      const afterOld = await repo.findPlayer(created.id, memberId);
+      assertEquals(afterOld, null);
+
+      const afterNew = await repo.findPlayer(created.id, npcId);
+      assertEquals(afterNew?.userId, npcId);
+      assertEquals(afterNew?.id, originalPlayerId);
+      assertEquals(afterNew?.role, "member");
+    } finally {
+      await db.delete(leaguePlayer);
+      await db.delete(league);
+      await db.delete(user).where(eq(user.id, commissionerId));
+      await db.delete(user).where(eq(user.id, memberId));
+      await db.delete(user).where(eq(user.id, npcId));
+      await client.end();
+    }
+  },
+});
+
+Deno.test({
   name: "leagueRepository.findAllByUserId: returns leagues the user belongs to",
   sanitizeResources: false,
   sanitizeOps: false,

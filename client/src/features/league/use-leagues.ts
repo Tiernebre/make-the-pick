@@ -80,6 +80,15 @@ export function useRemoveLeaguePlayer() {
   });
 }
 
+export function useLeaveLeague() {
+  const utils = trpc.useUtils();
+  return trpc.league.leave.useMutation({
+    onSuccess: () => {
+      utils.league.list.invalidate();
+    },
+  });
+}
+
 export function useDeleteLeague() {
   const utils = trpc.useUtils();
   return trpc.league.delete.useMutation({
