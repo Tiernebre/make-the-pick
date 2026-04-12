@@ -1,11 +1,6 @@
 import { expect, test } from "../fixtures/auth.ts";
-import { closeDatabase } from "../helpers/db.ts";
 
 test.describe("League settings", () => {
-  test.afterAll(async () => {
-    await closeDatabase();
-  });
-
   test("commissioner edits settings and the rules card reflects the change", async ({ authenticatedPage: page }) => {
     const leagueName = `Settings League ${Date.now()}`;
 

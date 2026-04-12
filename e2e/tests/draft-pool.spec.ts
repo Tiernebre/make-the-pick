@@ -1,12 +1,7 @@
 import { expect, test } from "../fixtures/auth.ts";
-import { closeDatabase } from "../helpers/db.ts";
 import { seedLeagueWithPool } from "../helpers/seed-league-with-pool.ts";
 
 test.describe("Draft pool — watchlist & notes", () => {
-  test.afterAll(async () => {
-    await closeDatabase();
-  });
-
   test("toggle watchlist star and verify count updates", async ({ authenticatedPage: page }) => {
     const seeded = await seedLeagueWithPool();
 

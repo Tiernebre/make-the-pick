@@ -1,13 +1,9 @@
 import { expect, test } from "../fixtures/auth.ts";
-import { closeDatabase, resetDatabase } from "../helpers/db.ts";
+import { resetDatabase } from "../helpers/db.ts";
 
 test.describe("Smoke tests", () => {
   test.beforeAll(async () => {
     await resetDatabase();
-  });
-
-  test.afterAll(async () => {
-    await closeDatabase();
   });
 
   test("health endpoint returns ok", async ({ request }) => {
