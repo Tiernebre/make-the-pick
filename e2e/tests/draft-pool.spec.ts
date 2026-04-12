@@ -1,22 +1,17 @@
 import { expect, test } from "../fixtures/auth.ts";
 import { closeDatabase } from "../helpers/db.ts";
-import {
-  type SeededLeagueWithPool,
-  seedLeagueWithPool,
-} from "../helpers/seed-league-with-pool.ts";
-
-let seeded: SeededLeagueWithPool;
+import { seedLeagueWithPool } from "../helpers/seed-league-with-pool.ts";
 
 test.describe("Draft pool — watchlist & notes", () => {
-  test.beforeAll(async () => {
-    seeded = await seedLeagueWithPool();
-  });
-
   test.afterAll(async () => {
     await closeDatabase();
   });
 
   test("toggle watchlist star and verify count updates", async ({ authenticatedPage: page }) => {
+    // authenticatedPage resets the DB and seeds the user, so we seed the
+    // league + pool *after* the fixture has run.
+    const seeded = await seedLeagueWithPool();
+
     await page.goto(`/leagues/${seeded.leagueId}/draft/pool`);
     await expect(page.getByRole("heading", { level: 1 })).toContainText(
       "Draft Pool",
@@ -50,6 +45,8 @@ test.describe("Draft pool — watchlist & notes", () => {
   });
 
   test("add, edit, and delete a note on a pool item", async ({ authenticatedPage: page }) => {
+    const seeded = await seedLeagueWithPool();
+
     await page.goto(`/leagues/${seeded.leagueId}/draft/pool`);
     await expect(page.getByRole("heading", { level: 1 })).toContainText(
       "Draft Pool",
@@ -64,7 +61,6 @@ test.describe("Draft pool — watchlist & notes", () => {
     await textarea.fill("Solid defensive pick");
     await textarea.blur();
 
-    // Note icon should turn blue (color attribute on the ActionIcon).
     // Wait for save to round-trip, then reopen to verify content persisted.
     await squirtleRow.locator("button").nth(1).click();
     await expect(textarea).toHaveValue("Solid defensive pick");
