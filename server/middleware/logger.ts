@@ -21,7 +21,7 @@ export function loggerMiddleware(): MiddlewareHandler<AppEnv> {
     } else if (status >= 400) {
       log.warn(data, msg);
     } else {
-      log.info(data, msg);
+      log.debug(data, msg);
     }
   };
 }

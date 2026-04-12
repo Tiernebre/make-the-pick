@@ -8,9 +8,9 @@ export function createUserService(
 ) {
   return {
     async deleteAccount(userId: string): Promise<void> {
-      log.debug({ userId }, "deleting user account");
+      log.info({ userId }, "deleting user account");
       await deps.userRepo.deleteById(userId);
-      log.debug({ userId }, "user account deleted");
+      log.info({ userId }, "user account deleted");
     },
   };
 }

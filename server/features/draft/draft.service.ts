@@ -320,7 +320,7 @@ export function createDraftService(deps: {
     async startDraft(
       { userId, leagueId }: { userId: string; leagueId: string },
     ) {
-      log.debug({ userId, leagueId }, "starting draft");
+      log.info({ userId, leagueId }, "starting draft");
       const league = await deps.leagueRepo.findById(leagueId);
       if (!league) {
         throw new TRPCError({ code: "NOT_FOUND", message: "League not found" });
@@ -451,7 +451,7 @@ export function createDraftService(deps: {
         poolItemId: string;
       },
     ) {
-      log.debug({ userId, leagueId, poolItemId }, "making draft pick");
+      log.info({ userId, leagueId, poolItemId }, "making draft pick");
       const { league, players, poolItems } = await loadDraftContext(leagueId);
 
       const draftRow = await deps.draftRepo.findByLeagueId(leagueId);
@@ -622,7 +622,7 @@ export function createDraftService(deps: {
     async runAutoPick(
       { leagueId }: { leagueId: string },
     ) {
-      log.debug({ leagueId }, "running auto-pick");
+      log.info({ leagueId }, "running auto-pick");
       const { league, players, poolItems } = await loadDraftContext(leagueId);
 
       const draftRow = await deps.draftRepo.findByLeagueId(leagueId);
@@ -739,7 +739,7 @@ export function createDraftService(deps: {
     async runNpcPick(
       { leagueId }: { leagueId: string },
     ) {
-      log.debug({ leagueId }, "running NPC auto-pick");
+      log.info({ leagueId }, "running NPC auto-pick");
       if (!npcScheduler) return;
       const { league, players, poolItems } = await loadDraftContext(leagueId);
 
@@ -859,7 +859,7 @@ export function createDraftService(deps: {
         fastMode: boolean;
       },
     ) {
-      log.debug({ userId, leagueId, fastMode }, "setting draft fast mode");
+      log.info({ userId, leagueId, fastMode }, "setting draft fast mode");
       const league = await deps.leagueRepo.findById(leagueId);
       if (!league) {
         throw new TRPCError({ code: "NOT_FOUND", message: "League not found" });
@@ -915,7 +915,7 @@ export function createDraftService(deps: {
         poolItemId: string;
       },
     ) {
-      log.debug(
+      log.info(
         { userId, leagueId, poolItemId },
         "commissioner picking on behalf of current player",
       );
@@ -1073,7 +1073,7 @@ export function createDraftService(deps: {
     async forceAutoPick(
       { userId, leagueId }: { userId: string; leagueId: string },
     ) {
-      log.debug({ userId, leagueId }, "commissioner forcing auto-pick");
+      log.info({ userId, leagueId }, "commissioner forcing auto-pick");
       const { league, players, poolItems } = await loadDraftContext(leagueId);
 
       const caller = await deps.leagueRepo.findPlayer(leagueId, userId);
@@ -1230,7 +1230,7 @@ export function createDraftService(deps: {
     async pauseDraft(
       { userId, leagueId }: { userId: string; leagueId: string },
     ) {
-      log.debug({ userId, leagueId }, "pausing draft");
+      log.info({ userId, leagueId }, "pausing draft");
       const league = await deps.leagueRepo.findById(leagueId);
       if (!league) {
         throw new TRPCError({ code: "NOT_FOUND", message: "League not found" });
@@ -1282,7 +1282,7 @@ export function createDraftService(deps: {
     async resumeDraft(
       { userId, leagueId }: { userId: string; leagueId: string },
     ) {
-      log.debug({ userId, leagueId }, "resuming draft");
+      log.info({ userId, leagueId }, "resuming draft");
       const league = await deps.leagueRepo.findById(leagueId);
       if (!league) {
         throw new TRPCError({ code: "NOT_FOUND", message: "League not found" });
@@ -1360,7 +1360,7 @@ export function createDraftService(deps: {
     async undoLastPick(
       { userId, leagueId }: { userId: string; leagueId: string },
     ) {
-      log.debug({ userId, leagueId }, "undoing last pick");
+      log.info({ userId, leagueId }, "undoing last pick");
       const league = await deps.leagueRepo.findById(leagueId);
       if (!league) {
         throw new TRPCError({ code: "NOT_FOUND", message: "League not found" });

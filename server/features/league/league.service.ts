@@ -40,7 +40,7 @@ export function createLeagueService(
   return {
     create(userId: string, input: CreateLeagueInput) {
       const inviteCode = generateInviteCode();
-      log.debug({ userId, name: input.name, inviteCode }, "creating league");
+      log.info({ userId, name: input.name, inviteCode }, "creating league");
       return deps.leagueRepo.createWithCommissioner(userId, {
         ...input,
         inviteCode,
@@ -80,7 +80,7 @@ export function createLeagueService(
         });
       }
       await deps.leagueRepo.deleteById(leagueId);
-      log.debug({ leagueId }, "league deleted");
+      log.info({ leagueId }, "league deleted");
     },
 
     async listPlayers(leagueId: string) {
@@ -138,7 +138,7 @@ export function createLeagueService(
         maxPlayers: input.maxPlayers,
         rulesConfig: input.rulesConfig,
       });
-      log.debug({ leagueId: input.leagueId }, "league settings updated");
+      log.info({ leagueId: input.leagueId }, "league settings updated");
       return updated;
     },
 
@@ -222,7 +222,7 @@ export function createLeagueService(
         input.leagueId,
         nextStatus,
       );
-      log.debug(
+      log.info(
         { leagueId: input.leagueId, newStatus: nextStatus },
         "league status advanced",
       );
@@ -276,7 +276,7 @@ export function createLeagueService(
       }
 
       await deps.leagueRepo.addPlayer(league.id, userId);
-      log.debug({ userId, leagueId: league.id }, "user joined league");
+      log.info({ userId, leagueId: league.id }, "user joined league");
       return league;
     },
 
@@ -336,7 +336,7 @@ export function createLeagueService(
         npc = available[Math.floor(Math.random() * available.length)];
       }
       await deps.leagueRepo.addPlayer(input.leagueId, npc.id);
-      log.debug(
+      log.info(
         { leagueId: input.leagueId, npcId: npc.id, npcName: npc.name },
         "NPC added to league",
       );
@@ -427,7 +427,7 @@ export function createLeagueService(
       }
 
       await deps.leagueRepo.deletePlayer(input.leagueId, input.playerUserId);
-      log.debug(
+      log.info(
         { leagueId: input.leagueId, playerUserId: input.playerUserId },
         "player removed from league",
       );
@@ -475,7 +475,7 @@ export function createLeagueService(
         userId,
         npc.id,
       );
-      log.debug(
+      log.info(
         { leagueId: input.leagueId, userId, npcId: npc.id },
         "player left league, replaced by NPC",
       );
