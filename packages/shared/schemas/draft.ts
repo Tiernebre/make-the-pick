@@ -136,6 +136,26 @@ export const setFastModeInputSchema: z.ZodObject<{
 
 export type SetFastModeInput = z.infer<typeof setFastModeInputSchema>;
 
+export const commissionerPickInputSchema: z.ZodObject<{
+  leagueId: z.ZodString;
+  poolItemId: z.ZodString;
+}> = object({
+  leagueId: string().uuid(),
+  poolItemId: string().uuid(),
+});
+
+export type CommissionerPickInput = z.infer<
+  typeof commissionerPickInputSchema
+>;
+
+export const forceAutoPickInputSchema: z.ZodObject<{
+  leagueId: z.ZodString;
+}> = object({
+  leagueId: string().uuid(),
+});
+
+export type ForceAutoPickInput = z.infer<typeof forceAutoPickInputSchema>;
+
 // SSE event schemas
 export const draftStartedEventSchema: z.ZodObject<{
   type: z.ZodLiteral<"draft:started">;

@@ -1,4 +1,6 @@
 import {
+  commissionerPickInputSchema,
+  forceAutoPickInputSchema,
   getDraftStateInputSchema,
   makePickInputSchema,
   pauseDraftInputSchema,
@@ -84,6 +86,25 @@ export function createDraftRouter(draftService: DraftService) {
           userId: ctx.user.id,
           leagueId: input.leagueId,
           fastMode: input.fastMode,
+        });
+      }),
+
+    commissionerPick: protectedProcedure
+      .input(commissionerPickInputSchema)
+      .mutation(({ ctx, input }) => {
+        return draftService.commissionerPick({
+          userId: ctx.user.id,
+          leagueId: input.leagueId,
+          poolItemId: input.poolItemId,
+        });
+      }),
+
+    forceAutoPick: protectedProcedure
+      .input(forceAutoPickInputSchema)
+      .mutation(({ ctx, input }) => {
+        return draftService.forceAutoPick({
+          userId: ctx.user.id,
+          leagueId: input.leagueId,
         });
       }),
   });

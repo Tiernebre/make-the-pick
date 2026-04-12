@@ -27,7 +27,11 @@ import { DraftHeader } from "./DraftHeader";
 import { PausedOverlay } from "./PausedOverlay";
 import { WatchlistPanel } from "./WatchlistPanel";
 import { useDraft, useMakePick, useStartDraft } from "./use-draft";
-import { useSetFastMode } from "./use-draft-commissioner";
+import {
+  useCommissionerPick,
+  useForceAutoPick,
+  useSetFastMode,
+} from "./use-draft-commissioner";
 import { useDraftCeremony } from "./use-draft-ceremony";
 import { useDraftEvents } from "./use-draft-events";
 import { leaguePlayerForPick } from "./snake.ts";
@@ -64,6 +68,8 @@ export function DraftPage() {
   const serverFastMode = draftState?.draft.fastMode ?? false;
   const ceremony = useDraftCeremony(serverFastMode);
   const setFastMode = useSetFastMode(leagueId);
+  const commissionerPick = useCommissionerPick(leagueId);
+  const forceAutoPick = useForceAutoPick(leagueId);
 
   useDraftEvents(leagueId, {
     enabled: isDraftLive,
@@ -101,9 +107,13 @@ export function DraftPage() {
     return map;
   }, [draftState]);
 
+  const canCommissionerOverride = isCommissioner && !isMyTurn &&
+    draftState?.draft.status === "in_progress";
+
   async function handlePick(poolItemId: string): Promise<void> {
+    const mutation = canCommissionerOverride ? commissionerPick : makePick;
     await new Promise<void>((resolve, reject) => {
-      makePick.mutate(
+      mutation.mutate(
         { leagueId, poolItemId },
         {
           onSuccess: () => resolve(),
@@ -211,6 +221,9 @@ export function DraftPage() {
               leagueId={leagueId}
               players={commissionerPlayerList}
               poolItemsById={poolItemsById}
+              onForceAutoPick={() => forceAutoPick.mutate({ leagueId })}
+              isForceAutoPickPending={forceAutoPick.isPending}
+              forceAutoPickError={forceAutoPick.error}
             />
           )}
           <Grid>
@@ -218,9 +231,10 @@ export function DraftPage() {
               <AvailablePoolTable
                 leagueId={leagueId}
                 draftState={draftState}
-                isMyTurn={isMyTurn}
+                isMyTurn={isMyTurn || !!canCommissionerOverride}
                 onPick={handlePick}
-                isPicking={makePick.isPending}
+                isPicking={makePick.isPending ||
+                  commissionerPick.isPending}
               />
             </Grid.Col>
             <Grid.Col span={{ base: 12, lg: 3 }}>

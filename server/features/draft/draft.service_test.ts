@@ -2403,3 +2403,236 @@ Deno.test("draftService.runNpcPick: no-op when current player is not an NPC", as
 
   assertEquals(createPickCalled, false);
 });
+
+// --- commissionerPick -------------------------------------------------------
+
+Deno.test("draftService.commissionerPick: commissioner picks on behalf of current player", async () => {
+  const { league, pool, playerA, playerB, poolItems, draft } =
+    setupCommissionerFakes({ draftStatus: "in_progress", currentPick: 0 });
+  const publisher = createRecordingPublisher();
+
+  const createdPicks: FakeDraftPick[] = [];
+  const draftRepo = createFakeDraftRepo({
+    findByLeagueId: () => Promise.resolve(draft),
+    listPicks: () => Promise.resolve(createdPicks),
+    incrementCurrentPick: () => Promise.resolve(1),
+    createPick: (input: CreatePickInput) => {
+      const row = {
+        id: crypto.randomUUID(),
+        draftId: input.draftId,
+        leaguePlayerId: input.leaguePlayerId,
+        poolItemId: input.poolItemId,
+        pickNumber: input.pickNumber,
+        pickedAt: new Date(),
+        autoPicked: input.autoPicked ?? false,
+      };
+      createdPicks.push(row);
+      return Promise.resolve(row);
+    },
+  });
+  const leagueRepo = createFakeLeagueRepo({
+    findById: () => Promise.resolve(league),
+    findPlayer: (_leagueId, userId) =>
+      Promise.resolve(
+        userId === "user-1"
+          ? { ...playerA, leagueId: league.id }
+          : null as FakePlayer,
+      ),
+    findPlayersByLeagueId: () => Promise.resolve([playerA, playerB]),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    findByLeagueId: () => Promise.resolve(pool),
+    findItemsByPoolId: () => Promise.resolve(poolItems),
+  });
+
+  const service = createDraftService({
+    draftRepo,
+    leagueRepo,
+    draftPoolRepo,
+    draftEventPublisher: publisher,
+  });
+
+  const state = await service.commissionerPick({
+    userId: "user-1",
+    leagueId: league.id,
+    poolItemId: poolItems[0].id,
+  });
+
+  assertEquals(state.draft.currentPick, 1);
+  // Pick should be attributed to playerA (the current turn player, pick 0)
+  const pick = state.picks.find((p) => p.poolItemId === poolItems[0].id);
+  assertEquals(pick?.leaguePlayerId, playerA.id);
+  // Should emit pick_made
+  const pickMade = publisher.published.find((e) =>
+    e.event.type === "draft:pick_made"
+  );
+  assertEquals(pickMade !== undefined, true);
+});
+
+Deno.test("draftService.commissionerPick: rejects non-commissioner", async () => {
+  const { league, pool, playerA, playerB, poolItems, draft } =
+    setupCommissionerFakes({ draftStatus: "in_progress", currentPick: 0 });
+
+  const draftRepo = createFakeDraftRepo({
+    findByLeagueId: () => Promise.resolve(draft),
+    listPicks: () => Promise.resolve([]),
+  });
+  const leagueRepo = createFakeLeagueRepo({
+    findById: () => Promise.resolve(league),
+    findPlayer: (_leagueId, userId) =>
+      Promise.resolve(
+        userId === "user-2"
+          ? { ...playerB, leagueId: league.id }
+          : null as FakePlayer,
+      ),
+    findPlayersByLeagueId: () => Promise.resolve([playerA, playerB]),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    findByLeagueId: () => Promise.resolve(pool),
+    findItemsByPoolId: () => Promise.resolve(poolItems),
+  });
+
+  const service = createDraftService({ draftRepo, leagueRepo, draftPoolRepo });
+
+  await assertRejects(
+    () =>
+      service.commissionerPick({
+        userId: "user-2",
+        leagueId: league.id,
+        poolItemId: poolItems[0].id,
+      }),
+    TRPCError,
+    "commissioner",
+  );
+});
+
+Deno.test("draftService.commissionerPick: rejects already-picked item", async () => {
+  const { league, pool, playerA, playerB, poolItems, draft } =
+    setupCommissionerFakes({ draftStatus: "in_progress", currentPick: 0 });
+
+  const draftRepo = createFakeDraftRepo({
+    findByLeagueId: () => Promise.resolve(draft),
+    listPicks: () => Promise.resolve([]),
+    findPickByPoolItem: () =>
+      Promise.resolve({
+        id: crypto.randomUUID(),
+        draftId: draft.id,
+        leaguePlayerId: playerA.id,
+        poolItemId: poolItems[0].id,
+        pickNumber: 0,
+        pickedAt: new Date(),
+        autoPicked: false,
+      }),
+  });
+  const leagueRepo = createFakeLeagueRepo({
+    findById: () => Promise.resolve(league),
+    findPlayer: () => Promise.resolve({ ...playerA, leagueId: league.id }),
+    findPlayersByLeagueId: () => Promise.resolve([playerA, playerB]),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    findByLeagueId: () => Promise.resolve(pool),
+    findItemsByPoolId: () => Promise.resolve(poolItems),
+  });
+
+  const service = createDraftService({ draftRepo, leagueRepo, draftPoolRepo });
+
+  await assertRejects(
+    () =>
+      service.commissionerPick({
+        userId: "user-1",
+        leagueId: league.id,
+        poolItemId: poolItems[0].id,
+      }),
+    TRPCError,
+    "already been picked",
+  );
+});
+
+// --- forceAutoPick ----------------------------------------------------------
+
+Deno.test("draftService.forceAutoPick: commissioner forces an auto-pick for current player", async () => {
+  const { league, pool, playerA, playerB, poolItems, draft } =
+    setupCommissionerFakes({ draftStatus: "in_progress", currentPick: 0 });
+  const publisher = createRecordingPublisher();
+
+  const createdPicks: FakeDraftPick[] = [];
+  const draftRepo = createFakeDraftRepo({
+    findByLeagueId: () => Promise.resolve(draft),
+    listPicks: () => Promise.resolve(createdPicks),
+    incrementCurrentPick: () => Promise.resolve(1),
+    createPick: (input: CreatePickInput) => {
+      const row = {
+        id: crypto.randomUUID(),
+        draftId: input.draftId,
+        leaguePlayerId: input.leaguePlayerId,
+        poolItemId: input.poolItemId,
+        pickNumber: input.pickNumber,
+        pickedAt: new Date(),
+        autoPicked: input.autoPicked ?? false,
+      };
+      createdPicks.push(row);
+      return Promise.resolve(row);
+    },
+  });
+  const leagueRepo = createFakeLeagueRepo({
+    findById: () => Promise.resolve(league),
+    findPlayer: () => Promise.resolve({ ...playerA, leagueId: league.id }),
+    findPlayersByLeagueId: () => Promise.resolve([playerA, playerB]),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    findByLeagueId: () => Promise.resolve(pool),
+    findItemsByPoolId: () => Promise.resolve(poolItems),
+  });
+
+  const service = createDraftService({
+    draftRepo,
+    leagueRepo,
+    draftPoolRepo,
+    draftEventPublisher: publisher,
+  });
+
+  const state = await service.forceAutoPick({
+    userId: "user-1",
+    leagueId: league.id,
+  });
+
+  assertEquals(state.draft.currentPick, 1);
+  assertEquals(state.picks.length, 1);
+  assertEquals(state.picks[0].autoPicked, true);
+  const pickMade = publisher.published.find((e) =>
+    e.event.type === "draft:pick_made"
+  );
+  assertEquals(pickMade !== undefined, true);
+});
+
+Deno.test("draftService.forceAutoPick: rejects non-commissioner", async () => {
+  const { league, pool, playerA, playerB, poolItems, draft } =
+    setupCommissionerFakes({ draftStatus: "in_progress", currentPick: 0 });
+
+  const draftRepo = createFakeDraftRepo({
+    findByLeagueId: () => Promise.resolve(draft),
+    listPicks: () => Promise.resolve([]),
+  });
+  const leagueRepo = createFakeLeagueRepo({
+    findById: () => Promise.resolve(league),
+    findPlayer: (_leagueId, userId) =>
+      Promise.resolve(
+        userId === "user-2"
+          ? { ...playerB, leagueId: league.id }
+          : null as FakePlayer,
+      ),
+    findPlayersByLeagueId: () => Promise.resolve([playerA, playerB]),
+  });
+  const draftPoolRepo = createFakeDraftPoolRepo({
+    findByLeagueId: () => Promise.resolve(pool),
+    findItemsByPoolId: () => Promise.resolve(poolItems),
+  });
+
+  const service = createDraftService({ draftRepo, leagueRepo, draftPoolRepo });
+
+  await assertRejects(
+    () => service.forceAutoPick({ userId: "user-2", leagueId: league.id }),
+    TRPCError,
+    "commissioner",
+  );
+});
