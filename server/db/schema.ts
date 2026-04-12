@@ -125,6 +125,7 @@ export const draft = pgTable("draft", {
     withTimezone: true,
   }),
   pausedAt: timestamp("paused_at", { withTimezone: true }),
+  fastMode: boolean("fast_mode").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow()
     .notNull(),
 });

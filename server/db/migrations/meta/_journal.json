@@ -183,6 +183,13 @@
       "when": 1776380000000,
       "tag": "0025_idempotent_league_pooling_scouting",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1775946673911,
+      "tag": "0026_medical_legion",
+      "breakpoints": true
     }
   ]
 }

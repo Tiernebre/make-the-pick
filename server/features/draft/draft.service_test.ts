@@ -2272,7 +2272,7 @@ Deno.test("draftService.makePick: schedules NPC pick when next player is an NPC"
   assertEquals(npcScheduler.scheduled[0].draftId, draft.id);
   assertEquals(npcScheduler.scheduled[0].leagueId, league.id);
   const delay = npcScheduler.scheduled[0].delayMs;
-  assertEquals(delay >= 300 && delay <= 1500, true);
+  assertEquals(delay >= 10_000 && delay <= 120_000, true);
 });
 
 Deno.test("draftService.runNpcPick: creates random autoPicked pick and emits pick_made", async () => {

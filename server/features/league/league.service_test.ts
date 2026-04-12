@@ -43,6 +43,7 @@ function createFakeDraft(
     completedAt: null,
     currentTurnDeadline: null,
     pausedAt: null,
+    fastMode: false,
     createdAt: new Date(),
     ...overrides,
   };
@@ -118,6 +119,7 @@ function createFakeDraftRepo(
       }),
     findPickByPoolItem: (_draftId, _poolItemId) => Promise.resolve(null),
     updateTurnDeadline: (_id, _deadline) => Promise.resolve(),
+    updateFastMode: (_id, _fastMode) => Promise.resolve(createFakeDraft()),
     listActiveDraftsWithDeadlines: () => Promise.resolve([]),
     ...overrides,
   };

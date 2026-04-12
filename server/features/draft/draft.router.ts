@@ -3,6 +3,7 @@ import {
   makePickInputSchema,
   pauseDraftInputSchema,
   resumeDraftInputSchema,
+  setFastModeInputSchema,
   startDraftInputSchema,
   undoLastPickInputSchema,
 } from "@make-the-pick/shared";
@@ -73,6 +74,16 @@ export function createDraftRouter(draftService: DraftService) {
         return draftService.undoLastPick({
           userId: ctx.user.id,
           leagueId: input.leagueId,
+        });
+      }),
+
+    setFastMode: protectedProcedure
+      .input(setFastModeInputSchema)
+      .mutation(({ ctx, input }) => {
+        return draftService.setFastMode({
+          userId: ctx.user.id,
+          leagueId: input.leagueId,
+          fastMode: input.fastMode,
         });
       }),
   });

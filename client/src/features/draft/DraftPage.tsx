@@ -27,6 +27,7 @@ import { DraftHeader } from "./DraftHeader";
 import { PausedOverlay } from "./PausedOverlay";
 import { WatchlistPanel } from "./WatchlistPanel";
 import { useDraft, useMakePick, useStartDraft } from "./use-draft";
+import { useSetFastMode } from "./use-draft-commissioner";
 import { useDraftCeremony } from "./use-draft-ceremony";
 import { useDraftEvents } from "./use-draft-events";
 import { leaguePlayerForPick } from "./snake.ts";
@@ -60,7 +61,9 @@ export function DraftPage() {
     (draftState.draft.status === "in_progress" ||
       draftState.draft.status === "paused");
 
-  const ceremony = useDraftCeremony();
+  const serverFastMode = draftState?.draft.fastMode ?? false;
+  const ceremony = useDraftCeremony(serverFastMode);
+  const setFastMode = useSetFastMode(leagueId);
 
   useDraftEvents(leagueId, {
     enabled: isDraftLive,
@@ -194,9 +197,12 @@ export function DraftPage() {
             />
             <CeremonySettings
               isMuted={ceremony.isMuted}
-              isFastMode={ceremony.isFastMode}
+              isFastMode={serverFastMode}
               onToggleMute={ceremony.toggleMute}
-              onToggleFastMode={ceremony.setFastMode}
+              onToggleFastMode={isCommissioner
+                ? (enabled) =>
+                  setFastMode.mutate({ leagueId, fastMode: enabled })
+                : undefined}
             />
           </Group>
           {isCommissioner && (
