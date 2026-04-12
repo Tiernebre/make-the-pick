@@ -77,13 +77,13 @@ Deno.test("loggerMiddleware logs at error level for 5xx responses", async () => 
   assertEquals(entries[0].level, 50); // pino error level
 });
 
-Deno.test("loggerMiddleware uses info level for successful responses", async () => {
+Deno.test("loggerMiddleware uses debug level for successful responses", async () => {
   const { log, entries } = createTestLogger();
   const app = createTestApp(log);
 
   await app.request("/test");
 
-  assertEquals(entries[0].level, 30); // pino info level
+  assertEquals(entries[0].level, 20); // pino debug level
 });
 
 Deno.test("loggerMiddleware includes requestId from context", async () => {
