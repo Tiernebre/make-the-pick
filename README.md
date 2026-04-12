@@ -1,10 +1,41 @@
 # [Make The Pick](https://makethepick.gg/)
 
-A real-time web app for drafting and trading Pokemon with friends. Create a
-league, draft your team live, negotiate trades, and compete in challenge runs —
-all scored by a configurable rules engine.
+A real-time web app for drafting Pokemon with friends. Create a league, invite
+players, draft your team live with snake-draft ordering, manage watchlists, and
+track picks in real time via WebSockets.
 
 Built as a proof-of-concept for a larger "draft & trade anything" platform.
+
+## Features
+
+- **Leagues** — Create leagues, invite players via invite codes, and manage the
+  league lifecycle (setup, drafting, competing, complete). Commissioners control
+  league transitions.
+- **Real-time drafts** — Snake-draft format with live pick notifications over
+  WebSockets. Configurable pick time limits and round counts.
+- **Species drafting** — Optional mode where the draft unit is an entire
+  evolution line rather than individual Pokemon.
+- **Watchlists** — Personal, reorderable watchlists for scouting the draft pool.
+- **Pool item notes** — Private annotations on any pool item for draft prep.
+- **NPC players** — Bot players that auto-pick during drafts for testing or
+  filling out leagues.
+- **Commissioner controls** — Override picks, force auto-picks, and manage
+  league settings.
+- **Draft pool generation** — Pools generated from PokeAPI data, filterable by
+  game version and catch rate.
+
+## Tech Stack
+
+| Layer     | Technology                                                                                              |
+| --------- | ------------------------------------------------------------------------------------------------------- |
+| Runtime   | [Deno](https://deno.land/) 2.x                                                                          |
+| Server    | [Hono](https://hono.dev/) + [tRPC](https://trpc.io/)                                                    |
+| Client    | [React](https://react.dev/) + [Vite](https://vitejs.dev/) + [Mantine](https://mantine.dev/)             |
+| Database  | [PostgreSQL](https://www.postgresql.org/) 17 + [Drizzle ORM](https://orm.drizzle.team/)                 |
+| Auth      | [Better Auth](https://www.better-auth.com/) (Google OAuth)                                              |
+| Real-time | Native Deno WebSockets                                                                                  |
+| Testing   | Deno test (server), [Vitest](https://vitest.dev/) (client), [Playwright](https://playwright.dev/) (E2E) |
+| Deploy    | Docker, GitHub Actions, DigitalOcean                                                                    |
 
 ## Prerequisites
 
@@ -33,19 +64,55 @@ Built as a proof-of-concept for a larger "draft & trade anything" platform.
 
 ## Available Tasks
 
-| Task                     | Description                                    |
-| ------------------------ | ---------------------------------------------- |
-| `deno task dev`          | Start both server and client in dev mode       |
-| `deno task test`         | Run all tests (server + client)                |
-| `deno task setup`        | Copy `.env.example` to `.env` and install deps |
-| `deno task build`        | Build the client for production                |
-| `deno task start`        | Start the server in production mode            |
-| `deno task db:start`     | Start PostgreSQL via Docker Compose            |
-| `deno task db:stop`      | Stop PostgreSQL                                |
-| `deno task db:generate`  | Generate Drizzle ORM migrations                |
-| `deno task db:migrate`   | Run database migrations                        |
-| `deno task sync:pokemon` | Sync Pokemon data from PokeAPI                 |
-| `deno task test:e2e`     | Run Playwright end-to-end tests                |
+| Task                                | Description                                    |
+| ----------------------------------- | ---------------------------------------------- |
+| `deno task dev`                     | Start both server and client in dev mode       |
+| `deno task test`                    | Run all tests (server + client)                |
+| `deno task test:server`             | Run server tests only                          |
+| `deno task test:client`             | Run client tests only                          |
+| `deno task test:e2e`                | Run Playwright end-to-end tests                |
+| `deno task setup`                   | Copy `.env.example` to `.env` and install deps |
+| `deno task build`                   | Build the client for production                |
+| `deno task start`                   | Start the server in production mode            |
+| `deno task db:start`                | Start PostgreSQL via Docker Compose            |
+| `deno task db:stop`                 | Stop PostgreSQL                                |
+| `deno task db:generate`             | Generate Drizzle ORM migrations                |
+| `deno task db:migrate`              | Run database migrations                        |
+| `deno task sync:pokemon`            | Sync Pokemon data from PokeAPI                 |
+| `deno task sync:pokemon-encounters` | Sync encounter data from PokeAPI               |
+| `deno task sync:pokemon-evolutions` | Sync evolution data from PokeAPI               |
+
+## Project Structure
+
+```
+make-the-pick/
+├── server/
+│   ├── main.ts               # Hono app entry point
+│   ├── db/
+│   │   ├── schema.ts         # All Drizzle table definitions
+│   │   └── migrations/       # Drizzle migration journal
+│   ├── features/             # Domain modules (router → service → repository)
+│   │   ├── league/
+│   │   ├── draft/
+│   │   ├── draft-pool/
+│   │   ├── watchlist/
+│   │   ├── pool-item-note/
+│   │   └── user/
+│   ├── trpc/                 # tRPC initialization and router
+│   └── ws/                   # WebSocket handlers
+├── client/
+│   └── src/
+│       ├── features/         # Feature-organized components and hooks
+│       │   ├── league/
+│       │   ├── draft/
+│       │   └── pokemon-version/
+│       ├── components/       # Shared components
+│       └── hooks/            # Shared hooks
+├── packages/shared/          # Zod schemas shared between client and server
+├── e2e/                      # Playwright end-to-end tests
+├── scripts/                  # Data sync scripts (PokeAPI)
+└── docs/                     # Domain docs, ADRs, and product roadmap
+```
 
 ## E2E Tests
 
@@ -100,12 +167,6 @@ first run). Key variables:
 | `GOOGLE_CLIENT_ID`            | Google OAuth client ID                  |
 | `GOOGLE_CLIENT_SECRET`        | Google OAuth client secret              |
 | `BETTER_AUTH_TRUSTED_ORIGINS` | Comma-separated list of trusted origins |
-
-## Status
-
-Early development — see the
-[technical proposal](./docs/decisions/001-initial-technical-proposal.md) for the
-full vision and architecture.
 
 ## License
 
