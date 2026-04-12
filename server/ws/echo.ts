@@ -1,10 +1,11 @@
 import { upgradeWebSocket } from "hono/deno";
 import type { Hono } from "hono";
+import type { AppEnv } from "../env.ts";
 import { logger } from "../logger.ts";
 
 const log = logger.child({ module: "ws.echo" });
 
-export function registerEchoWebSocket(app: Hono) {
+export function registerEchoWebSocket(app: Hono<AppEnv>) {
   app.get(
     "/ws/echo",
     upgradeWebSocket(() => ({

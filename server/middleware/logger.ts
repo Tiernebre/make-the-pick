@@ -1,12 +1,13 @@
 import type { MiddlewareHandler } from "hono";
-import type pino from "pino";
+import type { AppEnv } from "../env.ts";
 
-export function loggerMiddleware(log: pino.Logger): MiddlewareHandler {
+export function loggerMiddleware(): MiddlewareHandler<AppEnv> {
   return async (c, next) => {
     const start = Date.now();
 
     await next();
 
+    const log = c.get("log");
     const status = c.res.status;
     const responseTime = Date.now() - start;
     const method = c.req.method;

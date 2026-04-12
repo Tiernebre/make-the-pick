@@ -1,4 +1,5 @@
 import type { Hono } from "hono";
+import type { AppEnv } from "../../env.ts";
 import { streamSSE } from "hono/streaming";
 import type { DraftEvent, DraftState } from "@make-the-pick/shared";
 import { TRPCError } from "@trpc/server";
@@ -37,7 +38,10 @@ const DEFAULT_HEARTBEAT_MS = 15_000;
  *   4. Subscribes to the publisher and forwards every event as SSE.
  *   5. Unsubscribes cleanly on client disconnect.
  */
-export function registerDraftSseRoute(app: Hono, deps: DraftSseDeps): void {
+export function registerDraftSseRoute(
+  app: Hono<AppEnv>,
+  deps: DraftSseDeps,
+): void {
   const heartbeatIntervalMs = deps.heartbeatIntervalMs ?? DEFAULT_HEARTBEAT_MS;
 
   app.get("/api/draft/events/:leagueId", async (c) => {

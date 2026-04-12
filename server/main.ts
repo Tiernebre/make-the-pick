@@ -11,11 +11,14 @@ import { auth } from "./auth/mod.ts";
 import { renderTrpcPanel } from "trpc-ui";
 import { logger } from "./logger.ts";
 import { loggerMiddleware } from "./middleware/logger.ts";
+import { requestContextMiddleware } from "./middleware/request-context.ts";
 import { spaRouteGuard } from "./middleware/spa-fallback.ts";
+import type { AppEnv } from "./env.ts";
 
-export const app: Hono = new Hono();
+export const app: Hono<AppEnv> = new Hono<AppEnv>();
 
-app.use(loggerMiddleware(logger));
+app.use(requestContextMiddleware(logger));
+app.use(loggerMiddleware());
 
 registerEchoWebSocket(app);
 registerFeatureRoutes(app, {
@@ -40,11 +43,12 @@ app.get("/api/health", async (c) => {
 });
 
 app.all("/api/trpc/*", (c) => {
+  const requestLog = c.get("log");
   return fetchRequestHandler({
     endpoint: "/api/trpc",
     req: c.req.raw,
     router: appRouter,
-    createContext: ({ req }) => createContext(req),
+    createContext: ({ req }) => createContext(req, requestLog),
   });
 });
 

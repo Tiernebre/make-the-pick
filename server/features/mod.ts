@@ -34,6 +34,7 @@ import pokemonGiftsJson from "../data/pokemon-gifts.json" with {
   type: "json",
 };
 import type { Hono } from "hono";
+import type { AppEnv } from "../env.ts";
 import {
   createDraftEventPublisher,
   createDraftRepository,
@@ -176,7 +177,7 @@ export function createFeatureRouters(db: Database) {
  * so the publisher singleton is shared with the tRPC-facing draft service.
  */
 export function registerFeatureRoutes(
-  app: Hono,
+  app: Hono<AppEnv>,
   deps: {
     draftEventPublisher: DraftEventPublisher;
     draftService: DraftService;

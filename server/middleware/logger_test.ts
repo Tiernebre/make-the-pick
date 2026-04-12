@@ -1,7 +1,9 @@
-import { assertEquals } from "@std/assert";
+import { assertEquals, assertExists } from "@std/assert";
 import { Hono } from "hono";
 import pino from "pino";
+import type { AppEnv } from "../env.ts";
 import { loggerMiddleware } from "./logger.ts";
+import { requestContextMiddleware } from "./request-context.ts";
 
 function createTestLogger() {
   const entries: Record<string, unknown>[] = [];
@@ -15,8 +17,9 @@ function createTestLogger() {
 }
 
 function createTestApp(log: pino.Logger) {
-  const app = new Hono();
-  app.use(loggerMiddleware(log));
+  const app = new Hono<AppEnv>();
+  app.use(requestContextMiddleware(log));
+  app.use(loggerMiddleware());
   app.get("/test", (c) => c.json({ ok: true }));
   app.post("/test", (c) => c.json({ created: true }, 201));
   return app;
@@ -50,8 +53,9 @@ Deno.test("loggerMiddleware logs correct status for non-200 responses", async ()
 
 Deno.test("loggerMiddleware logs at warn level for 4xx responses", async () => {
   const { log, entries } = createTestLogger();
-  const app = new Hono();
-  app.use(loggerMiddleware(log));
+  const app = new Hono<AppEnv>();
+  app.use(requestContextMiddleware(log));
+  app.use(loggerMiddleware());
   app.get("/missing", (c) => c.json({ error: "not found" }, 404));
 
   await app.request("/missing");
@@ -62,8 +66,9 @@ Deno.test("loggerMiddleware logs at warn level for 4xx responses", async () => {
 
 Deno.test("loggerMiddleware logs at error level for 5xx responses", async () => {
   const { log, entries } = createTestLogger();
-  const app = new Hono();
-  app.use(loggerMiddleware(log));
+  const app = new Hono<AppEnv>();
+  app.use(requestContextMiddleware(log));
+  app.use(loggerMiddleware());
   app.get("/fail", (c) => c.json({ error: "server error" }, 500));
 
   await app.request("/fail");
@@ -79,4 +84,15 @@ Deno.test("loggerMiddleware uses info level for successful responses", async () 
   await app.request("/test");
 
   assertEquals(entries[0].level, 30); // pino info level
+});
+
+Deno.test("loggerMiddleware includes requestId from context", async () => {
+  const { log, entries } = createTestLogger();
+  const app = createTestApp(log);
+
+  await app.request("/test");
+
+  assertEquals(entries.length, 1);
+  assertExists(entries[0].requestId);
+  assertEquals(typeof entries[0].requestId, "string");
 });
