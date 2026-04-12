@@ -73,6 +73,7 @@ function createFakeRepo(
     updateStatus: (_id, _status) => Promise.resolve(createFakeLeague()),
     countPlayers: (_leagueId) => Promise.resolve(0),
     deletePlayer: (_leagueId, _userId) => Promise.resolve(),
+    replacePlayerUser: (_leagueId, _oldUserId, _newUserId) => Promise.resolve(),
     findAvailableNpcUsers: (_leagueId) => Promise.resolve([]),
     ...overrides,
   };
@@ -1766,4 +1767,154 @@ Deno.test("leagueService.listAvailableNpcs: forbids non-commissioners", async ()
     TRPCError,
   );
   assertEquals(error.code, "FORBIDDEN");
+});
+
+// --- leaveLeague ---
+
+Deno.test("leagueService.leaveLeague: replaces member with NPC", async () => {
+  const fakeLeague = createFakeLeague({ status: "drafting" });
+  let replacedLeagueId: string | undefined;
+  let replacedOldUserId: string | undefined;
+  let replacedNewUserId: string | undefined;
+  const repo = createFakeRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, userId) => {
+      if (userId === "member-1") {
+        return Promise.resolve({
+          id: crypto.randomUUID(),
+          leagueId: fakeLeague.id,
+          userId: "member-1",
+          role: "member" as const,
+          joinedAt: new Date(),
+        });
+      }
+      return Promise.resolve(null);
+    },
+    findAvailableNpcUsers: (_leagueId) =>
+      Promise.resolve([
+        {
+          id: "npc-red",
+          name: "Red",
+          email: "npc@test.com",
+          emailVerified: false,
+          image: null,
+          isNpc: true,
+          npcStrategy: "best-available",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ]),
+    replacePlayerUser: (leagueId, oldUserId, newUserId) => {
+      replacedLeagueId = leagueId;
+      replacedOldUserId = oldUserId;
+      replacedNewUserId = newUserId;
+      return Promise.resolve();
+    },
+  });
+
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo: createFakeDraftRepo(),
+    draftPoolRepo: createFakeDraftPoolRepo(),
+    draftPoolService: createFakeDraftPoolService(),
+  });
+  await service.leaveLeague("member-1", { leagueId: fakeLeague.id });
+
+  assertEquals(replacedLeagueId, fakeLeague.id);
+  assertEquals(replacedOldUserId, "member-1");
+  assertEquals(replacedNewUserId, "npc-red");
+});
+
+Deno.test("leagueService.leaveLeague: throws NOT_FOUND when league does not exist", async () => {
+  const repo = createFakeRepo();
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo: createFakeDraftRepo(),
+    draftPoolRepo: createFakeDraftPoolRepo(),
+    draftPoolService: createFakeDraftPoolService(),
+  });
+
+  const error = await assertRejects(
+    () => service.leaveLeague("user-1", { leagueId: "nonexistent" }),
+    TRPCError,
+  );
+  assertEquals(error.code, "NOT_FOUND");
+});
+
+Deno.test("leagueService.leaveLeague: throws NOT_FOUND when user is not a member", async () => {
+  const fakeLeague = createFakeLeague();
+  const repo = createFakeRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) => Promise.resolve(null),
+  });
+
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo: createFakeDraftRepo(),
+    draftPoolRepo: createFakeDraftPoolRepo(),
+    draftPoolService: createFakeDraftPoolService(),
+  });
+
+  const error = await assertRejects(
+    () => service.leaveLeague("outsider", { leagueId: fakeLeague.id }),
+    TRPCError,
+  );
+  assertEquals(error.code, "NOT_FOUND");
+});
+
+Deno.test("leagueService.leaveLeague: throws BAD_REQUEST when commissioner tries to leave", async () => {
+  const fakeLeague = createFakeLeague();
+  const repo = createFakeRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve({
+        id: crypto.randomUUID(),
+        leagueId: fakeLeague.id,
+        userId: "commissioner-1",
+        role: "commissioner" as const,
+        joinedAt: new Date(),
+      }),
+  });
+
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo: createFakeDraftRepo(),
+    draftPoolRepo: createFakeDraftPoolRepo(),
+    draftPoolService: createFakeDraftPoolService(),
+  });
+
+  const error = await assertRejects(
+    () => service.leaveLeague("commissioner-1", { leagueId: fakeLeague.id }),
+    TRPCError,
+  );
+  assertEquals(error.code, "BAD_REQUEST");
+});
+
+Deno.test("leagueService.leaveLeague: throws BAD_REQUEST when no NPCs available", async () => {
+  const fakeLeague = createFakeLeague();
+  const repo = createFakeRepo({
+    findById: (_id) => Promise.resolve(fakeLeague),
+    findPlayer: (_leagueId, _userId) =>
+      Promise.resolve({
+        id: crypto.randomUUID(),
+        leagueId: fakeLeague.id,
+        userId: "member-1",
+        role: "member" as const,
+        joinedAt: new Date(),
+      }),
+    findAvailableNpcUsers: (_leagueId) => Promise.resolve([]),
+  });
+
+  const service = createLeagueService({
+    leagueRepo: repo,
+    draftRepo: createFakeDraftRepo(),
+    draftPoolRepo: createFakeDraftPoolRepo(),
+    draftPoolService: createFakeDraftPoolService(),
+  });
+
+  const error = await assertRejects(
+    () => service.leaveLeague("member-1", { leagueId: fakeLeague.id }),
+    TRPCError,
+  );
+  assertEquals(error.code, "BAD_REQUEST");
 });

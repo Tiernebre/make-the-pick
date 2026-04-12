@@ -19,6 +19,7 @@ import { usePokemonVersions } from "../pokemon-version/use-pokemon-versions";
 import { AdvanceLeagueModal } from "./components/AdvanceLeagueModal";
 import { ChooseNpcModal } from "./components/ChooseNpcModal";
 import { DeleteLeagueModal } from "./components/DeleteLeagueModal";
+import { LeaveLeagueModal } from "./components/LeaveLeagueModal";
 import { LeagueHeader } from "./components/LeagueHeader";
 import { LeagueInfoCard } from "./components/LeagueInfoCard";
 import { LeaguePlayersCard } from "./components/LeaguePlayersCard";
@@ -32,6 +33,7 @@ import {
   useDeleteLeague,
   useLeague,
   useLeaguePlayers,
+  useLeaveLeague,
   useRemoveLeaguePlayer,
 } from "./use-leagues";
 
@@ -66,6 +68,7 @@ export function LeagueDetailPage() {
   const advanceStatus = useAdvanceLeagueStatus();
   const addNpcPlayer = useAddNpcPlayer();
   const removePlayer = useRemoveLeaguePlayer();
+  const leaveLeague = useLeaveLeague();
   const [, navigate] = useLocation();
   const [playerToRemove, setPlayerToRemove] = useState<
     { userId: string; name: string } | null
@@ -77,6 +80,9 @@ export function LeagueDetailPage() {
     useDisclosure(false);
   const [chooseNpcOpened, { open: openChooseNpc, close: closeChooseNpc }] =
     useDisclosure(false);
+  const [leaveOpened, { open: openLeave, close: closeLeave }] = useDisclosure(
+    false,
+  );
   const availableNpcs = useAvailableNpcs(id!, chooseNpcOpened);
 
   const isCommissioner = players.data?.some(
@@ -109,6 +115,13 @@ export function LeagueDetailPage() {
     );
   };
 
+  const handleLeave = () => {
+    leaveLeague.mutate(
+      { leagueId: id! },
+      { onSuccess: () => navigate("/leagues") },
+    );
+  };
+
   const handleAdvance = () => {
     advanceStatus.mutate(
       { leagueId: id! },
@@ -119,6 +132,9 @@ export function LeagueDetailPage() {
   const currentUserPlayer = players.data?.find(
     (p) => p.userId === session?.user?.id,
   );
+
+  const isMember = currentUserPlayer &&
+    currentUserPlayer.role !== "commissioner";
 
   const poolItemsById = useMemo(() => {
     const map: Record<
@@ -209,8 +225,21 @@ export function LeagueDetailPage() {
             </Card>
           )}
 
-          {isCommissioner && (
-            <Group justify="flex-end" mt="xl">
+          <Group justify="flex-end" mt="xl">
+            {isMember && (
+              <Button
+                color="red"
+                variant="subtle"
+                size="xs"
+                onClick={() => {
+                  leaveLeague.reset();
+                  openLeave();
+                }}
+              >
+                Leave league
+              </Button>
+            )}
+            {isCommissioner && (
               <Button
                 color="red"
                 variant="subtle"
@@ -219,8 +248,8 @@ export function LeagueDetailPage() {
               >
                 Delete league
               </Button>
-            </Group>
-          )}
+            )}
+          </Group>
 
           <AdvanceLeagueModal
             opened={advanceOpened}
@@ -266,6 +295,16 @@ export function LeagueDetailPage() {
                 { onSuccess: () => setPlayerToRemove(null) },
               );
             }}
+          />
+
+          <LeaveLeagueModal
+            opened={leaveOpened}
+            onClose={closeLeave}
+            leagueName={league.data.name}
+            isPending={leaveLeague.isPending}
+            isError={leaveLeague.isError}
+            errorMessage={leaveLeague.error?.message}
+            onConfirm={handleLeave}
           />
 
           <DeleteLeagueModal

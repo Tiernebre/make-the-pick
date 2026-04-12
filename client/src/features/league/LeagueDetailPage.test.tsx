@@ -15,6 +15,8 @@ const {
   mockUseAvailableNpcs,
   mockUseRemoveLeaguePlayer,
   mockRemovePlayerMutate,
+  mockUseLeaveLeague,
+  mockLeaveMutate,
   mockUseDraft,
   mockUsePokemonVersions,
 } = vi.hoisted(
@@ -30,6 +32,8 @@ const {
     mockUseAvailableNpcs: vi.fn(),
     mockUseRemoveLeaguePlayer: vi.fn(),
     mockRemovePlayerMutate: vi.fn(),
+    mockUseLeaveLeague: vi.fn(),
+    mockLeaveMutate: vi.fn(),
     mockUseDraft: vi.fn(),
     mockUsePokemonVersions: vi.fn(),
   }),
@@ -43,6 +47,7 @@ vi.mock("./use-leagues", () => ({
   useAddNpcPlayer: mockUseAddNpcPlayer,
   useAvailableNpcs: mockUseAvailableNpcs,
   useRemoveLeaguePlayer: mockUseRemoveLeaguePlayer,
+  useLeaveLeague: mockUseLeaveLeague,
 }));
 
 vi.mock("../draft/use-draft", () => ({
@@ -128,6 +133,13 @@ describe("LeagueDetailPage", () => {
       isError: false,
       error: null,
     });
+    mockUseLeaveLeague.mockReturnValue({
+      mutate: mockLeaveMutate,
+      reset: vi.fn(),
+      isPending: false,
+      isError: false,
+      error: null,
+    });
   });
 
   afterEach(() => {
@@ -205,6 +217,48 @@ describe("LeagueDetailPage", () => {
     expect(
       screen.getByRole("button", { name: /delete league/i }),
     ).toBeInTheDocument();
+  });
+
+  it("shows leave button when user is a member (not commissioner)", () => {
+    mockUseLeague.mockReturnValue({ data: mockLeague, isLoading: false });
+    mockUseLeaguePlayers.mockReturnValue({
+      data: [
+        {
+          id: "p1",
+          userId: "user-1",
+          name: "Alice",
+          image: null,
+          role: "member",
+          joinedAt: "2026-01-01T00:00:00Z",
+        },
+      ],
+      isLoading: false,
+    });
+    renderPage();
+    expect(
+      screen.getByRole("button", { name: /leave league/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("does not show leave button when user is the commissioner", () => {
+    mockUseLeague.mockReturnValue({ data: mockLeague, isLoading: false });
+    mockUseLeaguePlayers.mockReturnValue({
+      data: [
+        {
+          id: "p1",
+          userId: "user-1",
+          name: "Alice",
+          image: null,
+          role: "commissioner",
+          joinedAt: "2026-01-01T00:00:00Z",
+        },
+      ],
+      isLoading: false,
+    });
+    renderPage();
+    expect(
+      screen.queryByRole("button", { name: /leave league/i }),
+    ).not.toBeInTheDocument();
   });
 
   it("does not show delete button when user is not the commissioner", () => {

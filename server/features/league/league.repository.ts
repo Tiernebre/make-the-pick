@@ -213,6 +213,27 @@ export function createLeagueRepository(db: Database) {
       return result ?? null;
     },
 
+    async replacePlayerUser(
+      leagueId: string,
+      oldUserId: string,
+      newUserId: string,
+    ): Promise<void> {
+      log.debug(
+        { leagueId, oldUserId, newUserId },
+        "replacing player user in league",
+      );
+      await db.update(leaguePlayer).set({ userId: newUserId }).where(
+        and(
+          eq(leaguePlayer.leagueId, leagueId),
+          eq(leaguePlayer.userId, oldUserId),
+        ),
+      );
+      log.debug(
+        { leagueId, oldUserId, newUserId },
+        "player user replaced in league",
+      );
+    },
+
     async deletePlayer(leagueId: string, userId: string): Promise<void> {
       log.debug({ leagueId, userId }, "deleting player from league");
       await db.delete(leaguePlayer).where(

@@ -432,6 +432,54 @@ export function createLeagueService(
         "player removed from league",
       );
     },
+
+    async leaveLeague(userId: string, input: { leagueId: string }) {
+      log.debug(
+        { userId, leagueId: input.leagueId },
+        "attempting to leave league",
+      );
+      const league = await deps.leagueRepo.findById(input.leagueId);
+      if (!league) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "League not found" });
+      }
+
+      const player = await deps.leagueRepo.findPlayer(input.leagueId, userId);
+      if (!player) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "You are not a member of this league",
+        });
+      }
+
+      if (player.role === "commissioner") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            "The commissioner cannot leave the league — delete it instead",
+        });
+      }
+
+      const available = await deps.leagueRepo.findAvailableNpcUsers(
+        input.leagueId,
+      );
+      if (available.length === 0) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Cannot leave — no NPC trainers available to take your spot",
+        });
+      }
+
+      const npc = available[Math.floor(Math.random() * available.length)];
+      await deps.leagueRepo.replacePlayerUser(
+        input.leagueId,
+        userId,
+        npc.id,
+      );
+      log.debug(
+        { leagueId: input.leagueId, userId, npcId: npc.id },
+        "player left league, replaced by NPC",
+      );
+    },
   };
 }
 

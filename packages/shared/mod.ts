@@ -79,6 +79,8 @@ export {
   leagueSchema,
   type LeagueStatus,
   leagueStatusSchema,
+  type LeaveLeagueInput,
+  leaveLeagueSchema,
   type RulesConfig,
   rulesConfigSchema,
   type SportType,
