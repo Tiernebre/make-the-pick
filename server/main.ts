@@ -11,6 +11,7 @@ import { auth } from "./auth/mod.ts";
 import { renderTrpcPanel } from "trpc-ui";
 import { logger } from "./logger.ts";
 import { loggerMiddleware } from "./middleware/logger.ts";
+import { spaRouteGuard } from "./middleware/spa-fallback.ts";
 
 export const app: Hono = new Hono();
 
@@ -59,6 +60,11 @@ if (Deno.env.get("DENO_ENV") !== "production") {
 // In production, serve the built client assets
 if (Deno.env.get("DENO_ENV") === "production") {
   app.use("/*", serveStatic({ root: "../client/dist" }));
+}
+
+app.get("/*", spaRouteGuard());
+
+if (Deno.env.get("DENO_ENV") === "production") {
   app.get("/*", serveStatic({ root: "../client/dist", path: "index.html" }));
 }
 
