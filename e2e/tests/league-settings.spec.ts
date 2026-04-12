@@ -30,7 +30,11 @@ test.describe("League settings", () => {
     await expect(page.getByLabel("Max Players")).toHaveValue("4");
 
     // Toggle a setting that shows up uniquely in the rules card.
-    await page.getByLabel("Exclude Legendaries").check();
+    // Mantine Switch inlines the description into the label text, so the
+    // string form of getByLabel won't match — use role + regex instead.
+    await page
+      .getByRole("switch", { name: /Exclude Legendaries/ })
+      .check();
 
     // Wait for auto-save to settle before navigating away.
     await expect(page.getByText("Saving...")).toHaveCount(0, { timeout: 5000 });
