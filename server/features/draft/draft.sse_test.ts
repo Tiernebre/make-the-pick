@@ -1,6 +1,9 @@
 import { assertEquals, assertStringIncludes } from "@std/assert";
 import { Hono } from "hono";
+import pino from "pino";
 import { TRPCError } from "@trpc/server";
+import type { AppEnv } from "../../env.ts";
+import { requestContextMiddleware } from "../../middleware/request-context.ts";
 import type { DraftEvent, DraftState } from "@make-the-pick/shared";
 import type { DraftService } from "./draft.service.ts";
 import {
@@ -52,7 +55,9 @@ function buildApp(opts: {
   draftService: DraftService;
   sessionUserId: string | null;
 }) {
-  const app = new Hono();
+  const app = new Hono<AppEnv>();
+  const silentLog = pino({ level: "silent" });
+  app.use(requestContextMiddleware(silentLog));
   registerDraftSseRoute(app, {
     draftService: opts.draftService,
     draftEventPublisher: opts.publisher,

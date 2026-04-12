@@ -1,19 +1,25 @@
+import type pino from "pino";
 import { auth } from "../auth/mod.ts";
 import { db } from "../db/mod.ts";
 import { logger } from "../logger.ts";
 
-const log = logger.child({ module: "trpc.context" });
+const fallbackLog = logger.child({ module: "trpc.context" });
 
-export async function createContext(req: Request) {
+export async function createContext(
+  req: Request,
+  requestLog?: pino.Logger,
+) {
+  const log = requestLog ?? fallbackLog;
+
   const sessionData = await auth.api.getSession({
     headers: req.headers,
   });
 
-  log.debug(
-    {
-      userId: sessionData?.user?.id ?? null,
-      hasSession: !!sessionData?.session,
-    },
+  const userId = sessionData?.user?.id ?? null;
+  const contextLog = userId ? log.child({ userId }) : log;
+
+  contextLog.debug(
+    { hasSession: !!sessionData?.session },
     "trpc context created",
   );
 
@@ -21,6 +27,7 @@ export async function createContext(req: Request) {
     db,
     session: sessionData?.session ?? null,
     user: sessionData?.user ?? null,
+    log: contextLog,
   };
 }
 
