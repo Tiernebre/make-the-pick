@@ -30,11 +30,9 @@ test.describe("League settings", () => {
     await expect(page.getByLabel("Max Players")).toHaveValue("4");
 
     // Toggle a setting that shows up uniquely in the rules card.
-    const legendariesSwitch = page.getByRole("switch", {
-      name: /Exclude Legendaries/,
-    });
-    await legendariesSwitch.scrollIntoViewIfNeeded();
-    await legendariesSwitch.click({ force: true });
+    // The Mantine Switch input is visually hidden (zero-size), so we click
+    // the label text instead which toggles the underlying checkbox.
+    await page.getByText("Exclude Legendaries").click();
 
     // Wait for auto-save to settle before navigating away.
     await expect(page.getByText("Saving...")).toHaveCount(0, { timeout: 5000 });
